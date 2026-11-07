@@ -266,6 +266,14 @@ body.inhome{padding-block:0 calc(88px + env(safe-area-inset-bottom,0px))}
 .gx.sheetbg .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.gx.sheetbg .grid .full{grid-column:1/-1}
 .gx h4.sec{grid-column:1/-1;margin:8px 0 0;font-size:12px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--navy);border-bottom:1px solid var(--line);padding-bottom:4px}
 .gx input.plain[disabled],input.plain[disabled]{opacity:.7}
+.gx2pin{position:fixed;inset:0;background:rgba(10,20,40,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:18px}
+.gx2box{background:#fff;border-radius:16px;padding:18px;width:100%;max-width:340px;box-shadow:0 10px 40px rgba(0,0,0,.3)}
+.gx2box h3{margin:0 0 6px;font-size:18px;color:var(--navy)}.gx2box p{margin:0 0 8px;font-size:13px;color:var(--muted)}.gx2err{color:var(--bad)!important;font-weight:700;min-height:16px}
+.gx2box label{display:block;font-size:13px;font-weight:700;margin-top:8px}.gx2box input{display:block;width:100%;margin-top:4px;padding:12px;font-size:22px;letter-spacing:.5em;text-align:center;border:1.5px solid var(--line,#ccd);border-radius:10px}
+.gx2btns{display:flex;gap:8px;margin-top:14px}.gx2btns button{flex:1;padding:11px;border-radius:10px;border:1.5px solid var(--line,#ccd);background:#fff;font-weight:800;font-size:15px}.gx2btns .pri{background:var(--accent);color:#fff;border-color:var(--accent)}
+.gx2cob{display:grid;grid-template-columns:1.3fr 1fr 1.3fr;gap:6px;align-items:center;padding:10px 0;border-bottom:1px solid var(--h-line,#dde)}
+.gx2bs{font-weight:800;font-size:13px;grid-column:span 2}.gx2cob .btn{justify-self:end}.gx2cob select{min-width:70px}.hnavin span{font-size:9.5px}
+#gxHome{display:flex;flex-direction:column;gap:10px}
 </style>
 </head>
 <body>
@@ -293,20 +301,16 @@ body.inhome{padding-block:0 calc(88px + env(safe-area-inset-bottom,0px))}
       <div class="hh"><div class="hplate"><img id="logoHero" alt="Novatrade Import &amp; Export"></div>
         <div class="ht"><small>Gestión</small><h1>¿Qué hacemos hoy?</h1></div>
         <span class="hpill ok" id="homePill">En línea</span></div>
-      <div class="hc hfirst"><div class="hrow"><h2>Importaciones en curso</h2><button class="hlink" data-go="track" type="button">Ver todas</button></div>
+      <div id="gxHome" class="gx"></div>
+      <div id="oldHome" hidden><div class="hc hfirst"><div class="hrow"><h2>Importaciones en curso</h2><button class="hlink" data-go="track" type="button">Ver todas</button></div>
         <div class="hcnt"><div><b class="c1" id="hcPed">0</b><span>Pedido</span></div><div><b class="c2" id="hcTra">0</b><span>Tránsito</span></div><div><b class="c3" id="hcAdu">0</b><span>Aduana</span></div><div><b class="c4" id="hcDis">0</b><span>Disponible</span></div></div>
         <div class="hbar" aria-hidden="true"><i id="hbPed"></i><i id="hbTra"></i><i id="hbAdu"></i><i id="hbDis"></i></div>
         <p class="hint" id="hcNone" style="margin:10px 0 0" hidden>No hay importaciones en curso.</p></div>
-      <button class="hc hop" id="hOp" data-go="openOp" data-id="" type="button" hidden><span class="hopi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/></svg></span><span class="hopt"><b id="hOpT"></b><small id="hOpS"></small></span><span class="halert" id="hOpA" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.01"/></svg><span id="hOpAn"></span></span></button>
-      <button class="hcta" data-go="startQuote" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span class="hctat"><b>Hacer cotización</b><small id="tQuote">Cotizar una operación de importación</small></span></button>
-      <div class="htiles">
+      <button class="hc hop" id="hOp" data-go="openOp" data-id="" type="button" hidden><span class="hopi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/></svg></span><span class="hopt"><b id="hOpT"></b><small id="hOpS"></small></span><span class="halert" id="hOpA" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.01"/></svg><span id="hOpAn"></span></span></button>      <div class="htiles">
         <button class="hc htile" data-go="saved" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg><b>Cotizaciones</b><small><span class="count" id="tSaved">0</span> <span id="tSavedW">guardadas</span></small></button>
         <button class="hc htile" data-go="clients" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c.6-3.4 3-5 6-5s5.4 1.6 6 5"/><path d="M16 5.2a3 3 0 010 5.6M18.5 15.3c1.6.7 2.6 2.1 2.9 4.7"/></svg><b>Clientes</b><small><span class="count" id="tClients">0</span> en el CRM</small></button>
         <button class="hc htile" data-go="catalog" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8l9-5 9 5v8l-9 5-9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg><b>Catálogo</b><small><span class="count" id="tCat">0</span> productos para WhatsApp</small></button>
-        <button class="hc htile" data-go="track" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/></svg><b>Seguimiento</b><small><span class="count" id="tTrk">0</span> activas · <span class="count" id="tTrkAl">0</span> <span id="tTrkAlW">alertas</span></small></button>
-        <button class="hc htile" data-go="flyers" type="button" style="grid-column:1/-1"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8.5 8h7M8.5 12h7M8.5 16h4"/></svg><b>Volantes</b><small><span class="count">17</span> volantes listos para enviar por WhatsApp</small></button>
-      </div>
-      <div class="hc hgreen" id="homeFollowCard" hidden><h2>Contactar hoy</h2><div id="homeFollow" style="display:flex;flex-direction:column;gap:8px"></div></div>
+        <button class="hc htile" data-go="track" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/></svg><b>Seguimiento</b><small><span class="count" id="tTrk">0</span> activas · <span class="count" id="tTrkAl">0</span> <span id="tTrkAlW">alertas</span></small></button>      </div>      </div>
       <div class="card"><details class="acc"><summary>Copia de seguridad e instalación</summary><div>
         <p class="hint" style="margin-bottom:12px">Las cotizaciones y los clientes se guardan en este teléfono. Si cambia de equipo o borra los datos del navegador se pierden, por eso conviene exportar una copia de vez en cuando.</p>
         <div class="row"><button class="btn sm" data-act="excel" type="button">Exportar a Excel</button><button class="btn sm" data-act="export" type="button">Exportar copia</button><button class="btn sm" data-act="import" type="button">Importar copia</button></div>
@@ -328,8 +332,8 @@ body.inhome{padding-block:0 calc(88px + env(safe-area-inset-bottom,0px))}
         <button type="button" data-go="saved"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 13h6M9 17h6"/></svg><span>Cotizaciones</span></button>
         <button type="button" data-go="clients"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c.6-3.4 3-5 6-5s5.4 1.6 6 5"/><path d="M16 5.2a3 3 0 010 5.6M18.5 15.3c1.6.7 2.6 2.1 2.9 4.7"/></svg><span>Clientes</span></button>
         <button type="button" data-go="catalog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8l9-5 9 5v8l-9 5-9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg><span>Catálogo</span></button>
+        <button type="button" data-go="compras"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg><span>Importaciones</span></button>
         <button type="button" data-go="track"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/></svg><span>Seguimiento</span></button>
-        <button type="button" data-go="compras"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg><span>Compras</span></button>
       </div></nav>
     </section>
 
@@ -394,6 +398,8 @@ body.inhome{padding-block:0 calc(88px + env(safe-area-inset-bottom,0px))}
 
     <!-- COTIZACIONES GUARDADAS -->
     <section id="view-saved" hidden style="flex-direction:column;gap:14px">
+<button class="hcta" data-go="startQuote" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span class="hctat"><b>Hacer cotización</b><small id="tQuote">Cotizar una operación de importación</small></span></button>
+<div class="hc hgreen" id="homeFollowCard" hidden><h2>Contactar hoy</h2><div id="homeFollow" style="display:flex;flex-direction:column;gap:8px"></div></div>
       <input class="plain" id="qSearch" placeholder="Buscar por código de cliente, apellido o N.º de cotización" autocomplete="off">
       <button class="btn sm" data-act="excel" type="button">Exportar todo a Excel</button>
       <div class="card"><div id="qList"><p class="hint">Cargando…</p></div></div>
@@ -450,7 +456,7 @@ body.inhome{padding-block:0 calc(88px + env(safe-area-inset-bottom,0px))}
         <p class="hint" style="margin:0 0 8px">El cliente ve el estado de su pedido con este código, sin precios ni costos.</p>
         <p style="font-size:26px;font-weight:800;letter-spacing:.08em;margin:0 0 4px" id="opCode"></p><p class="hint" id="opPubHint" style="margin:0 0 12px"></p>
         <div class="row"><button class="btn pri sm" data-go="opShare" type="button">Enviar código por WhatsApp</button><button class="btn sm" data-go="opCopy" type="button">Copiar enlace</button><button class="btn sm" data-go="opPage" type="button">Ver página</button></div></div>
-      <div class="card"><h2>Pedido y embarque</h2><div class="grid">
+      <div class="card" id="opEmbCard"><h2>Pedido y embarque</h2><p class="hint" style="margin:0 0 10px">Solo lectura: se completa solo desde Importaciones.</p><div id="opLinkBox" class="gx"></div><div class="grid">
         <label class="f full"><span>Tipo de transporte</span><select class="plain" data-of="modalidad"><option value="">Seleccionar…</option><option>Aéreo</option><option>Marítimo</option><option>Terrestre</option></select></label>
         <label class="f full"><span>Proveedor</span><input class="plain" data-of="proveedor" autocomplete="off"></label>
         <label class="f"><span>N.º de pedido</span><input class="plain" data-of="pedidoNum" autocomplete="off"></label>
@@ -458,11 +464,12 @@ body.inhome{padding-block:0 calc(88px + env(safe-area-inset-bottom,0px))}
         <label class="f"><span>Contenedor</span><input class="plain" data-of="contenedor" autocomplete="off"></label>
         <label class="f"><span>Documento de embarque</span><input class="plain" data-of="bl" autocomplete="off"></label>
         <label class="f"><span>Fecha de embarque (ETD)</span><input class="plain" type="date" data-of="etd"></label><label class="f"><span>Llegada estimada a puerto (ETA)</span><input class="plain" type="date" data-of="eta"></label><label class="f full"><span>Fecha estimada de entrega</span><input class="plain" type="date" data-of="entrega"></label></div><div class="row" style="margin-top:12px"><button class="btn sm" data-go="opTrack" type="button">Rastrear contenedor en la naviera</button></div><p class="hint" id="trackHint" style="margin-top:8px">Copia el N.º de contenedor y abre la página de la naviera. Luego anote aquí la etapa y la ETA.</p></div>
-      <div class="card"><h2>Pagos al proveedor (USD)</h2>
+      <div class="card" id="opPagosOld" hidden><h2>Pagos al proveedor (USD)</h2>
         <label class="f full"><span>Monto total del pedido (USD)</span><input class="plain" inputmode="decimal" data-of="pedidoUSD" autocomplete="off"></label>
         <div id="opPagos"></div>
         <div class="row" style="margin-top:10px"><button class="btn sm" data-go="addPay" type="button">+ Agregar pago</button></div>
         <p class="hint" id="payTot" style="margin-top:10px"></p></div>
+      <div class="card" id="opCobCard"><h2>Cobros del cliente</h2><div id="opCobros"></div><div class="row" style="margin-top:10px"><button class="btn sm" data-g2="addCob" type="button">+ Registrar cobro</button></div><p class="hint" id="cobTot" style="margin-top:10px"></p></div>
       <div class="card"><h2>Costos: cotizado vs. real (Bs)</h2>
         <div class="cost head"><span>Concepto</span><span class="n">Cotizado</span><span class="n">Real</span><span class="n">Dif.</span></div>
         <div id="opCostos"></div><p class="hint" id="costTot" style="margin-top:10px"></p></div>
@@ -474,6 +481,7 @@ body.inhome{padding-block:0 calc(88px + env(safe-area-inset-bottom,0px))}
     <!-- CATÁLOGO -->
     <section id="view-compras" class="gx" hidden style="flex-direction:column;gap:14px"></section>
     <section id="view-catalog" hidden style="flex-direction:column;gap:14px">
+<button class="hc htile" data-go="flyers" type="button" style="width:100%;text-align:left"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8.5 8h7M8.5 12h7M8.5 16h4"/></svg><b>Volantes</b><small><span class="count">17</span> volantes listos para enviar por WhatsApp</small></button>
       <div class="row"><input class="plain" id="catSearch" placeholder="Buscar producto o modelo" autocomplete="off" style="flex:1"><button class="btn sm" data-go="newProduct" type="button">+ Producto</button></div>
       <div class="chips" id="catChips"></div>
       <div id="catList" style="display:flex;flex-direction:column;gap:10px"></div>
@@ -995,7 +1003,7 @@ document.addEventListener('click',async e=>{
 
 /* ---------- pantalla principal, clientes (CRM) y navegación ---------- */
 const VIEWS=['compras','home','quote','saved','clients','client','catalog','product','send','login','track','op','flyers','flyer'];
-const TITLES={quote:'Hacer cotización',saved:'Cotizaciones guardadas',clients:'Clientes',client:'Ficha de cliente',catalog:'Catálogo',product:'Producto',send:'Enviar por WhatsApp',flyers:'Volantes',flyer:'Volante',track:'Seguimiento',op:'Operación',compras:'Compras e importaciones'};
+const TITLES={quote:'Hacer cotización',saved:'Cotizaciones guardadas',clients:'Clientes',client:'Ficha de cliente',catalog:'Catálogo',product:'Producto',send:'Enviar por WhatsApp',flyers:'Volantes',flyer:'Volante',track:'Seguimiento',op:'Operación',compras:'Importaciones'};
 const ESTADOS=[['nuevo','Nuevo'],['cotizado','Cotizado'],['ganado','Ganado'],['perdido','Perdido']];
 let clients=[],C=null,cNew=false,cPick=false,pickMode=false,cFilter='todos',cQuery='',qQuery='',confirmDelClient=false,newArm=false,cTimer;
 const loadClients=()=>{clients=lsGet('nt_clients',[])};
@@ -1020,7 +1028,7 @@ function setView(v,push=true){
   $('#btnBack').textContent=v==='client'?'‹ Clientes':(v==='product'||v==='send')?'‹ Catálogo':v==='flyer'?'‹ Volantes':v==='op'?'‹ Seguimiento':'‹ Inicio';
   if(v==='home')renderHome();
   if(v==='compras'){$('#subtitle').textContent='';if(window.GX)GX.render()}
-  if(v==='saved'){$('#subtitle').textContent=qCache.length+' guardadas';renderList()}
+  if(v==='saved'){$('#subtitle').textContent=qCache.length+' guardadas';renderList();renderHome()}
   if(v==='clients'){$('#subtitle').textContent=clients.length+' clientes';renderClients()}
   if(v==='client')$('#subtitle').textContent='';
   if(v==='catalog')renderCatalog();
@@ -1310,13 +1318,13 @@ document.addEventListener('input',e=>{if(e.target.id==='flMsg')flMsgEdited=true}
 const CP='test_';
 try{if(CP){const b=document.getElementById('testBanner');if(b)b.hidden=false}}catch(_){}
 const FB_CFG={apiKey:"AIzaSyA2J3Z4gHQyYYvU8AzSVs9r_L_DG6Ax9AE",authDomain:"crm-novatrade.firebaseapp.com",projectId:"crm-novatrade",storageBucket:"crm-novatrade.firebasestorage.app",messagingSenderId:"944968945401",appId:"1:944968945401:web:c7af94f3b5e478442c9c28"};
-const COLS=['clients','quotes','catalog','ops','imports','purchases','purchaseLines','payments'];
-let cloudUser=null,cloudRemote={clients:{},quotes:{},catalog:{},ops:{},imports:{},purchases:{},purchaseLines:{},payments:{}},cloudUnsubs=[],cloudT,cloudSeen={},cloudMsg='';
+const COLS=['clients','quotes','catalog','ops','imports','purchases','purchaseLines','payments','settings'];
+let cloudUser=null,cloudRemote={clients:{},quotes:{},catalog:{},ops:{},imports:{},purchases:{},purchaseLines:{},payments:{},settings:{}},cloudUnsubs=[],cloudT,cloudSeen={},cloudMsg='';
 const strip=o=>JSON.parse(JSON.stringify(o));
 const gxd=c=>window.GX?GX.DB[c]:[];
-const cl_get={clients:()=>clients,quotes:()=>lsGet('nt_quotes',[]),catalog:()=>catalog,ops:()=>ops,imports:()=>gxd('imports'),purchases:()=>gxd('purchases'),purchaseLines:()=>gxd('purchaseLines'),payments:()=>gxd('payments')};
-const cl_upd={clients:c=>c.actualizado||c.creado||0,quotes:q=>q.ts||0,catalog:p=>p.upd||0,ops:o=>o.upd||0,imports:r=>r.upd||0,purchases:r=>r.upd||0,purchaseLines:r=>r.upd||0,payments:r=>r.upd||0};
-const GX_COLS=['imports','purchases','purchaseLines','payments'];
+const cl_get={clients:()=>clients,quotes:()=>lsGet('nt_quotes',[]),catalog:()=>catalog,ops:()=>ops,imports:()=>gxd('imports'),purchases:()=>gxd('purchases'),purchaseLines:()=>gxd('purchaseLines'),payments:()=>gxd('payments'),settings:()=>gxd('settings')};
+const cl_upd={clients:c=>c.actualizado||c.creado||0,quotes:q=>q.ts||0,catalog:p=>p.upd||0,ops:o=>o.upd||0,imports:r=>r.upd||0,purchases:r=>r.upd||0,purchaseLines:r=>r.upd||0,payments:r=>r.upd||0,settings:r=>r.upd||0};
+const GX_COLS=['imports','purchases','purchaseLines','payments','settings'];
 function cl_set(col,arr){
   if(col==='clients'){clients=arr;saveClients();updateDatalist()}
   else if(col==='quotes'){lsSet('nt_quotes',arr);loadList()}
@@ -1636,8 +1644,8 @@ document.addEventListener('change',e=>{
 <script>
 /* ===== Módulo Compras e importaciones (Pedidos, Importaciones, Pagos) · integrado al cotizador ===== */
 (function(){
-const COLS_GX=['imports','purchases','purchaseLines','payments'];
-const KEYS={imports:'nt_imports',purchases:'nt_purchases',purchaseLines:'nt_purchaseLines',payments:'nt_payments'};
+const COLS_GX=['imports','purchases','purchaseLines','payments','settings'];
+const KEYS={imports:'nt_imports',purchases:'nt_purchases',purchaseLines:'nt_purchaseLines',payments:'nt_payments',settings:'nt_settings'};
 const DB={};
 for(const c of COLS_GX){const v=lsGet(KEYS[c],[]);DB[c]=Array.isArray(v)?v:[]}
 /* instantánea para detectar qué registros cambiaron (y ponerles marca de fecha 'upd' que usa la nube) */
@@ -1952,10 +1960,182 @@ function fPag(id,impId,pedId){
   b.addEventListener('input',upd);b.addEventListener('change',upd);upd();
 }
 
-window.GX={render,go,fImp,fPed,fLin,fPag,fCotEnPed,quitarCot,syncOps,lockOp,setCol,
+window.GX={render,go,fImp,fPed,fLin,fPag,fCotEnPed,quitarCot,syncOps,lockOp,setCol,save,saldoPedido,totalPedido,ESTADOS_PED,ESTADOS_IMP,
   get DB(){return DB},COLS:COLS_GX,KEYS};
 try{syncOps()}catch(_){}
 })();
+</script>
+<script>
+/* ===== Gestión Novatrade · Parte 1: Inicio dashboard, clave de 4 números, cobros del cliente ===== */
+(function(){
+const q$=s=>document.querySelector(s);
+const E=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const num=v=>parseNum(v);
+const yearOfTs=t=>t?new Date(t).getFullYear():new Date().getFullYear();
+let dashYear=new Date().getFullYear();
+
+/* ---------- CLAVE DE 4 NÚMEROS ---------- */
+const pinRec=()=>(GX.DB.settings||[]).find(x=>x.id==='pin');
+async function hash(pin,salt){
+  try{const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(salt+':'+pin));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('')}
+  catch(e){let h=0;for(const c of salt+pin)h=(h*31+c.charCodeAt(0))|0;return 'f'+h}}
+function askPin(title,msg,labels,err){
+  return new Promise(res=>{
+    const w=document.createElement('div');w.className='gx2pin';
+    w.innerHTML=`<div class="gx2box"><h3>${E(title)}</h3><p>${E(msg||'')}</p><p class="gx2err">${E(err||'')}</p>
+      ${labels.map((l,i)=>`<label>${E(l)}<input type="password" inputmode="numeric" maxlength="4" autocomplete="off" data-i="${i}"></label>`).join('')}
+      <div class="gx2btns"><button type="button" data-a="no">Cancelar</button><button type="button" data-a="ok" class="pri">Aceptar</button></div></div>`;
+    document.body.appendChild(w);
+    const ins=[...w.querySelectorAll('input')];ins[0].focus();
+    const done=v=>{w.remove();res(v)};
+    ins.forEach(i=>i.addEventListener('input',()=>{i.value=i.value.replace(/\D/g,'').slice(0,4)}));
+    w.addEventListener('click',e=>{const a=e.target.dataset&&e.target.dataset.a;
+      if(a==='no')done(null);
+      if(a==='ok'){const v=ins.map(i=>i.value);if(v.some(x=>x.length!==4)){w.querySelector('.gx2err').textContent='Son 4 números.';return}done(v)}});
+    w.addEventListener('keydown',e=>{if(e.key==='Enter')w.querySelector('[data-a=ok]').click()});
+  })}
+async function setPin(pin){
+  const salt=Math.random().toString(36).slice(2,10),h=await hash(pin,salt);
+  const arr=GX.DB.settings;const r=pinRec();
+  if(r){r.salt=salt;r.hash=h}else arr.push({id:'pin',salt,hash:h});
+  GX.save()}
+/* Pide la clave. Si todavía no existe, la crea. Devuelve true si se autoriza. */
+async function pinOk(motivo){
+  const r=pinRec();
+  if(!r){
+    const v=await askPin('Crear clave de 4 números','Aún no hay clave. Cree una para proteger cambios y borrados. Es la misma para todo el equipo.',['Nueva clave','Repita la clave']);
+    if(!v)return false;
+    if(v[0]!==v[1]){toast('Las claves no coinciden');return false}
+    await setPin(v[0]);toast('Clave creada');return true}
+  let err='';
+  for(;;){
+    const v=await askPin('Clave de 4 números',motivo||'Ingrese la clave para continuar.',['Clave'],err);
+    if(!v)return false;
+    if(await hash(v[0],r.salt)===r.hash)return true;
+    err='Clave incorrecta.'}}
+async function cambiarPin(){
+  if(pinRec()&&!(await pinOk('Ingrese la clave actual.')))return;
+  if(!pinRec())return; /* pinOk acaba de crearla */
+  const v=await askPin('Nueva clave','Escriba la nueva clave de 4 números.',['Nueva clave','Repita la clave']);
+  if(!v)return;if(v[0]!==v[1]){toast('Las claves no coinciden');return}
+  await setPin(v[0]);toast('Clave cambiada');renderDash()}
+
+/* ---------- INICIO · DASHBOARD ---------- */
+function estadoCot(){ /* por estado actual */
+  const c={enviadas:0,confirmadas:0,entregadas:0,caidas:0},vend={n:0,bs:0,cob:0};
+  const qs=qCache||[],byQ={};ops.forEach(o=>{if(o.quoteId)byQ[o.quoteId]=o});
+  const cnt=(o,y)=>{
+    if(y!==dashYear)return;
+    const e=o?o.etapa:'enviada';
+    if(e==='cancelada')c.caidas++;
+    else if(e==='entregada'){c.entregadas++;vend.n++;vend.bs+=+o.total||0;vend.cob+=cobrado(o)}
+    else if(e==='enviada')c.enviadas++;
+    else c.confirmadas++};
+  qs.forEach(q=>cnt(byQ[q.id],yearOfTs(q.ts)));
+  ops.forEach(o=>{if(!o.quoteId||!qs.some(q=>q.id===o.quoteId))cnt(o,yearOfTs(o.upd))});
+  return{c,vend}}
+const cobBs=x=>x.moneda==='USD'?num(x.monto)*num(x.tc):num(x.monto);
+const cobrado=o=>(o.cobros||[]).reduce((s,x)=>s+cobBs(x),0);
+function acciones(){
+  const L=[],D=GX.DB;
+  /* cotización confirmada sin pedido */
+  const enPed=new Set(D.purchaseLines.map(l=>l.quoteId));
+  ops.filter(o=>['confirmada'].includes(o.etapa)&&!enPed.has(o.quoteId)).forEach(o=>
+    L.push({c:'bad',t:'Cotización '+o.numero+' confirmada sin pedido',s:o.clienteNombre||'',go:`data-go="openOp" data-id="${o.id}"`}));
+  /* pedido sin importación */
+  D.purchases.filter(p=>!p.importId&&p.estado!=='Recibido').forEach(p=>
+    L.push({c:'warn',t:'Pedido '+p.numero+' sin importación',s:p.proveedor||'',go:`data-g2="gxgo" data-v="pedd" data-id="${p.id}"`}));
+  /* pagos pendientes a proveedores */
+  const pend=D.purchases.map(p=>({p,s:GX.saldoPedido(p.id)})).filter(x=>x.s>0.5&&GX.totalPedido(x.p.id)>0);
+  if(pend.length){const tot=pend.reduce((s,x)=>s+x.s,0);
+    L.push({c:'warn',t:'Pagos pendientes a proveedores: USD '+nf(tot,0),s:pend.length+' pedido(s) con saldo',go:'data-g2="gxgo" data-v="pag" data-id=""'})}
+  /* alertas de seguimiento */
+  const act=ops.filter(o=>!['entregada','cancelada'].includes(o.etapa));
+  const na=act.reduce((s,o)=>s+opAlerts(o).length,0);
+  if(na)L.push({c:'warn',t:na+(na===1?' alerta':' alertas')+' en el seguimiento',s:'Revise las operaciones activas',go:'data-go="track"'});
+  /* saldo por cobrar de entregadas */
+  const porCobrar=ops.filter(o=>o.etapa==='entregada'&&(+o.total||0)-cobrado(o)>1);
+  if(porCobrar.length){const t=porCobrar.reduce((s,o)=>s+(+o.total||0)-cobrado(o),0);
+    L.push({c:'bad',t:'Cobros pendientes de clientes: Bs '+nf(t,0),s:porCobrar.length+' operación(es) entregada(s) con saldo',go:`data-go="openOp" data-id="${porCobrar[0].id}"`})}
+  return L}
+function renderDash(){
+  const box=q$('#gxHome');if(!box||!window.GX)return;
+  const D=GX.DB,{c,vend}=estadoCot();
+  const years=new Set([new Date().getFullYear(),dashYear]);(qCache||[]).forEach(q=>years.add(yearOfTs(q.ts)));
+  const cntBy=(arr,key,list)=>list.map(e=>[e,arr.filter(x=>x[key]===e).length]);
+  const ped=cntBy(D.purchases,'estado',GX.ESTADOS_PED),imp=cntBy(D.imports,'estado',GX.ESTADOS_IMP);
+  const acc=acciones();
+  const tile=(n,l,cl)=>`<div><b class="${cl}">${n}</b><span>${l}</span></div>`;
+  box.innerHTML=`
+  <div class="hc"><div class="hrow"><h2>Cotizaciones</h2>
+    <select class="plain" data-g2="year" style="width:auto;padding:4px 8px">${[...years].sort().reverse().map(y=>`<option${y===dashYear?' selected':''}>${y}</option>`).join('')}</select></div>
+    <div class="hcnt">${tile(c.enviadas,'Enviadas','c1')}${tile(c.confirmadas,'Confirmadas','c2')}${tile(c.entregadas,'Entregadas','c4')}${tile(c.caidas,'Caídas','c3')}</div>
+    <div class="row" style="margin-top:10px"><button class="btn pri sm" data-go="saved" type="button" style="flex:1">Ir a Cotizaciones</button></div></div>
+  <div class="hc"><div class="hrow"><h2>Ventas completadas ${dashYear}</h2></div>
+    <div class="hcnt" style="grid-template-columns:repeat(3,1fr)">${tile(vend.n,'Ventas','c4')}${tile(nf(vend.bs,0),'Bs vendido','c1')}${tile(nf(vend.cob,0),'Bs cobrado','c2')}</div>
+    <p class="hint" style="margin:10px 0 0">Cuenta las cotizaciones en «Entrega finalizada». Cuando se registre la factura o el recibo se separarán por tipo.</p></div>
+  <div class="hc"><div class="hrow"><h2>Pedidos</h2><button class="hlink" data-g2="gxgo" data-v="ped" type="button">Ver</button></div>
+    <div class="hcnt">${ped.map(([e,n],i)=>tile(n,e,['c1','c2','c3','c4'][i%4])).join('')}</div></div>
+  <div class="hc"><div class="hrow"><h2>Importaciones</h2><button class="hlink" data-g2="gxgo" data-v="imp" type="button">Ver</button></div>
+    <div class="hcnt" style="grid-template-columns:repeat(3,1fr);row-gap:12px">${imp.map(([e,n],i)=>tile(n,e,['c1','c2','c3','c4','c2','c1'][i%6])).join('')}</div></div>
+  <div class="hc hgreen"><h2>Acciones a realizar</h2>
+    ${acc.length?`<div style="display:flex;flex-direction:column;gap:2px;margin-top:6px">${acc.map(a=>`<button class="hfl" type="button" ${a.go}><i style="background:var(--${a.c==='bad'?'bad':'warn'})"></i><span><b>${E(a.t)}</b><small>${E(a.s)}</small></span></button>`).join('')}</div>`:'<p class="hint" style="margin:8px 0 0">Todo al día. No hay acciones pendientes.</p>'}</div>
+  <div class="hc"><h2>Pasivos bancarios</h2><p class="hint" style="margin:8px 0 0">Próximamente: alertas por fecha de pago de préstamos y cuotas.</p></div>
+  <div class="hc"><div class="hrow"><h2>Clave de 4 números</h2><button class="hlink" data-g2="pin" type="button">${pinRec()?'Cambiar':'Crear'}</button></div>
+    <p class="hint" style="margin:6px 0 0">Protege borrar cobros y pagos. Es la misma para todo el equipo.</p></div>`;
+}
+
+/* ---------- OPERACIÓN: pedido y embarque (solo lectura) + cobros ---------- */
+function linkBox(){
+  const box=q$('#opLinkBox');if(!box||!OP||!window.GX)return;
+  const D=GX.DB,ids=[...new Set(D.purchaseLines.filter(l=>l.quoteId===OP.quoteId).map(l=>l.purchaseId))];
+  const peds=ids.map(id=>D.purchases.find(p=>p.id===id)).filter(Boolean);
+  if(!peds.length){box.innerHTML=`<div class="empty" style="padding:6px 0 12px">Esta cotización aún no está en ningún pedido.<br><button class="btn sm" data-g2="gxgo" data-v="ped" type="button" style="margin-top:8px">Ir a Pedidos</button></div>`;return}
+  box.innerHTML=`<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px">${peds.map(p=>{
+    const im=D.imports.find(i=>i.id===p.importId);
+    return `<div class="card" style="padding:10px 12px;margin:0"><button class="item" data-g2="gxgo" data-v="pedd" data-id="${p.id}" type="button"><span class="tag">${E(p.estado)}</span><b>Pedido ${E(p.numero)}</b><small>${E(p.proveedor||'')}</small></button>
+      ${im?`<button class="item" data-g2="gxgo" data-v="impd" data-id="${im.id}" type="button"><span class="tag">${E(im.estado)}</span><b>Importación ${E(im.numero)}</b><small>${im.eta?'ETA '+E(im.eta):''}</small></button>`:'<small class="hint">Pedido sin importación asignada.</small>'}</div>`}).join('')}</div>`}
+function cobrosHtml(){
+  if(!OP)return;
+  OP.cobros=OP.cobros||[];
+  q$('#opCobros').innerHTML=OP.cobros.length?OP.cobros.map((x,i)=>`<div class="gx2cob">
+    <input class="plain" type="date" data-ocob="fecha" data-i="${i}" value="${E(x.fecha||'')}">
+    <select class="plain" data-ocob="moneda" data-i="${i}"><option${x.moneda!=='USD'?' selected':''}>Bs</option><option${x.moneda==='USD'?' selected':''}>USD</option></select>
+    <input class="plain" inputmode="decimal" placeholder="Monto" data-ocob="monto" data-i="${i}" value="${x.monto?showNum(x.monto):''}" autocomplete="off">
+    ${x.moneda==='USD'?`<input class="plain" inputmode="decimal" placeholder="T/C del día" data-ocob="tc" data-i="${i}" value="${x.tc?showNum(x.tc):''}" autocomplete="off">`:''}
+    <span class="gx2bs">Bs ${nf(cobBs(x),2)}</span>
+    <input class="plain" placeholder="Nota (depósito, efectivo…)" data-ocob="nota" data-i="${i}" value="${E(x.nota||'')}" autocomplete="off" style="grid-column:1/-1">
+    <button class="btn sm ghost danger" type="button" data-g2="delCob" data-i="${i}">Quitar</button></div>`).join(''):'<p class="hint">Aún no hay cobros registrados.</p>';
+  cobTot()}
+function cobTot(){
+  if(!OP)return;const tot=+OP.total||0,cob=cobrado(OP),sal=tot-cob;
+  q$('#cobTot').innerHTML=`Cotizado <b>Bs ${nf(tot,2)}</b> · Cobrado <b>Bs ${nf(cob,2)}</b> · Saldo por cobrar <b>Bs ${nf(Math.max(sal,0),2)}</b> ${sal<=0.5&&tot>0?'✓ completo':''}`}
+
+/* ---------- ENGANCHES ---------- */
+const _rh=renderHome;renderHome=function(){_rh();try{renderDash()}catch(e){console.error(e)}};
+const _ro=renderOp;renderOp=function(){_ro();try{
+  for(const el of document.querySelectorAll('#opEmbCard [data-of]'))el.disabled=true;
+  linkBox();cobrosHtml()}catch(e){console.error(e)}};
+
+document.addEventListener('click',async e=>{
+  const b=e.target.closest('[data-g2]');if(!b)return;const a=b.dataset.g2;
+  if(a==='gxgo'){setView('compras');GX.go(b.dataset.v,b.dataset.id||null)}
+  else if(a==='pin')cambiarPin();
+  else if(a==='addCob'){OP.cobros=OP.cobros||[];OP.cobros.push({id:'c'+Date.now().toString(36),fecha:today(),moneda:'Bs',monto:0,tc:0,nota:''});opCommit();cobrosHtml()}
+  else if(a==='delCob'){if(await pinOk('Para borrar un cobro del cliente ingrese la clave.')){OP.cobros.splice(+b.dataset.i,1);opCommit();cobrosHtml()}}
+});
+document.addEventListener('input',e=>{
+  const t=e.target;if(!OP||!t.dataset||!t.dataset.ocob)return;
+  const x=OP.cobros[+t.dataset.i];if(!x)return;const k=t.dataset.ocob;
+  x[k]=(k==='monto'||k==='tc')?num(t.value):t.value;opCommitSoon();
+  const row=t.closest('.gx2cob');if(row)row.querySelector('.gx2bs').textContent='Bs '+nf(cobBs(x),2);cobTot()});
+document.addEventListener('change',e=>{
+  const t=e.target;
+  if(t.dataset&&t.dataset.g2==='year'){dashYear=+t.value;renderDash()}
+  if(OP&&t.dataset&&t.dataset.ocob==='moneda'){OP.cobros[+t.dataset.i].moneda=t.value;opCommit();cobrosHtml()}});
+window.GX2={pinOk,cambiarPin,renderDash};
+})();
+
 </script>
 </body>
 </html>
