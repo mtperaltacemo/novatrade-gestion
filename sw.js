@@ -1,7 +1,7 @@
-/* Service worker del Cotizador Novatrade: permite abrir la app sin internet.
+/* Service worker de Gestión Novatrade: permite abrir la app sin internet.
    Cuando publique una versión nueva, cambie el número de VERSION. */
-const VERSION='v17';
-const CACHE = 'nt-cotizador-' + VERSION;
+const VERSION='g1';
+const CACHE = 'nt-gestion-' + VERSION;
 const ARCHIVOS = ['./', 'index.html', 'manifest.webmanifest', 'firebase-bundle.js',
   'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'apple-touch-icon.png'];
 
@@ -9,7 +9,7 @@ self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => Promise.all(ARCHIVOS.map(u => c.add(u).catch(() => null)))).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', e => {
-  e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k.startsWith('nt-cotizador-') && k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
+  e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k.startsWith('nt-gestion-') && k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
 });
 /* Responde desde la copia guardada y la actualiza en segundo plano. */
 self.addEventListener('fetch', e => {
