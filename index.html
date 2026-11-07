@@ -274,6 +274,14 @@ body.inhome{padding-block:0 calc(88px + env(safe-area-inset-bottom,0px))}
 .gx2cob{display:grid;grid-template-columns:1.3fr 1fr 1.3fr;gap:6px;align-items:center;padding:10px 0;border-bottom:1px solid var(--h-line,#dde)}
 .gx2bs{font-weight:800;font-size:13px;grid-column:span 2}.gx2cob .btn{justify-self:end}.gx2cob select{min-width:70px}.hnavin span{font-size:9.5px}
 #gxHome{display:flex;flex-direction:column;gap:10px}
+.gx2h{font-size:13px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.gx2hub{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.gx2card{position:relative;text-align:left;background:var(--accent);color:#fff;border:0;border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:4px;cursor:pointer;min-height:92px}
+.gx2card b{font-size:15px}.gx2card small{font-size:12px;opacity:.9;font-weight:600}
+.gx2card.soon{background:#fff;color:var(--navy);border:1.5px dashed var(--h-line,#c5d3e3)}.gx2card.soon small{color:var(--muted);opacity:1}
+.gx2card em{font-style:normal;font-size:11px;font-weight:800;color:var(--warn);margin-top:auto}
+.gx2ro{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}.gx2ro div{background:#eef2f7;border-radius:10px;padding:8px 10px}
+.gx2ro small{display:block;font-size:11px;font-weight:700;color:var(--muted)}.gx2ro b{font-size:14px;color:var(--navy);word-break:break-word}
 </style>
 </head>
 <body>
@@ -398,7 +406,12 @@ body.inhome{padding-block:0 calc(88px + env(safe-area-inset-bottom,0px))}
 
     <!-- COTIZACIONES GUARDADAS -->
     <section id="view-saved" hidden style="flex-direction:column;gap:14px">
-<button class="hcta" data-go="startQuote" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span class="hctat"><b>Hacer cotización</b><small id="tQuote">Cotizar una operación de importación</small></span></button>
+<div class="gx2h">Nueva cotización</div><div class="gx2hub">
+  <button class="gx2card soon" data-g2="soon" data-msg="Venta de stock: se habilita junto con el módulo de Inventario." type="button"><b>Venta de stock</b><small>Vende de tu inventario con margen, IVA e IT</small><em>Próximamente</em></button>
+  <button class="gx2card soon" data-g2="soon" data-msg="Importación individual: en construcción (parte 6)." type="button"><b>Importación individual</b><small>Todos los cobros por categoría, con T/C por pago</small><em>Próximamente</em></button>
+  <button class="gx2card" data-go="startQuote" type="button"><b>Importación grupal</b><small id="tQuote">Cotizar una operación de importación</small></button>
+  <button class="gx2card soon" data-g2="soon" data-msg="Importación urgente (aérea): en construcción (parte 6)." type="button"><b>Importación urgente</b><small>Vía aérea: peso volumétrico y pickup</small><em>Próximamente</em></button>
+</div>
 <div class="hc hgreen" id="homeFollowCard" hidden><h2>Contactar hoy</h2><div id="homeFollow" style="display:flex;flex-direction:column;gap:8px"></div></div>
       <input class="plain" id="qSearch" placeholder="Buscar por código de cliente, apellido o N.º de cotización" autocomplete="off">
       <button class="btn sm" data-act="excel" type="button">Exportar todo a Excel</button>
@@ -456,14 +469,14 @@ body.inhome{padding-block:0 calc(88px + env(safe-area-inset-bottom,0px))}
         <p class="hint" style="margin:0 0 8px">El cliente ve el estado de su pedido con este código, sin precios ni costos.</p>
         <p style="font-size:26px;font-weight:800;letter-spacing:.08em;margin:0 0 4px" id="opCode"></p><p class="hint" id="opPubHint" style="margin:0 0 12px"></p>
         <div class="row"><button class="btn pri sm" data-go="opShare" type="button">Enviar código por WhatsApp</button><button class="btn sm" data-go="opCopy" type="button">Copiar enlace</button><button class="btn sm" data-go="opPage" type="button">Ver página</button></div></div>
-      <div class="card" id="opEmbCard"><h2>Pedido y embarque</h2><p class="hint" style="margin:0 0 10px">Solo lectura: se completa solo desde Importaciones.</p><div id="opLinkBox" class="gx"></div><div class="grid">
+      <div class="card" id="opEmbCard"><h2>Pedido y embarque</h2><p class="hint" style="margin:0 0 10px">Solo lectura: se completa solo desde Importaciones.</p><div id="opLinkBox" class="gx"></div><div id="opEmbRO" class="gx"></div><div class="grid" id="opEmbGrid" hidden>
         <label class="f full"><span>Tipo de transporte</span><select class="plain" data-of="modalidad"><option value="">Seleccionar…</option><option>Aéreo</option><option>Marítimo</option><option>Terrestre</option></select></label>
         <label class="f full"><span>Proveedor</span><input class="plain" data-of="proveedor" autocomplete="off"></label>
         <label class="f"><span>N.º de pedido</span><input class="plain" data-of="pedidoNum" autocomplete="off"></label>
         <label class="f"><span>Naviera</span><input class="plain" data-of="naviera" list="dlNav" autocomplete="off"><datalist id="dlNav"><option value="MSC"><option value="Maersk"><option value="COSCO"><option value="CMA CGM"><option value="Hapag-Lloyd"><option value="ONE"><option value="Evergreen"><option value="DHL"><option value="FedEx"><option value="UPS"></datalist></label>
         <label class="f"><span>Contenedor</span><input class="plain" data-of="contenedor" autocomplete="off"></label>
         <label class="f"><span>Documento de embarque</span><input class="plain" data-of="bl" autocomplete="off"></label>
-        <label class="f"><span>Fecha de embarque (ETD)</span><input class="plain" type="date" data-of="etd"></label><label class="f"><span>Llegada estimada a puerto (ETA)</span><input class="plain" type="date" data-of="eta"></label><label class="f full"><span>Fecha estimada de entrega</span><input class="plain" type="date" data-of="entrega"></label></div><div class="row" style="margin-top:12px"><button class="btn sm" data-go="opTrack" type="button">Rastrear contenedor en la naviera</button></div><p class="hint" id="trackHint" style="margin-top:8px">Copia el N.º de contenedor y abre la página de la naviera. Luego anote aquí la etapa y la ETA.</p></div>
+        <label class="f"><span>Fecha de embarque (ETD)</span><input class="plain" type="date" data-of="etd"></label><label class="f"><span>Llegada estimada a puerto (ETA)</span><input class="plain" type="date" data-of="eta"></label><label class="f full"><span>Fecha estimada de entrega</span><input class="plain" type="date" data-of="entrega"></label></div><div class="row" style="margin-top:12px"><button class="btn sm" data-go="opTrack" type="button">Rastrear contenedor en la naviera</button></div><p class="hint" id="trackHint" style="margin-top:8px">Copia el N.º de contenedor y abre la página de la naviera para rastrearlo.</p><label class="f full" style="margin-top:12px"><span>Información adicional del embarque (comentario)</span><textarea class="ta" data-of="embNota" placeholder="Lo que aún no figura en el pedido o la importación…"></textarea></label></div>
       <div class="card" id="opPagosOld" hidden><h2>Pagos al proveedor (USD)</h2>
         <label class="f full"><span>Monto total del pedido (USD)</span><input class="plain" inputmode="decimal" data-of="pedidoUSD" autocomplete="off"></label>
         <div id="opPagos"></div>
@@ -2112,14 +2125,27 @@ function cobTot(){
   q$('#cobTot').innerHTML=`Cotizado <b>Bs ${nf(tot,2)}</b> · Cobrado <b>Bs ${nf(cob,2)}</b> · Saldo por cobrar <b>Bs ${nf(Math.max(sal,0),2)}</b> ${sal<=0.5&&tot>0?'✓ completo':''}`}
 
 /* ---------- ENGANCHES ---------- */
+function fd(v){const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(v||'');return m?m[3]+'/'+m[2]+'/'+m[1]:v}
+function embRO(){
+  const box=q$('#opEmbRO');if(!box||!OP)return;
+  const f=[['Tipo de transporte','modalidad'],['Proveedor','proveedor'],['N.º de pedido','pedidoNum'],['Naviera','naviera'],['Contenedor','contenedor'],['Documento de embarque','bl'],['Fecha de embarque (ETD)','etd',1],['Llegada a puerto (ETA)','eta',1],['Entrega estimada','entrega',1]];
+  box.innerHTML='<div class="gx2ro">'+f.map(([l,k,d])=>{const v=OP[k];return '<div><small>'+l+'</small><b>'+(v?E(d?fd(v):v):'—')+'</b></div>'}).join('')+'</div>'}
+function stageGate(){
+  const ft=window.__opFromTrack===true;
+  ['#opStages','#btnNextE','#opCancelRow'].forEach(sel=>{const e=q$(sel);if(e)e.style.display=ft?'':'none'});
+  let st=q$('#opStageRO');if(!st){st=document.createElement('p');st.id='opStageRO';st.className='hint';st.style.margin='0 0 8px';q$('#opStages').before(st)}
+  st.hidden=ft;st.innerHTML='Estado actual: <b>'+E(ETL[OP.etapa]||OP.etapa)+'</b>. El estado solo se cambia desde <a href="#" data-go="track">Seguimiento</a>.'}
+const _oo=openOp;openOp=function(id){window.__opFromTrack=(view==='track');return _oo(id)};
+
 const _rh=renderHome;renderHome=function(){_rh();try{renderDash()}catch(e){console.error(e)}};
 const _ro=renderOp;renderOp=function(){_ro();try{
-  for(const el of document.querySelectorAll('#opEmbCard [data-of]'))el.disabled=true;
-  linkBox();cobrosHtml()}catch(e){console.error(e)}};
+  for(const el of document.querySelectorAll('#opEmbGrid [data-of]'))el.disabled=true;
+  linkBox();embRO();cobrosHtml();stageGate()}catch(e){console.error(e)}};
 
 document.addEventListener('click',async e=>{
   const b=e.target.closest('[data-g2]');if(!b)return;const a=b.dataset.g2;
-  if(a==='gxgo'){setView('compras');GX.go(b.dataset.v,b.dataset.id||null)}
+  if(a==='soon'){toast(b.dataset.msg)}
+  else if(a==='gxgo'){setView('compras');GX.go(b.dataset.v,b.dataset.id||null)}
   else if(a==='pin')cambiarPin();
   else if(a==='addCob'){OP.cobros=OP.cobros||[];OP.cobros.push({id:'c'+Date.now().toString(36),fecha:today(),moneda:'Bs',monto:0,tc:0,nota:''});opCommit();cobrosHtml()}
   else if(a==='delCob'){if(await pinOk('Para borrar un cobro del cliente ingrese la clave.')){OP.cobros.splice(+b.dataset.i,1);opCommit();cobrosHtml()}}
