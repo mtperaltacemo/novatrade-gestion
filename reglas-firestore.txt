@@ -1,0 +1,18 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Seguimiento publico: se puede LEER un documento solo si se conoce su codigo exacto.
+    // Nadie puede listar los demas. Solo usuarios con sesion pueden escribir.
+    match /seguimiento/{codigo} {
+      allow get: if true;
+      allow list: if false;
+      allow write: if request.auth != null;
+    }
+
+    // Todo lo demas (clientes, cotizaciones, catalogo, operaciones): solo con sesion.
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
