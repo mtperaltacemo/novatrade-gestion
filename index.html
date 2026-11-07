@@ -287,6 +287,7 @@ body.inhome{padding-block:0 calc(88px + env(safe-area-inset-bottom,0px))}
 .gx2act{display:flex;gap:6px;flex:none}.gx2act button{padding:6px 10px;border-radius:9px;border:1.5px solid var(--h-line,#ccd);background:#fff;font-weight:700;font-size:12px}.gx2act .danger{color:var(--bad)}
 .gx2draft{background:#f3f7fb;border-radius:12px;padding:10px;margin-top:10px}
 .gx2form input,.gx2form select{letter-spacing:normal;font-size:16px;text-align:left;padding:10px;width:100%;margin-top:4px;border:1.5px solid var(--line,#ccd);border-radius:10px;background:#fff}
+.gx details.full{grid-column:1/-1;background:var(--surface,#f6f8fb);border-radius:10px;padding:8px 10px}.gx details summary{cursor:pointer;font-size:14px}
 </style>
 </head>
 <body>
@@ -1340,13 +1341,13 @@ document.addEventListener('input',e=>{if(e.target.id==='flMsg')flMsgEdited=true}
 const CP='test_';
 try{if(CP){const b=document.getElementById('testBanner');if(b)b.hidden=false}}catch(_){}
 const FB_CFG={apiKey:"AIzaSyA2J3Z4gHQyYYvU8AzSVs9r_L_DG6Ax9AE",authDomain:"crm-novatrade.firebaseapp.com",projectId:"crm-novatrade",storageBucket:"crm-novatrade.firebasestorage.app",messagingSenderId:"944968945401",appId:"1:944968945401:web:c7af94f3b5e478442c9c28"};
-const COLS=['clients','quotes','catalog','ops','imports','purchases','purchaseLines','payments','settings'];
-let cloudUser=null,cloudRemote={clients:{},quotes:{},catalog:{},ops:{},imports:{},purchases:{},purchaseLines:{},payments:{},settings:{}},cloudUnsubs=[],cloudT,cloudSeen={},cloudMsg='';
+const COLS=['clients','quotes','catalog','ops','imports','purchases','purchaseLines','payments','settings','suppliers','localPurchases'];
+let cloudUser=null,cloudRemote={clients:{},quotes:{},catalog:{},ops:{},imports:{},purchases:{},purchaseLines:{},payments:{},settings:{},suppliers:{},localPurchases:{}},cloudUnsubs=[],cloudT,cloudSeen={},cloudMsg='';
 const strip=o=>JSON.parse(JSON.stringify(o));
 const gxd=c=>window.GX?GX.DB[c]:[];
-const cl_get={clients:()=>clients,quotes:()=>lsGet('nt_quotes',[]),catalog:()=>catalog,ops:()=>ops,imports:()=>gxd('imports'),purchases:()=>gxd('purchases'),purchaseLines:()=>gxd('purchaseLines'),payments:()=>gxd('payments'),settings:()=>gxd('settings')};
-const cl_upd={clients:c=>c.actualizado||c.creado||0,quotes:q=>q.ts||0,catalog:p=>p.upd||0,ops:o=>o.upd||0,imports:r=>r.upd||0,purchases:r=>r.upd||0,purchaseLines:r=>r.upd||0,payments:r=>r.upd||0,settings:r=>r.upd||0};
-const GX_COLS=['imports','purchases','purchaseLines','payments','settings'];
+const cl_get={clients:()=>clients,quotes:()=>lsGet('nt_quotes',[]),catalog:()=>catalog,ops:()=>ops,imports:()=>gxd('imports'),purchases:()=>gxd('purchases'),purchaseLines:()=>gxd('purchaseLines'),payments:()=>gxd('payments'),settings:()=>gxd('settings'),suppliers:()=>gxd('suppliers'),localPurchases:()=>gxd('localPurchases')};
+const cl_upd={clients:c=>c.actualizado||c.creado||0,quotes:q=>q.ts||0,catalog:p=>p.upd||0,ops:o=>o.upd||0,imports:r=>r.upd||0,purchases:r=>r.upd||0,purchaseLines:r=>r.upd||0,payments:r=>r.upd||0,settings:r=>r.upd||0,suppliers:r=>r.upd||0,localPurchases:r=>r.upd||0};
+const GX_COLS=['imports','purchases','purchaseLines','payments','settings','suppliers','localPurchases'];
 function cl_set(col,arr){
   if(col==='clients'){clients=arr;saveClients();updateDatalist()}
   else if(col==='quotes'){lsSet('nt_quotes',arr);loadList()}
@@ -1666,8 +1667,8 @@ document.addEventListener('change',e=>{
 <script>
 /* ===== Módulo Compras e importaciones (Pedidos, Importaciones, Pagos) · integrado al cotizador ===== */
 (function(){
-const COLS_GX=['imports','purchases','purchaseLines','payments','settings'];
-const KEYS={imports:'nt_imports',purchases:'nt_purchases',purchaseLines:'nt_purchaseLines',payments:'nt_payments',settings:'nt_settings'};
+const COLS_GX=['imports','purchases','purchaseLines','payments','settings','suppliers','localPurchases'];
+const KEYS={imports:'nt_imports',purchases:'nt_purchases',purchaseLines:'nt_purchaseLines',payments:'nt_payments',settings:'nt_settings',suppliers:'nt_suppliers',localPurchases:'nt_localPurchases'};
 const DB={};
 for(const c of COLS_GX){const v=lsGet(KEYS[c],[]);DB[c]=Array.isArray(v)?v:[]}
 /* instantánea para detectar qué registros cambiaron (y ponerles marca de fecha 'upd' que usa la nube) */
@@ -1697,8 +1698,8 @@ const quoteOf=id=>QS().find(q=>q.id===id);
 function viernesAnterior(f){if(!f)return '';const d=new Date(f+'T12:00:00');const dow=(d.getDay()+6)%7;d.setDate(d.getDate()-dow-3);return ISO(d)}
 
 const TRANSPORTES=['Marítimo','Aéreo','Terrestre'];
-const ESTADOS_IMP=['Programada','En tránsito','En aduana','Liberada','En almacén','Cerrada'];
-const ESTADOS_PED=['Pedido','En producción','Enviado','Recibido'];
+const ESTADOS_IMP=['Programada','En tránsito','En aduana','Liberada','En almacenes de Novatrade','Cerrada'];
+const ESTADOS_PED=['Pedido','En producción','Enviado','Entregado al transportista','Recibido'];
 const CATS_PAGO=['Pago a proveedor','Flete internacional','Seguro','Aduana / impuestos','Agente despachante','Transporte local','Almacenaje','Otros gastos de importación'];
 const SIN_FACTURA_NO_APLICA=['Pago a proveedor','Aduana / impuestos'];
 const ORIGEN_TC=['Oficial','Paralelo','De la cotización','Otro'];
@@ -1768,22 +1769,43 @@ function lockOp(o){
 let V={view:'res',id:null};
 function go(view,id){V={view,id:id||null};const r=document.getElementById('view-compras');if(r)window.scrollTo(0,0);render()}
 function seg(){
-  const t=[['res','Resumen'],['ped','Pedidos'],['imp','Importaciones'],['pag','Pagos']];
-  const base={res:'res',ped:'ped',pedd:'ped',imp:'imp',impd:'imp',pag:'pag'}[V.view];
+  const t=[['res','Resumen'],['ped','Pedidos'],['imp','Importaciones'],['pag','Pagos'],['prov','Proveedores'],['loc','Locales']];
+  const base={res:'res',ped:'ped',pedd:'ped',imp:'imp',impd:'imp',pag:'pag',prov:'prov',provd:'prov',loc:'loc'}[V.view];
   return `<div class="seg">${t.map(([k,l])=>`<button type="button" class="btn sm ${k===base?'on':''}" onclick="GX.go('${k}')">${l}</button>`).join('')}</div>`}
 function render(){
   const root=document.getElementById('view-compras');if(!root)return;
-  const fn={res:vRes,ped:vPed,pedd:vPedDet,imp:vImp,impd:vImpDet,pag:vPag}[V.view]||vRes;
+  const fn={res:vRes,ped:vPed,pedd:vPedDet,imp:vImp,impd:vImpDet,pag:vPag,prov:vProv,provd:vProvDet,loc:vLoc}[V.view]||vRes;
   root.innerHTML=seg()+fn()}
 
 /* ---------- vistas ---------- */
+function accionesImp(i){
+  const peds=DB.purchases.filter(p=>p.importId===i.id),out=[];
+  if(!peds.length)out.push('Asociar al menos un pedido a esta importación');
+  if(!i.etd||!i.eta)out.push('Registrar fechas de embarque (ETD) y llegada (ETA)');
+  if(!i.contenedor||!i.embarque)out.push('Registrar contenedor y documento de embarque');
+  const d=i.eta?Math.ceil((new Date(i.eta+'T12:00:00')-new Date(TODAY()+'T12:00:00'))/864e5):null;
+  if(i.estado==='En tránsito'&&d!=null){if(d<0)out.push('ETA vencida hace '+(-d)+' día(s): confirmar estado con la naviera');else if(d<=10)out.push('Llega en '+d+' día(s): coordinar agencia despachante y documentos');}
+  if(i.estado==='En aduana'&&!i.dim)out.push('Registrar N.º de DIM y su fecha');
+  if(['Liberada','En almacenes de Novatrade'].includes(i.estado)&&!i.canal)out.push('Registrar el canal aduanero asignado');
+  if(i.estado==='Liberada')out.push('Coordinar el transporte local hacia el almacén de Novatrade');
+  if(i.estado==='En almacenes de Novatrade')out.push('Cerrar la importación: verificar gastos reales, reajustes y multas');
+  const sal=peds.reduce((s,p)=>s+Math.max(saldoPedido(p.id),0),0);if(sal>0.5)out.push('Saldo pendiente al proveedor: USD '+N(sal,0));
+  return out}
+function enCursoHtml(){
+  const l=DB.imports.filter(i=>i.estado!=='Cerrada').sort((a,b)=>(a.eta||'9999').localeCompare(b.eta||'9999'));
+  return `<div class="card"><h2>Importaciones en curso</h2>${l.length?l.map(i=>{const ac=accionesImp(i),peds=DB.purchases.filter(p=>p.importId===i.id);
+    const sp={};peds.forEach(p=>{const n=p.proveedor||'—';sp[n]=(sp[n]||0)+Math.max(saldoPedido(p.id),0)});
+    const sals=Object.entries(sp).filter(([,v])=>v>0.5);
+    return `<button class="item" type="button" onclick="GX.go('impd','${i.id}')"><span class="tag">${E(i.estado)}</span><b>${E(i.numero)}</b><small>Llegada a puerto: ${i.eta?FD(i.eta):'sin fecha'} · ${peds.length} pedido(s)</small>
+     ${ac.length?`<small style="color:var(--warn);font-weight:700">▶ ${E(ac[0])}</small>`:'<small style="color:var(--good);font-weight:700">Sin acciones pendientes</small>'}
+     ${sals.length?`<small>Saldos: ${sals.map(([n,v])=>E(n)+' USD '+N(v,0)).join(' · ')}</small>`:''}</button>`}).join(''):'<div class="empty">No hay importaciones en curso.</div>'}</div>`}
 function vRes(){
   const sp=saldosProveedor(),totSaldo=sp.reduce((s,r)=>s+r.saldo,0),totFob=sp.reduce((s,r)=>s+r.total,0);
   const anios={};const add=(n,t)=>{const y=(/-(\d{4})-/.exec(n||'')||[])[1]||'s/n';(anios[y]=anios[y]||{imp:0,ped:0})[t]++};
   DB.imports.forEach(i=>add(i.numero,'imp'));DB.purchases.forEach(p=>add(p.numero,'ped'));
   const ys=Object.keys(anios).sort().reverse();
-  const prox=DB.imports.filter(i=>i.eta&&i.eta>=TODAY()&&!['En almacén','Cerrada'].includes(i.estado)).sort((a,b)=>a.eta.localeCompare(b.eta)).slice(0,4);
-  return `<div class="card"><h2>Saldo pendiente por proveedor</h2>
+  const prox=DB.imports.filter(i=>i.eta&&i.eta>=TODAY()&&!['En almacén','En almacenes de Novatrade','Cerrada'].includes(i.estado)).sort((a,b)=>a.eta.localeCompare(b.eta)).slice(0,4);
+  return enCursoHtml()+`<div class="card"><h2>Saldo pendiente por proveedor</h2>
     ${sp.length?`<table><tr><th>Proveedor</th><th class="n">Pedidos</th><th class="n">Pagado</th><th class="n">Saldo</th></tr>${sp.map(r=>`<tr><td><b>${E(r.nombre)}</b></td><td class="n">${N(r.total,0)}</td><td class="n">${N(r.pagado,0)}</td><td class="n"><b>${N(r.saldo,0)}</b></td></tr>`).join('')}
     <tr><td><b>TOTAL (USD)</b></td><td class="n"><b>${N(totFob,0)}</b></td><td class="n"><b>${N(totFob-totSaldo,0)}</b></td><td class="n"><b>${N(totSaldo,0)}</b></td></tr></table>`:'<div class="empty">Aún no hay pedidos con proveedor.</div>'}
     <p class="hint">Montos en USD. “Pedidos” es el total FOB de los pedidos de ese proveedor.</p></div>
@@ -1812,7 +1834,8 @@ function vImpDet(){
     ${kv('PRM',E((i.prm||'')+(i.prmFecha?' · '+FD(i.prmFecha):'')))}${kv('Permiso de importación',i.permiso==='si'?E((i.permisoTipo||'—')+' · N.º '+(i.permisoNum||'—')+' · vence '+FD(i.permisoVence)):'No requiere')}
     ${kv('Agencia despachante',E(i.agencia))}${kv('Planilla de gastos asociada',E(i.planilla))}
     ${kv('T/C de referencia (informativo)',i.tcAduana?N(num(i.tcAduana),2):'')}${kv('Fecha del T/C',i.tcRef?FD(i.tcRef):'')}
-    ${kv('Crédito fiscal IVA del DIM (Bs)',i.ivaDim?N(num(i.ivaDim)):'')}</div>
+    ${kv('Crédito fiscal IVA del DIM (Bs)',i.ivaDim?N(num(i.ivaDim)):'')}
+    ${kv('Canal aduanero',E(i.canal))}${kv('Reajuste (Bs)',i.reajuste?N(num(i.reajuste)):'')}${kv('Multas (Bs)',i.multas?N(num(i.multas)):'')}${kv('Observaciones de la aduana',E(i.obsAduana))}</div>
    <p class="hint">Los datos de embarque se copian solos a la operación de cada cotización incluida en los pedidos de este embarque y al seguimiento del cliente.</p></div>
   <div class="card"><h2>Resumen de costos</h2><div class="kv">
     <div><span>Pedidos asociados</span><b>${r.peds}</b></div><div><span>Total FOB</span><b>USD ${N(r.fob)}</b></div>
@@ -1839,12 +1862,16 @@ function vPedDet(){
     <div><span>Proveedor</span><b>${E(p.proveedor)}</b></div><div><span>Referencia del proveedor</span><b>${E(p.refProv||'—')}</b></div>
     <div><span>N.º de factura</span><b>${E(p.factura||'—')}</b></div><div><span>Lista de empaque</span><b>${p.empaque==='si'?'Sí':'No'}</b></div>
     <div><span>Plazo de entrega</span><b>${FD(p.plazo)}</b></div><div><span>Recepción en almacén del agente de carga</span><b>${FD(p.recepcion)}</b></div>
+    <div><span>Incoterm</span><b>${E(p.incoterm||'—')}</b></div><div><span>Lugar de entrega</span><b>${E(p.lugarEntrega||'—')}</b></div>
+    <div><span>Acuerdo de pago</span><b>${E(p.acuerdoPago||'—')}${p.acuerdoDet?' · '+E(p.acuerdoDet):''}${p.acuerdoPago==='Sin pago'?' · '+E(p.motivoSinPago||''):''}</b></div><div><span>Destino</span><b>${p.destinoPed==='stock'?'Stock propio':'Cliente(s)'}</b></div>
     <div style="grid-column:1/-1"><span>Importación</span><b>${im?`<a href="#" onclick="GX.go('impd','${im.id}');return false">${E(im.numero)}</a>`:'Sin asignar'}</b></div></div></div>
   <div class="card"><div class="row sp"><h2 style="margin:0">Productos del pedido</h2><div class="row"><button class="btn sm" type="button" onclick="GX.fCotEnPed('${p.id}')">+ Cotización</button><button class="btn sm" type="button" onclick="GX.fLin(null,'${p.id}')">+ Producto</button></div></div>
    ${ls.length?'':'<div class="empty">Agrega una cotización para jalar sus productos, o un producto suelto.</div>'}
    ${qids.map(qid=>{const q=quoteOf(qid),g=ls.filter(l=>l.quoteId===qid);return `<div style="margin-top:14px"><div class="row sp"><b>${E(q?q.numero:'Cotización')} <small style="color:var(--muted);font-weight:500">· ${E(q?q.cliente:'')}</small></b><button class="btn sm bad" type="button" onclick="GX.quitarCot('${p.id}','${qid}')">Quitar</button></div><table>${cab}${filas(g)}</table></div>`}).join('')}
    ${sueltas.length?`<div style="margin-top:14px"><b>Productos sueltos</b><table>${cab}${filas(sueltas)}</table></div>`:''}
    ${ls.length?`<table style="margin-top:10px"><tr><td colspan="3"><b>Total FOB del pedido (USD)</b></td><td class="n"><b>${N(totalPedido(p.id))}</b></td></tr></table>`:''}</div>
+  <div class="card"><div class="row sp"><h2 style="margin:0">Cierre del pedido</h2><button class="btn sm" type="button" onclick="GX.fCierre('${p.id}')">${p.cierre?'Revisar':'Cerrar pedido'}</button></div>
+   ${p.cierre?`<p class="hint" style="margin:8px 0 0">Cerrado el ${FD(p.cierre.fecha)}. ${E(p.cierre.obs||'Sin observaciones.')}</p>${(p.cierre.dif||[]).length?`<table style="margin-top:8px"><tr><th>Producto</th><th class="n">Pedido</th><th class="n">Recibido</th></tr>${p.cierre.dif.map(d=>`<tr><td>${E(d.producto)}</td><td class="n">${N(d.pedida,0)}</td><td class="n"><b>${N(d.recibida,0)}</b></td></tr>`).join('')}</table>`:'<p class="hint">Se recibió todo lo pedido.</p>'}`:'<p class="hint" style="margin:8px 0 0">Al cerrar, confirma lo recibido por producto y deja comentarios por faltantes o sobrantes.</p>'}</div>
   <div class="card"><div class="row sp"><h2 style="margin:0">Pagos al proveedor</h2><button class="btn sm" type="button" onclick="GX.fPag(null,null,'${p.id}')">+ Pago</button></div>
    <div class="kv" style="margin:10px 0"><div><span>Pagado</span><b>USD ${N(pagadoProv(p.id))}</b></div><div><span>Saldo</span><b>USD ${N(saldoPedido(p.id))}</b></div></div>${tablaPagos(pags)}</div>`}
 function quitarCot(pid,qid){if(!confirm('¿Quitar esta cotización y sus productos de este pedido?'))return;DB.purchaseLines.filter(l=>l.purchaseId===pid&&l.quoteId===qid).forEach(l=>del('purchaseLines',l.id));save();render()}
@@ -1892,6 +1919,9 @@ function fImp(id){
    inp('dim','DIM',i.dim)+inp('dimFecha','Fecha del DIM',i.dimFecha,{t:'date'})+
    inp('prm','PRM',i.prm)+inp('prmFecha','Fecha del PRM',i.prmFecha,{t:'date'})+
    inp('ivaDim','Crédito fiscal IVA del DIM (Bs)',i.ivaDim,{mode:'decimal',full:1})+
+   sel('canal','Canal aduanero asignado',['','Verde','Amarillo','Rojo'].map(x=>[x,x||'Seleccionar…']),i.canal||'',{full:1})+
+   inp('reajuste','Reajuste de la aduana (Bs)',i.reajuste,{mode:'decimal'})+inp('multas','Multas (Bs)',i.multas,{mode:'decimal'})+
+   inp('obsAduana','Observaciones de la aduana',i.obsAduana,{full:1})+
    sel('permiso','¿Requiere permiso de importación?',[['no','No'],['si','Sí']],i.permiso,{full:1})+
    `<div class="full grid" id="gxPm" style="padding:0;${i.permiso==='si'?'':'display:none'}">`+inp('permisoTipo','Tipo de permiso',i.permisoTipo)+inp('permisoNum','Número',i.permisoNum)+inp('permisoVence','Vencimiento',i.permisoVence,{t:'date',full:1})+'</div>'+
    sec('Agencia despachante')+
@@ -1904,21 +1934,116 @@ function fImp(id){
   b.querySelector('[data-k=permiso]').onchange=e=>{b.querySelector('#gxPm').style.display=e.target.value==='si'?'':'none'};
   b.querySelector('[data-k=dimFecha]').onchange=e=>{const r=b.querySelector('[data-k=tcRef]');if(!r.value)r.value=viernesAnterior(e.target.value)};
 }
+
+/* ---------- cierre de pedido ---------- */
+function fCierre(pid,done){
+  const p=byId(DB.purchases,pid);if(!p)return;const ls=lineasDe(pid);
+  if(!ls.length){toastX('Este pedido no tiene productos cargados');return}
+  sheet('Cerrar pedido '+p.numero,
+   hintDiv('','Confirme la cantidad recibida de cada producto. Si falta o sobra algo, anótelo en los comentarios.')+
+   ls.map(l=>inp('r_'+l.id,E(l.producto)+' · pedido: '+N(num(l.qty),0),(l.recibido!=null&&l.recibido!=='')?l.recibido:l.qty,{mode:'decimal',full:1})).join('')+
+   inp('obs','Comentarios u observaciones del pedido',p.cierre&&p.cierre.obs,{full:1}),
+   v=>{const dif=[];
+     for(const l of ls){const r=v['r_'+l.id];if(r===''||num(r)<0){toastX('Falta la cantidad recibida de: '+l.producto);return false}
+       if(num(r)!==num(l.qty))dif.push({producto:l.producto,pedida:num(l.qty),recibida:num(r)})}
+     if(dif.length&&!v.obs){toastX('Hay diferencias: anote un comentario');return false}
+     ls.forEach(l=>{l.recibido=String(num(v['r_'+l.id]))});
+     p.cierre={fecha:TODAY(),obs:v.obs||'',dif};p.estado='Recibido';if(!p.recepcion)p.recepcion=TODAY();
+     save();render();toastX(dif.length?'Pedido cerrado con diferencias':'Pedido cerrado');if(done)done()})}
+
+/* ---------- proveedores ---------- */
+const supHist=sid=>DB.purchases.filter(p=>p.supplierId===sid).sort((a,b)=>(b.numero||'').localeCompare(a.numero||''));
+function migrarProv(){
+  let ch=false;
+  for(const p of DB.purchases){const n=(p.proveedor||'').trim();if(!n)continue;
+    let sp=p.supplierId?byId(DB.suppliers,p.supplierId):DB.suppliers.find(x=>nzs(x.nombre)===nzs(n));
+    if(!sp){sp={id:uid(),nombre:n};DB.suppliers.push(sp);ch=true}
+    if(p.supplierId!==sp.id){p.supplierId=sp.id;ch=true}}
+  for(const i of DB.imports)if(i.estado==='En almacén'){i.estado='En almacenes de Novatrade';ch=true}
+  if(ch)save()}
+function vProv(){
+  const l=[...DB.suppliers].sort((a,b)=>nzs(a.nombre).localeCompare(nzs(b.nombre)));
+  return `<div class="row sp"><b style="font-size:17px">Proveedores</b><button class="btn pri sm" type="button" onclick="GX.fProv()">+ Nuevo</button></div>`+
+  (l.length?l.map(s=>{const h=supHist(s.id),sal=h.reduce((t,p)=>t+Math.max(saldoPedido(p.id),0),0);
+    return `<button class="item" type="button" onclick="GX.go('provd','${s.id}')"><b>${E(s.nombre)}</b><small>${E(s.c1nombre||'Sin contacto')} · ${h.length} pedido(s)${sal>0.5?' · saldo USD '+N(sal,0):''}</small></button>`}).join(''):'<div class="card empty">Aún no hay proveedores. Registra el primero con «+ Nuevo».</div>')}
+function vProvDet(){
+  const s=byId(DB.suppliers,V.id);if(!s)return '<div class="card empty">No encontrado.</div>';
+  const h=supHist(s.id),kv=(l,v)=>`<div><span>${l}</span><b>${v||'—'}</b></div>`;
+  const ctas=[1,2,3].filter(n=>s['b'+n+'cuenta']||s['b'+n+'titular']);
+  return `<button class="back" type="button" onclick="GX.go('prov')">← Proveedores</button>
+  <div class="card"><div class="row sp"><b style="font-size:19px">${E(s.nombre)}</b><button class="btn sm" type="button" onclick="GX.fProv('${s.id}')">Editar</button></div>
+   <div class="kv" style="margin-top:12px">${kv('N.º de identificación',E(s.nit))}${kv('Dirección',E(s.direccion))}
+   ${kv('Contacto 1',E(s.c1nombre))}${kv('Celular',E(s.c1cel))}${kv('Email',E(s.c1mail))}${kv('Contacto 2',E(s.c2nombre?s.c2nombre+(s.c2cel?' · '+s.c2cel:'')+(s.c2mail?' · '+s.c2mail:''):''))}</div></div>
+  ${ctas.map(n=>`<div class="card"><h2>Cuenta bancaria ${n}</h2><div class="kv">${kv('Titular',E(s['b'+n+'titular']))}${kv('N.º de cuenta',E(s['b'+n+'cuenta']))}${kv('Banco de destino',E(s['b'+n+'banco']))}${kv('SWIFT',E(s['b'+n+'swift']))}${kv('Dirección del beneficiario',E(s['b'+n+'dirBenef']))}${kv('Banco intermediario',E(s['b'+n+'interm']))}</div></div>`).join('')||'<div class="card"><p class="hint">Sin cuentas bancarias registradas.</p></div>'}
+  <div class="card"><h2>Historial de pedidos</h2>${h.length?`<table><tr><th>Pedido</th><th>Importación</th><th>Factura comercial</th><th class="n">Total USD</th></tr>${h.map(p=>{const im=byId(DB.imports,p.importId);return `<tr onclick="GX.go('pedd','${p.id}')" style="cursor:pointer"><td>${E(p.numero)}<br><small style="color:var(--muted)">${E(p.estado)}</small></td><td>${im?E(im.numero):'—'}</td><td>${E(p.factura||'—')}</td><td class="n">${N(totalPedido(p.id))}</td></tr>`}).join('')}</table>`:'<div class="empty">Sin pedidos todavía.</div>'}</div>`}
+async function fProv(id){
+  const s=id?byId(DB.suppliers,id):{};
+  if(id&&supHist(id).length&&window.GX2&&!(await GX2.pinOk('Este proveedor ya tiene pedidos asociados. Ingrese la clave para modificarlo.')))return;
+  const acc=n=>`<details class="full" ${(s['b'+n+'cuenta']||n===1)?'open':''}><summary><b>Cuenta bancaria ${n}${n>1?' (opcional)':''}</b></summary><div class="grid" style="padding:8px 0">`+
+    inp('b'+n+'titular','Nombre del titular',s['b'+n+'titular'],{full:1})+inp('b'+n+'cuenta','N.º de cuenta',s['b'+n+'cuenta'])+inp('b'+n+'banco','Banco de destino',s['b'+n+'banco'])+
+    inp('b'+n+'swift','SWIFT',s['b'+n+'swift'])+inp('b'+n+'dirBenef','Dirección del beneficiario',s['b'+n+'dirBenef'],{full:1})+inp('b'+n+'interm','Banco intermediario (opcional)',s['b'+n+'interm'],{full:1})+`</div></details>`;
+  sheet(id?'Editar proveedor':'Nuevo proveedor',
+   inp('nombre','Nombre del proveedor',s.nombre,{full:1})+inp('nit','N.º de identificación',s.nit)+inp('direccion','Dirección',s.direccion)+
+   sec('Contacto 1')+inp('c1nombre','Persona de contacto',s.c1nombre,{full:1})+inp('c1cel','Celular',s.c1cel,{mode:'tel'})+inp('c1mail','Email',s.c1mail,{t:'email'})+
+   `<details class="full" ${s.c2nombre?'open':''}><summary><b>Contacto 2 (opcional)</b></summary><div class="grid" style="padding:8px 0">`+inp('c2nombre','Persona de contacto',s.c2nombre,{full:1})+inp('c2cel','Celular',s.c2cel,{mode:'tel'})+inp('c2mail','Email',s.c2mail,{t:'email'})+`</div></details>`+
+   sec('Datos bancarios')+acc(1)+acc(2)+acc(3),
+   v=>{if(!v.nombre){toastX('Falta el nombre del proveedor');return false}
+     const dup=DB.suppliers.find(x=>x.id!==id&&nzs(x.nombre)===nzs(v.nombre));if(dup){toastX('Ya existe un proveedor con ese nombre');return false}
+     let nid=id;if(id)Object.assign(s,v);else{nid=uid();DB.suppliers.push({id:nid,...v})}
+     DB.purchases.forEach(p=>{if(p.supplierId===nid)p.proveedor=v.nombre});
+     save();render();toastX('Proveedor guardado')},
+   id?()=>{if(supHist(id).length){toastX('No se puede eliminar: tiene pedidos asociados');return}del('suppliers',id);save();go('prov')}:null)}
+
+/* ---------- compras locales ---------- */
+function vLoc(){
+  const l=[...DB.localPurchases].sort((a,b)=>(b.numero||'').localeCompare(a.numero||''));
+  const tot=l.reduce((t,x)=>t+num(x.monto),0),ret=l.reduce((t,x)=>t+num(x.retencion),0);
+  return `<div class="row sp"><b style="font-size:17px">Compras locales</b><button class="btn pri sm" type="button" onclick="GX.fLoc()">+ Nueva</button></div>
+  <div class="card"><div class="kv"><div><span>Registros</span><b>${l.length}</b></div><div><span>Total comprado (Bs)</span><b>${N(tot)}</b></div><div><span>Retenciones asumidas (Bs)</span><b>${N(ret)}</b></div></div>
+  <p class="hint">Sin factura: retención del 16% sobre el valor, que asume la empresa. Con factura: el crédito fiscal es el 13% del valor facturado.</p></div>`+
+  (l.length?l.map(x=>`<button class="item" type="button" onclick="GX.fLoc('${x.id}')"><span class="tag">${x.factura==='si'?'Con factura':'Sin factura'}</span><b>${E(x.numero)} · ${E(x.proveedor||'—')}</b><small>${FD(x.fecha)} · ${E(x.descripcion||'')} · Bs ${N(num(x.monto)+num(x.retencion))}</small></button>`).join(''):'<div class="card empty">Aún no hay compras locales.</div>')}
+function fLoc(id){
+  const x=id?byId(DB.localPurchases,id):{numero:nextNum('CL',DB.localPurchases),fecha:TODAY(),factura:'si',destino:'stock'};
+  const b=sheet(id?'Editar compra local':'Nueva compra local',
+   inp('numero','N.º de compra local (automático)',x.numero,{full:1,ro:1})+inp('fecha','Fecha',x.fecha,{t:'date'})+
+   inp('proveedor','Proveedor local',x.proveedor,{list:'gxProvL'})+`<datalist id="gxProvL">${DB.suppliers.map(s=>`<option value="${E(s.nombre)}">`).join('')}</datalist>`+
+   inp('descripcion','Qué se compró',x.descripcion,{full:1})+inp('monto','Valor de la compra (Bs)',x.monto,{mode:'decimal',full:1})+
+   sel('factura','¿Con factura?',[['si','Con factura'],['no','Sin factura']],x.factura)+inp('nroFactura','N.º de factura',x.nroFactura)+
+   hintDiv('gxLocH','')+
+   sel('destino','Destino',[['stock','Stock propio'],['cliente','Para un cliente']],x.destino,{full:1})+inp('nota','Nota (opcional)',x.nota,{full:1}),
+   v=>{if(num(v.monto)<=0){toastX('Falta el valor de la compra');return false}
+     v.retencion=v.factura==='no'?String(Math.round(num(v.monto)*RETENCION*100)/100):'';if(v.factura==='no')v.nroFactura='';
+     if(id)Object.assign(x,v);else DB.localPurchases.push({id:uid(),...v});save();render();toastX('Guardado')},
+   id?()=>{del('localPurchases',id);save();render()}:null);
+  const upd=()=>{const v=vals(b),m=num(v.monto);
+    b.querySelector('[data-k=nroFactura]').parentElement.style.display=v.factura==='si'?'':'none';
+    b.querySelector('#gxLocH').textContent=v.factura==='no'?`Sin factura: retención del 16% que asume la empresa = Bs ${N(m*RETENCION)}. Costo total Bs ${N(m*(1+RETENCION))}.`:`Con factura: crédito fiscal estimado (13%) = Bs ${N(m*0.13)}.`};
+  b.addEventListener('input',upd);b.addEventListener('change',upd);upd()}
 function opcionesImp(){return [['','— Sin asignar —'],...[...DB.imports].sort((a,b)=>(b.numero||'').localeCompare(a.numero||'')).map(i=>[i.id,i.numero+(i.contenedor?' · '+i.contenedor:'')])]}
 function fPed(id,impId){
   const p=id?byId(DB.purchases,id):{numero:nextNum('PED',DB.purchases),estado:'Pedido',empaque:'no',importId:impId||''};
-  sheet(id?'Editar pedido':'Nuevo pedido al proveedor',
-   inp('numero','N.º de pedido oficial (automático)',p.numero,{full:1,ro:1})+inp('proveedor','Proveedor',p.proveedor,{full:1,list:'gxProv'})+
-   `<datalist id="gxProv">${saldosProveedor().map(r=>`<option value="${E(r.nombre)}">`).join('')}</datalist>`+
+  const b=sheet(id?'Editar pedido':'Nuevo pedido al proveedor',
+   inp('numero','N.º de pedido oficial (automático)',p.numero,{full:1,ro:1})+
+   sel('supplierId','Proveedor',[['','— Seleccionar proveedor —'],...DB.suppliers.map(x=>[x.id,x.nombre])],p.supplierId||'',{full:1})+
+   hintDiv('','Los proveedores se registran en la pestaña Proveedores.')+
+   sel('destinoPed','Destino de la mercadería',[['cliente','Para cliente(s) (cotización)'],['stock','Stock propio']],p.destinoPed||'cliente',{full:1})+
+   sel('incoterm','Incoterm negociado',['','EXW','FCA','FOB','CFR','CIF','CPT','CIP','DAP','DDP','Otro'].map(x=>[x,x||'Seleccionar…']),p.incoterm||'')+inp('lugarEntrega','Lugar de entrega',p.lugarEntrega,{ph:'Ej. Shenzhen, almacén del agente'})+
+   sel('acuerdoPago','Acuerdo de pago',[['','Seleccionar…'],'Anticipado 100%','Anticipado 70% + 30% al contado (antes del envío)','Contado 100%','Crédito','Otro acuerdo','Sin pago'],p.acuerdoPago||'',{full:1})+
+   `<div class="full" id="gxAcDet" style="display:none">${inp('acuerdoDet','Detalle del acuerdo (porcentajes y plazo en días)',p.acuerdoDet,{full:1})}</div>`+
+   `<div class="full" id="gxSinPago" style="display:none">${sel('motivoSinPago','Motivo del pedido sin pago',['Garantía','Regalo','Devolución','Muestra','Otro'],p.motivoSinPago||'Garantía',{full:1})}</div>`+
    inp('refProv','Referencia del proveedor (proforma, PI)',p.refProv)+inp('factura','N.º de factura del proveedor',p.factura)+
    inp('estado','Estado (se cambia en Seguimiento)',p.estado,{ro:1})+sel('empaque','¿Tiene lista de empaque?',[['no','No'],['si','Sí']],p.empaque)+
    inp('plazo','Plazo de entrega',p.plazo,{t:'date'})+inp('recepcion','Recepción en almacén del agente de carga',p.recepcion,{t:'date'})+
    sel('importId','Importación (embarque)',opcionesImp(),p.importId,{full:1}),
-   v=>{if(!v.proveedor){toastX('Falta el proveedor');return false}
+   v=>{const sp=byId(DB.suppliers,v.supplierId);if(!sp){toastX('Seleccione el proveedor (regístrelo antes en Proveedores)');return false}
+     if(!v.acuerdoPago){toastX('Indique el acuerdo de pago');return false}
+     v.proveedor=sp.nombre;
      if(v.estado==='Recibido'&&!v.recepcion)v.recepcion=TODAY();
      if(id)Object.assign(p,v);else{const n={id:uid(),...v};DB.purchases.push(n);id=n.id}
      save();go('pedd',id);toastX('Guardado')},
    id?()=>{DB.purchaseLines.filter(l=>l.purchaseId===id).forEach(l=>del('purchaseLines',l.id));DB.payments.forEach(x=>{if(x.purchaseId===id)x.purchaseId=''});del('purchases',id);save();go('ped')}:null);
+  const tg=()=>{const a=b.querySelector('[data-k=acuerdoPago]').value;b.querySelector('#gxAcDet').style.display=(a==='Crédito'||a==='Otro acuerdo')?'':'none';b.querySelector('#gxSinPago').style.display=a==='Sin pago'?'':'none'};
+  b.addEventListener('change',tg);tg();
 }
 function addCotAPed(qid,pid){
   const q=quoteOf(qid),p=byId(DB.purchases,pid);if(!q||!p)return;
@@ -1972,7 +2097,7 @@ function fPag(id,impId,pedId){
      else v.retencion='';
      if(v.purchaseId&&!v.importId){const pp=byId(DB.purchases,v.purchaseId);if(pp&&pp.importId)v.importId=pp.importId}
      if(id)Object.assign(p,v);else DB.payments.push({id:uid(),...v});save();render();toastX('Guardado')},
-   id?()=>{del('payments',id);save();render()}:null);
+   id?()=>{(window.GX2?GX2.pinOk('Para borrar un pago o gasto ingrese la clave.'):Promise.resolve(true)).then(ok=>{if(ok){del('payments',id);save();render();toastX('Pago eliminado')}})}:null);
   const upd=()=>{const v=vals(b),bsv=v.moneda==='USD'?num(v.monto)*num(v.tc):num(v.monto);
     b.querySelector('#gxTc').style.display=v.moneda==='USD'?'':'none';
     b.querySelector('#gxBs').textContent='Equivale a Bs '+N(bsv);
@@ -1982,8 +2107,9 @@ function fPag(id,impId,pedId){
   b.addEventListener('input',upd);b.addEventListener('change',upd);upd();
 }
 
-window.GX={render,go,fImp,fPed,fLin,fPag,fCotEnPed,quitarCot,syncOps,lockOp,setCol,save,saldoPedido,totalPedido,ESTADOS_PED,ESTADOS_IMP,
+window.GX={render,go,fImp,fPed,fLin,fPag,fCotEnPed,quitarCot,syncOps,lockOp,setCol,save,fCierre,fProv,fLoc,migrarProv,saldoPedido,totalPedido,ESTADOS_PED,ESTADOS_IMP,
   get DB(){return DB},COLS:COLS_GX,KEYS};
+try{migrarProv()}catch(e){console.error(e)}
 try{syncOps()}catch(_){}
 })();
 </script>
@@ -2097,7 +2223,7 @@ function renderDash(){
     <div class="hcnt" style="grid-template-columns:repeat(3,1fr)">${tile(vend.n,'Ventas','c4')}${tile(nf(vend.bs,0),'Bs vendido','c1')}${tile(nf(vend.cob,0),'Bs cobrado','c2')}</div>
     <p class="hint" style="margin:10px 0 0">Con factura: ${vend.fac} · Con recibo: ${vend.rec}${vend.sin?' · Sin comprobante: '+vend.sin:''}. Cuenta las cotizaciones en «Entrega finalizada».</p></div>
   <div class="hc"><div class="hrow"><h2>Pedidos</h2><button class="hlink" data-g2="gxgo" data-v="ped" type="button">Ver</button></div>
-    <div class="hcnt">${ped.map(([e,n],i)=>tile(n,e,['c1','c2','c3','c4'][i%4])).join('')}</div></div>
+    <div class="hcnt" style="grid-template-columns:repeat(3,1fr);row-gap:12px">${ped.map(([e,n],i)=>tile(n,e,['c1','c2','c3','c2','c4'][i%5])).join('')}</div></div>
   <div class="hc"><div class="hrow"><h2>Importaciones</h2><button class="hlink" data-g2="gxgo" data-v="imp" type="button">Ver</button></div>
     <div class="hcnt" style="grid-template-columns:repeat(3,1fr);row-gap:12px">${imp.map(([e,n],i)=>tile(n,e,['c1','c2','c3','c4','c2','c1'][i%6])).join('')}</div></div>
   <div class="hc hgreen"><h2>Acciones a realizar</h2>
@@ -2143,7 +2269,7 @@ function askForm({title,msg,fields}){
   return new Promise(res=>{
     const w=document.createElement('div');w.className='gx2pin';
     w.innerHTML=`<div class="gx2box gx2form"><h3>${E(title)}</h3>${msg?`<p>${E(msg)}</p>`:''}<p class="gx2err"></p>
-      ${fields.map(f=>`<label>${E(f.l)}${f.t==='select'?`<select data-k="${f.k}">${f.o.map(o=>`<option>${E(o)}</option>`).join('')}</select>`:`<input type="text" data-k="${f.k}" autocomplete="off">`}</label>`).join('')}
+      ${fields.map(f=>`<label>${E(f.l)}${f.t==='select'?`<select data-k="${f.k}">${f.o.map(o=>`<option${o===f.v?' selected':''}>${E(o)}</option>`).join('')}</select>`:`<input type="text" data-k="${f.k}" value="${E(f.v||'')}" autocomplete="off">`}</label>`).join('')}
       <div class="gx2btns"><button type="button" data-a="no">Cancelar</button><button type="button" data-a="ok" class="pri">Aceptar</button></div></div>`;
     document.body.appendChild(w);const els=[...w.querySelectorAll('[data-k]')];els[els.length>1?1:0].focus();
     w.addEventListener('click',e=>{const a=e.target.dataset&&e.target.dataset.a;
@@ -2153,7 +2279,7 @@ function askForm({title,msg,fields}){
         w.remove();res(v)}})})}
 /* ---------- SEGUIMIENTO: grupos ---------- */
 let trkGroup='cot';
-const IMP2ET={'Programada':'pedido','En tránsito':'transito','En aduana':'aduana','En almacén':'disponible'};
+const IMP2ET={'Programada':'pedido','En tránsito':'transito','En aduana':'aduana','En almacenes de Novatrade':'disponible'};
 function moverOp(o,e,nota){
   o.etapa=e;(o.hist=o.hist||[]).push({etapa:e,ts:Date.now(),nota:nota||''});o.upd=Date.now();
   const c=clients.find(x=>x.id===o.clienteId);if(c&&c.estado!=='ganado'&&e!=='enviada'&&e!=='cancelada'){c.estado='ganado';c.actualizado=Date.now();saveClients()}
@@ -2191,8 +2317,12 @@ function trkRender(){
   if(trkGroup==='imp')q$('#trkImp').innerHTML=trkImpHtml()}
 const _rt=renderTrack;renderTrack=function(){_rt();try{trkRender()}catch(e){console.error(e)}};
 const _se=setEtapa;
+const CONF={demorado:['Confirmar: Demorado por aduana','Motivo de la demora'],aduanap:['Confirmar: Arribo parcial en aduana','Detalle del arribo parcial (qué llegó y qué falta)'],entregap:['Confirmar: Entregado parcial','Detalle de la entrega parcial (qué se entregó)']};
 setEtapa=async function(e){
   if(!OP||OP.etapa===e)return;
+  if(CONF[e]){
+    const r=await askForm({title:CONF[e][0],msg:'Este estado lo verá el cliente en su seguimiento. Escriba el motivo para confirmar.',fields:[{k:'motivo',l:CONF[e][1],req:1}]});
+    if(!r)return;_se(e);OP.hist[OP.hist.length-1].nota=r.motivo.trim();opCommit();renderOp();return}
   if(e==='entregada'){
     const r=await askForm({title:'Entrega finalizada',msg:'Registre el comprobante de la venta.',fields:[{k:'tipo',l:'Comprobante',t:'select',o:['Factura','Recibo']},{k:'numero',l:'Número de factura o recibo',req:1}]});
     if(!r)return;OP.docVenta={tipo:r.tipo,numero:r.numero.trim(),fecha:new Date().toISOString().slice(0,10)}}
@@ -2239,12 +2369,19 @@ document.addEventListener('input',e=>{
   const t=e.target;if(!cobDraft||!t.dataset||!t.dataset.cd)return;const k=t.dataset.cd;
   cobDraft.x[k]=(k==='monto'||k==='tc')?num(t.value):t.value;
   const bsEl=q$('#cdBs');if(bsEl)bsEl.textContent='Bs '+nf(cobBs(cobDraft.x),2)});
-document.addEventListener('change',e=>{
+document.addEventListener('change',async e=>{
   const t=e.target,d=t.dataset||{};
   if(d.g2==='year'){dashYear=+t.value;renderDash()}
   if(cobDraft&&d.cd==='moneda'){cobDraft.x.moneda=t.value;cobrosHtml()}
-  if(d.g2==='pedEst'){const p=GX.DB.purchases.find(x=>x.id===d.id);if(p){p.estado=t.value;if(t.value==='Recibido'&&!p.recepcion)p.recepcion=new Date().toISOString().slice(0,10);GX.save();toast('Pedido '+p.numero+': '+p.estado);trkRender()}}
-  if(d.g2==='impEst'){const i=GX.DB.imports.find(x=>x.id===d.id);if(i){i.estado=t.value;GX.save();toast('Importación '+i.numero+': '+i.estado);trkRender();propagarImp(i)}}});
+  if(d.g2==='pedEst'){const p=GX.DB.purchases.find(x=>x.id===d.id);if(p){
+    if(t.value==='Recibido'){trkRender();GX.fCierre(p.id,()=>trkRender());return}
+    p.estado=t.value;GX.save();toast('Pedido '+p.numero+': '+p.estado);trkRender()}}
+  if(d.g2==='impEst'){const i=GX.DB.imports.find(x=>x.id===d.id);if(i){
+    if(t.value==='Liberada'){
+      const r=await askForm({title:'Importación liberada',msg:'Registre los datos de aduana.',fields:[{k:'canal',l:'Canal aduanero asignado',t:'select',o:['Verde','Amarillo','Rojo'],v:i.canal},{k:'reajuste',l:'Reajuste de la aduana en Bs (si hubo)',v:i.reajuste},{k:'multas',l:'Multas en Bs (si hubo)',v:i.multas},{k:'obs',l:'Observaciones',v:i.obsAduana}]});
+      if(!r){trkRender();return}
+      i.canal=r.canal;i.reajuste=r.reajuste;i.multas=r.multas;i.obsAduana=r.obs}
+    i.estado=t.value;GX.save();toast('Importación '+i.numero+': '+i.estado);trkRender();propagarImp(i)}}});
 window.GX2={pinOk,cambiarPin,renderDash};
 })();
 
