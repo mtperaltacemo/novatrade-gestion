@@ -237,7 +237,7 @@ body.inhome{padding-block:0 calc(88px + env(safe-area-inset-bottom,0px))}
 
 /* seguimiento */
 .grp{margin:8px 0 0;font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
-.st-enviada{color:var(--muted)}.st-confirmada,.st-pedido,.st-transito,.st-aduana{color:var(--accent)}.st-entregada,.st-disponible{color:var(--good)}.st-demorado{color:var(--warn)}.st-cancelada{color:var(--bad)}
+.st-puerto,.st-aduanap{color:var(--accent)}.st-entregap{color:var(--good)}.st-enviada{color:var(--muted)}.st-confirmada,.st-pedido,.st-transito,.st-aduana{color:var(--accent)}.st-entregada,.st-disponible{color:var(--good)}.st-demorado{color:var(--warn)}.st-cancelada{color:var(--bad)}
 .pay{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 0;border-bottom:1px solid var(--line)}
 .cost{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) minmax(0,1.1fr) minmax(0,.9fr);gap:6px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line);font-size:13px}
 .cost.head{font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
@@ -282,6 +282,11 @@ body.inhome{padding-block:0 calc(88px + env(safe-area-inset-bottom,0px))}
 .gx2card em{font-style:normal;font-size:11px;font-weight:800;color:var(--warn);margin-top:auto}
 .gx2ro{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}.gx2ro div{background:#eef2f7;border-radius:10px;padding:8px 10px}
 .gx2ro small{display:block;font-size:11px;font-weight:700;color:var(--muted)}.gx2ro b{font-size:14px;color:var(--navy);word-break:break-word}
+.gx2cobro{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:10px 0;border-bottom:1px solid var(--h-line,#dde)}
+.gx2cobro b{font-size:14px}.gx2cobro small{display:block;color:var(--muted);font-size:12px;font-weight:600;margin-top:2px}
+.gx2act{display:flex;gap:6px;flex:none}.gx2act button{padding:6px 10px;border-radius:9px;border:1.5px solid var(--h-line,#ccd);background:#fff;font-weight:700;font-size:12px}.gx2act .danger{color:var(--bad)}
+.gx2draft{background:#f3f7fb;border-radius:12px;padding:10px;margin-top:10px}
+.gx2form input,.gx2form select{letter-spacing:normal;font-size:16px;text-align:left;padding:10px;width:100%;margin-top:4px;border:1.5px solid var(--line,#ccd);border-radius:10px;background:#fff}
 </style>
 </head>
 <body>
@@ -452,10 +457,14 @@ body.inhome{padding-block:0 calc(88px + env(safe-area-inset-bottom,0px))}
 
     <!-- SEGUIMIENTO (tablero) -->
     <section id="view-track" hidden style="flex-direction:column;gap:14px">
+      <div id="trkSeg" class="gx"></div>
+      <div id="trkPed" class="gx" style="display:none"></div><div id="trkImp" class="gx" style="display:none"></div>
+      <div id="trkCot" style="display:flex;flex-direction:column;gap:14px">
       <div class="card" id="trkAlerts" hidden><h2>Alertas</h2><div id="trkAlertList" style="display:flex;flex-direction:column;gap:8px"></div></div>
       <div class="chips" id="trkChips"></div>
       <div id="trkList" style="display:flex;flex-direction:column;gap:10px"></div>
       <div class="sticky"><button class="btn" data-go="saved" type="button" style="width:100%">+ Nueva operación desde una cotización</button></div>
+      </div>
     </section>
 
     <!-- OPERACIÓN -->
@@ -1435,8 +1444,8 @@ window.addEventListener('online',()=>{if(cloudUser)cloudPush()});
 
 
 /* ---------- seguimiento de operaciones ---------- */
-const ETAPAS=[['enviada','Cotización enviada'],['confirmada','Confirmada'],['pedido','Pedido realizado'],['transito','En tránsito'],['aduana','En aduana'],['demorado','Demorado por Aduana'],['disponible','Disponible para Entrega'],['entregada','Entregada']];
-const ETL=Object.fromEntries(ETAPAS.concat([['cancelada','Cancelada']]));
+const ETAPAS=[['enviada','Enviada'],['confirmada','Confirmada'],['pedido','Pedido realizado'],['transito','En tránsito'],['puerto','Arribado a puerto'],['aduanap','Arribo parcial en aduana'],['aduana','Arribo en aduana'],['demorado','Demorado por aduana'],['disponible','Disponible para entrega'],['entregap','Entregado parcial'],['entregada','Entrega finalizada']];
+const ETL=Object.fromEntries(ETAPAS.concat([['cancelada','Caída / perdida']]));
 const COSTOS=[['prod','Producto (FOB)'],['flete','Flete'],['ga','Gravamen'],['otros','Otros gastos'],['iva','IVA import.']];
 const DAYMS=86400000;
 let ops=lsGet('nt_ops',[]),OP=null,trkFilter='activas',opTimer,opCancelArm=false,opDelArm=false;
@@ -1490,13 +1499,13 @@ function opAlerts(o){
   const pag=(o.pagos||[]).reduce((s,p)=>s+(+p.monto||0),0);
   if(o.etapa==='demorado'&&dias>=3)a.push({k:'ab',t:`Demorado por aduana hace ${dias} días`});
   if(o.etapa==='disponible'&&dias>=2)a.push({k:'aw',t:`Disponible para entrega hace ${dias} días: coordinar con el cliente`});
-  if((o.etapa==='aduana'||o.etapa==='demorado'||o.etapa==='disponible')&&(o.pedidoUSD||0)-pag>0.005)a.push({k:'aw',t:`Saldo pendiente de pago: ${usd((o.pedidoUSD||0)-pag)}`});
+  if((o.etapa==='aduana'||o.etapa==='aduanap'||o.etapa==='demorado'||o.etapa==='disponible')&&(o.pedidoUSD||0)-pag>0.005)a.push({k:'aw',t:`Saldo pendiente de pago: ${usd((o.pedidoUSD||0)-pag)}`});
   return a
 }
 function renderTrack(){
   const act=ops.filter(o=>!['entregada','cancelada'].includes(o.etapa));
   const cnt=k=>k==='activas'?act.length:ops.filter(o=>o.etapa===k).length;
-  $('#trkChips').innerHTML=[['activas','Activas']].concat(ETAPAS.map(([k,l])=>[k,l]),[['cancelada','Canceladas']]).map(([k,l])=>`<button class="chip" type="button" data-go="trkchip" data-k="${k}" aria-pressed="${trkFilter===k}">${l} · ${cnt(k)}</button>`).join('');
+  $('#trkChips').innerHTML=[['activas','Activas']].concat(ETAPAS.map(([k,l])=>[k,l]),[['cancelada','Caídas']]).map(([k,l])=>`<button class="chip" type="button" data-go="trkchip" data-k="${k}" aria-pressed="${trkFilter===k}">${l} · ${cnt(k)}</button>`).join('');
   const al=[];act.forEach(o=>opAlerts(o).forEach(a=>al.push({o,a})));
   $('#trkAlerts').hidden=!al.length;
   $('#trkAlertList').innerHTML=al.slice(0,8).map(({o,a})=>`<button class="cl" type="button" data-go="openOp" data-id="${o.id}"><b>${esc(o.clienteNombre)}</b><span class="st st-${o.etapa}">${ETL[o.etapa]}</span><span class="meta"><span class="${a.k}">${esc(a.t)}</span> · ${esc(o.numero)}</span></button>`).join('');
@@ -1591,7 +1600,7 @@ function updateOpSummaries(){
 }
 function opMsg(){
   const c=clients.find(x=>x.id===OP.clienteId),nom=c?(c.contacto||c.nombre):OP.clienteNombre;
-  const est={enviada:'le enviamos la cotización',confirmada:'su cotización fue confirmada',pedido:'su pedido fue realizado al proveedor',transito:'su mercadería está en tránsito',aduana:'su mercadería está en proceso de aduana',demorado:'su mercadería está demorada en aduana, estamos gestionando su liberación',disponible:'su pedido está disponible para entrega',entregada:'su pedido fue entregado',cancelada:'la operación fue cancelada'}[OP.etapa];
+  const est={enviada:'le enviamos la cotización',confirmada:'su cotización fue confirmada',pedido:'su pedido fue realizado al proveedor',transito:'su mercadería está en tránsito',puerto:'su mercadería arribó al puerto',aduanap:'una parte de su mercadería arribó a aduana',aduana:'su mercadería arribó a aduana y está en proceso de nacionalización',entregap:'se realizó una entrega parcial de su pedido',demorado:'su mercadería está demorada en aduana, estamos gestionando su liberación',disponible:'su pedido está disponible para entrega',entregada:'su pedido fue entregado',cancelada:'la cotización quedó sin efecto'}[OP.etapa];
   return `Hola ${nom}, le informamos sobre la cotización ${OP.numero}: ${est}.`+(OP.eta&&!['entregada','cancelada'].includes(OP.etapa)?` Fecha estimada de llegada: ${fmtDate(OP.eta)}.`:'')+(OP.contenedor&&['transito','aduana','demorado'].includes(OP.etapa)?` Contenedor: ${OP.contenedor}.`:'')+'\n\nNovatrade Import & Export'+(cfg.tel?'\n'+cfg.tel:'')
 }
 function exportOps(){
@@ -1870,7 +1879,7 @@ const toastX=m=>{try{toast(m)}catch(_){}};
 function fImp(id){
   const i=id?byId(DB.imports,id):{numero:nextNum('IMP',DB.imports),estado:'Programada',permiso:'no',transporte:'Marítimo'};
   const b=sheet(id?'Editar importación':'Nueva importación',
-   inp('numero','Número oficial (automático)',i.numero,{full:1,ro:1})+sel('estado','Estado',ESTADOS_IMP,i.estado,{full:1})+
+   inp('numero','Número oficial (automático)',i.numero,{full:1,ro:1})+inp('estado','Estado (se cambia en Seguimiento)',i.estado,{full:1,ro:1})+
    sec('Transporte')+
    sel('transporte','Tipo de transporte',['',...TRANSPORTES].map(x=>[x,x||'Seleccionar…']),i.transporte)+inp('naviera','Naviera',i.naviera,{list:'gxNav'})+
    `<datalist id="gxNav">${['MSC','Maersk','COSCO','CMA CGM','Hapag-Lloyd','ONE','Evergreen','DHL','FedEx','UPS'].map(x=>`<option value="${x}">`).join('')}</datalist>`+
@@ -1902,7 +1911,7 @@ function fPed(id,impId){
    inp('numero','N.º de pedido oficial (automático)',p.numero,{full:1,ro:1})+inp('proveedor','Proveedor',p.proveedor,{full:1,list:'gxProv'})+
    `<datalist id="gxProv">${saldosProveedor().map(r=>`<option value="${E(r.nombre)}">`).join('')}</datalist>`+
    inp('refProv','Referencia del proveedor (proforma, PI)',p.refProv)+inp('factura','N.º de factura del proveedor',p.factura)+
-   sel('estado','Estado',ESTADOS_PED,p.estado)+sel('empaque','¿Tiene lista de empaque?',[['no','No'],['si','Sí']],p.empaque)+
+   inp('estado','Estado (se cambia en Seguimiento)',p.estado,{ro:1})+sel('empaque','¿Tiene lista de empaque?',[['no','No'],['si','Sí']],p.empaque)+
    inp('plazo','Plazo de entrega',p.plazo,{t:'date'})+inp('recepcion','Recepción en almacén del agente de carga',p.recepcion,{t:'date'})+
    sel('importId','Importación (embarque)',opcionesImp(),p.importId,{full:1}),
    v=>{if(!v.proveedor){toastX('Falta el proveedor');return false}
@@ -2035,13 +2044,13 @@ async function cambiarPin(){
 
 /* ---------- INICIO · DASHBOARD ---------- */
 function estadoCot(){ /* por estado actual */
-  const c={enviadas:0,confirmadas:0,entregadas:0,caidas:0},vend={n:0,bs:0,cob:0};
+  const c={enviadas:0,confirmadas:0,entregadas:0,caidas:0},vend={n:0,bs:0,cob:0,fac:0,rec:0,sin:0};
   const qs=qCache||[],byQ={};ops.forEach(o=>{if(o.quoteId)byQ[o.quoteId]=o});
   const cnt=(o,y)=>{
     if(y!==dashYear)return;
     const e=o?o.etapa:'enviada';
     if(e==='cancelada')c.caidas++;
-    else if(e==='entregada'){c.entregadas++;vend.n++;vend.bs+=+o.total||0;vend.cob+=cobrado(o)}
+    else if(e==='entregada'){c.entregadas++;vend.n++;{const t=o.docVenta&&o.docVenta.tipo;if(t==='Factura')vend.fac++;else if(t==='Recibo')vend.rec++;else vend.sin++}vend.bs+=+o.total||0;vend.cob+=cobrado(o)}
     else if(e==='enviada')c.enviadas++;
     else c.confirmadas++};
   qs.forEach(q=>cnt(byQ[q.id],yearOfTs(q.ts)));
@@ -2086,7 +2095,7 @@ function renderDash(){
     <div class="row" style="margin-top:10px"><button class="btn pri sm" data-go="saved" type="button" style="flex:1">Ir a Cotizaciones</button></div></div>
   <div class="hc"><div class="hrow"><h2>Ventas completadas ${dashYear}</h2></div>
     <div class="hcnt" style="grid-template-columns:repeat(3,1fr)">${tile(vend.n,'Ventas','c4')}${tile(nf(vend.bs,0),'Bs vendido','c1')}${tile(nf(vend.cob,0),'Bs cobrado','c2')}</div>
-    <p class="hint" style="margin:10px 0 0">Cuenta las cotizaciones en «Entrega finalizada». Cuando se registre la factura o el recibo se separarán por tipo.</p></div>
+    <p class="hint" style="margin:10px 0 0">Con factura: ${vend.fac} · Con recibo: ${vend.rec}${vend.sin?' · Sin comprobante: '+vend.sin:''}. Cuenta las cotizaciones en «Entrega finalizada».</p></div>
   <div class="hc"><div class="hrow"><h2>Pedidos</h2><button class="hlink" data-g2="gxgo" data-v="ped" type="button">Ver</button></div>
     <div class="hcnt">${ped.map(([e,n],i)=>tile(n,e,['c1','c2','c3','c4'][i%4])).join('')}</div></div>
   <div class="hc"><div class="hrow"><h2>Importaciones</h2><button class="hlink" data-g2="gxgo" data-v="imp" type="button">Ver</button></div>
@@ -2108,22 +2117,89 @@ function linkBox(){
     const im=D.imports.find(i=>i.id===p.importId);
     return `<div class="card" style="padding:10px 12px;margin:0"><button class="item" data-g2="gxgo" data-v="pedd" data-id="${p.id}" type="button"><span class="tag">${E(p.estado)}</span><b>Pedido ${E(p.numero)}</b><small>${E(p.proveedor||'')}</small></button>
       ${im?`<button class="item" data-g2="gxgo" data-v="impd" data-id="${im.id}" type="button"><span class="tag">${E(im.estado)}</span><b>Importación ${E(im.numero)}</b><small>${im.eta?'ETA '+E(im.eta):''}</small></button>`:'<small class="hint">Pedido sin importación asignada.</small>'}</div>`}).join('')}</div>`}
+let cobDraft=null,cobDraftOp='';
 function cobrosHtml(){
-  if(!OP)return;
-  OP.cobros=OP.cobros||[];
-  q$('#opCobros').innerHTML=OP.cobros.length?OP.cobros.map((x,i)=>`<div class="gx2cob">
-    <input class="plain" type="date" data-ocob="fecha" data-i="${i}" value="${E(x.fecha||'')}">
-    <select class="plain" data-ocob="moneda" data-i="${i}"><option${x.moneda!=='USD'?' selected':''}>Bs</option><option${x.moneda==='USD'?' selected':''}>USD</option></select>
-    <input class="plain" inputmode="decimal" placeholder="Monto" data-ocob="monto" data-i="${i}" value="${x.monto?showNum(x.monto):''}" autocomplete="off">
-    ${x.moneda==='USD'?`<input class="plain" inputmode="decimal" placeholder="T/C del día" data-ocob="tc" data-i="${i}" value="${x.tc?showNum(x.tc):''}" autocomplete="off">`:''}
-    <span class="gx2bs">Bs ${nf(cobBs(x),2)}</span>
-    <input class="plain" placeholder="Nota (depósito, efectivo…)" data-ocob="nota" data-i="${i}" value="${E(x.nota||'')}" autocomplete="off" style="grid-column:1/-1">
-    <button class="btn sm ghost danger" type="button" data-g2="delCob" data-i="${i}">Quitar</button></div>`).join(''):'<p class="hint">Aún no hay cobros registrados.</p>';
+  if(!OP)return;OP.cobros=OP.cobros||[];
+  if(cobDraftOp!==OP.id){cobDraft=null;cobDraftOp=OP.id}
+  const rows=OP.cobros.map((x,i)=>`<div class="gx2cobro"><div><b>${fd(x.fecha)}</b> · ${nf(x.monto,2)} ${x.moneda}${x.moneda==='USD'?' × T/C '+nf(x.tc,2):''}<small>= Bs ${nf(cobBs(x),2)}${x.nota?' · '+E(x.nota):''}</small></div>
+    <div class="gx2act"><button type="button" data-g2="editCob" data-i="${i}">Editar</button><button type="button" class="danger" data-g2="delCob" data-i="${i}">Quitar</button></div></div>`).join('');
+  let form='';
+  if(cobDraft){const x=cobDraft.x;
+    form=`<div class="gx2draft"><b>${cobDraft.i==null?'Nuevo cobro':'Editar cobro'}</b>
+      <div class="gx2cob"><input class="plain" type="date" data-cd="fecha" value="${E(x.fecha||'')}">
+      <select class="plain" data-cd="moneda"><option${x.moneda!=='USD'?' selected':''}>Bs</option><option${x.moneda==='USD'?' selected':''}>USD</option></select>
+      <input class="plain" inputmode="decimal" placeholder="Monto" data-cd="monto" value="${x.monto?showNum(x.monto):''}" autocomplete="off">
+      ${x.moneda==='USD'?`<input class="plain" inputmode="decimal" placeholder="T/C del día" data-cd="tc" value="${x.tc?showNum(x.tc):''}" autocomplete="off">`:''}
+      <span class="gx2bs" id="cdBs">Bs ${nf(cobBs(x),2)}</span>
+      <input class="plain" placeholder="Nota (depósito, efectivo…)" data-cd="nota" value="${E(x.nota||'')}" autocomplete="off" style="grid-column:1/-1"></div>
+      <div class="row" style="margin-top:8px"><button class="btn pri sm" type="button" data-g2="saveCob">Guardar cobro</button><button class="btn sm ghost" type="button" data-g2="cancelCob">Cancelar</button></div></div>`}
+  q$('#opCobros').innerHTML=(rows||(!cobDraft?'<p class="hint">Aún no hay cobros registrados.</p>':''))+form;
+  const add=q$('[data-g2=addCob]');if(add)add.hidden=!!cobDraft;
   cobTot()}
 function cobTot(){
   if(!OP)return;const tot=+OP.total||0,cob=cobrado(OP),sal=tot-cob;
   q$('#cobTot').innerHTML=`Cotizado <b>Bs ${nf(tot,2)}</b> · Cobrado <b>Bs ${nf(cob,2)}</b> · Saldo por cobrar <b>Bs ${nf(Math.max(sal,0),2)}</b> ${sal<=0.5&&tot>0?'✓ completo':''}`}
-
+function askForm({title,msg,fields}){
+  return new Promise(res=>{
+    const w=document.createElement('div');w.className='gx2pin';
+    w.innerHTML=`<div class="gx2box gx2form"><h3>${E(title)}</h3>${msg?`<p>${E(msg)}</p>`:''}<p class="gx2err"></p>
+      ${fields.map(f=>`<label>${E(f.l)}${f.t==='select'?`<select data-k="${f.k}">${f.o.map(o=>`<option>${E(o)}</option>`).join('')}</select>`:`<input type="text" data-k="${f.k}" autocomplete="off">`}</label>`).join('')}
+      <div class="gx2btns"><button type="button" data-a="no">Cancelar</button><button type="button" data-a="ok" class="pri">Aceptar</button></div></div>`;
+    document.body.appendChild(w);const els=[...w.querySelectorAll('[data-k]')];els[els.length>1?1:0].focus();
+    w.addEventListener('click',e=>{const a=e.target.dataset&&e.target.dataset.a;
+      if(a==='no'){w.remove();res(null)}
+      if(a==='ok'){const v={};for(const el of els)v[el.dataset.k]=el.value;
+        const miss=fields.find(f=>f.req&&!String(v[f.k]||'').trim());if(miss){w.querySelector('.gx2err').textContent='Falta: '+miss.l+'.';return}
+        w.remove();res(v)}})})}
+/* ---------- SEGUIMIENTO: grupos ---------- */
+let trkGroup='cot';
+const IMP2ET={'Programada':'pedido','En tránsito':'transito','En aduana':'aduana','En almacén':'disponible'};
+function moverOp(o,e,nota){
+  o.etapa=e;(o.hist=o.hist||[]).push({etapa:e,ts:Date.now(),nota:nota||''});o.upd=Date.now();
+  const c=clients.find(x=>x.id===o.clienteId);if(c&&c.estado!=='ganado'&&e!=='enviada'&&e!=='cancelada'){c.estado='ganado';c.actualizado=Date.now();saveClients()}
+  saveOps();cloudPushSoon()}
+async function propagarImp(imp){
+  const e=IMP2ET[imp.estado];if(!e)return;
+  const D=GX.DB,peds=D.purchases.filter(p=>p.importId===imp.id).map(p=>p.id);
+  const qids=[...new Set(D.purchaseLines.filter(l=>peds.includes(l.purchaseId)).map(l=>l.quoteId))];
+  const ti=ETAPAS.findIndex(x=>x[0]===e);
+  const tg=qids.map(q=>ops.find(o=>o.quoteId===q)).filter(o=>o&&!['cancelada','entregada','entregap'].includes(o.etapa)&&ETAPAS.findIndex(x=>x[0]===o.etapa)<ti);
+  if(!tg.length)return;
+  if(confirm('La importación '+imp.numero+' pasó a «'+imp.estado+'».\n¿Actualizar también estas '+tg.length+' cotización(es) a «'+ETL[e]+'»?\n\n'+tg.map(o=>'• '+o.numero+' · '+(o.clienteNombre||'')).join('\n'))){
+    tg.forEach(o=>moverOp(o,e,'Según importación '+imp.numero));toast(tg.length+' cotización(es) actualizada(s)')}}
+function trkPedHtml(){
+  const D=GX.DB,l=D.purchases.slice().sort((a,b)=>(b.upd||0)-(a.upd||0));
+  if(!l.length)return '<div class="empty">Aún no hay pedidos. Se crean en Importaciones → Pedidos.</div>';
+  return l.map(p=>{const im=D.imports.find(i=>i.id===p.importId),nq=new Set(D.purchaseLines.filter(x=>x.purchaseId===p.id).map(x=>x.quoteId)).size;
+    return `<div class="card" style="margin:0 0 10px"><div class="row sp"><b>${E(p.numero)}</b><span class="hint">${E(p.proveedor||'')}</span></div>
+      <p class="hint" style="margin:4px 0 8px">${im?'Importación '+E(im.numero):'Sin importación'} · ${nq} cotización(es)</p>
+      <label class="f full"><span>Estado del pedido</span><select class="plain" data-g2="pedEst" data-id="${p.id}">${GX.ESTADOS_PED.map(e=>`<option${p.estado===e?' selected':''}>${e}</option>`).join('')}</select></label></div>`}).join('')}
+function trkImpHtml(){
+  const D=GX.DB,l=D.imports.slice().sort((a,b)=>(a.eta||'9999')<(b.eta||'9999')?-1:1);
+  if(!l.length)return '<div class="empty">Aún no hay importaciones. Se crean en Importaciones → Importaciones.</div>';
+  return l.map(i=>{const np=D.purchases.filter(p=>p.importId===i.id).length;
+    return `<div class="card" style="margin:0 0 10px"><div class="row sp"><b>${E(i.numero)}</b><span class="hint">${i.eta?'ETA '+fd(i.eta):'Sin ETA'}</span></div>
+      <p class="hint" style="margin:4px 0 8px">${E(i.transporte||'')}${i.naviera?' · '+E(i.naviera):''} · ${np} pedido(s)</p>
+      <label class="f full"><span>Estado de la importación</span><select class="plain" data-g2="impEst" data-id="${i.id}">${GX.ESTADOS_IMP.map(e=>`<option${i.estado===e?' selected':''}>${e}</option>`).join('')}</select></label></div>`}).join('')}
+function trkRender(){
+  const seg=q$('#trkSeg');if(!seg||!window.GX)return;
+  seg.innerHTML='<div class="seg">'+[['cot','Cotizaciones'],['ped','Pedidos'],['imp','Importaciones']].map(([k,l])=>`<button type="button" class="btn sm ${k===trkGroup?'on':''}" data-g2="trkg" data-k="${k}">${l}</button>`).join('')+'</div>';
+  q$('#trkCot').style.display=trkGroup==='cot'?'flex':'none';
+  q$('#trkPed').style.display=trkGroup==='ped'?'block':'none';
+  q$('#trkImp').style.display=trkGroup==='imp'?'block':'none';
+  if(trkGroup==='ped')q$('#trkPed').innerHTML=trkPedHtml();
+  if(trkGroup==='imp')q$('#trkImp').innerHTML=trkImpHtml()}
+const _rt=renderTrack;renderTrack=function(){_rt();try{trkRender()}catch(e){console.error(e)}};
+const _se=setEtapa;
+setEtapa=async function(e){
+  if(!OP||OP.etapa===e)return;
+  if(e==='entregada'){
+    const r=await askForm({title:'Entrega finalizada',msg:'Registre el comprobante de la venta.',fields:[{k:'tipo',l:'Comprobante',t:'select',o:['Factura','Recibo']},{k:'numero',l:'Número de factura o recibo',req:1}]});
+    if(!r)return;OP.docVenta={tipo:r.tipo,numero:r.numero.trim(),fecha:new Date().toISOString().slice(0,10)}}
+  if(e==='cancelada'){
+    const r=await askForm({title:'Cotización caída o perdida',msg:'¿Por qué se perdió?',fields:[{k:'motivo',l:'Motivo',t:'select',o:['Precio','Competencia','Sin respuesta','Otro']},{k:'nota',l:'Comentario (opcional)'}]});
+    if(!r)return;OP.motivo=r.motivo;OP.motivoNota=r.nota||''}
+  _se(e)};
 /* ---------- ENGANCHES ---------- */
 function fd(v){const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(v||'');return m?m[3]+'/'+m[2]+'/'+m[1]:v}
 function embRO(){
@@ -2147,18 +2223,28 @@ document.addEventListener('click',async e=>{
   if(a==='soon'){toast(b.dataset.msg)}
   else if(a==='gxgo'){setView('compras');GX.go(b.dataset.v,b.dataset.id||null)}
   else if(a==='pin')cambiarPin();
-  else if(a==='addCob'){OP.cobros=OP.cobros||[];OP.cobros.push({id:'c'+Date.now().toString(36),fecha:today(),moneda:'Bs',monto:0,tc:0,nota:''});opCommit();cobrosHtml()}
-  else if(a==='delCob'){if(await pinOk('Para borrar un cobro del cliente ingrese la clave.')){OP.cobros.splice(+b.dataset.i,1);opCommit();cobrosHtml()}}
+  else if(a==='trkg'){trkGroup=b.dataset.k;trkRender()}
+  else if(a==='addCob'){cobDraft={i:null,x:{fecha:today(),moneda:'Bs',monto:0,tc:0,nota:''}};cobrosHtml()}
+  else if(a==='cancelCob'){cobDraft=null;cobrosHtml()}
+  else if(a==='saveCob'){const x=cobDraft.x;
+    if(!(num(x.monto)>0)){toast('Escriba el monto cobrado');return}
+    if(x.moneda==='USD'&&!(num(x.tc)>0)){toast('Escriba el T/C del día del cobro');return}
+    const rec={id:x.id||'c'+Date.now().toString(36),fecha:x.fecha||today(),moneda:x.moneda,monto:num(x.monto),tc:x.moneda==='USD'?num(x.tc):0,nota:x.nota||''};
+    if(cobDraft.i==null)OP.cobros.push(rec);else OP.cobros[cobDraft.i]=rec;
+    cobDraft=null;opCommit();cobrosHtml();toast('Cobro registrado')}
+  else if(a==='editCob'){if(await pinOk('Para editar un cobro registrado ingrese la clave.')){const i=+b.dataset.i;cobDraft={i,x:{...OP.cobros[i]}};cobrosHtml()}}
+  else if(a==='delCob'){if(await pinOk('Para borrar un cobro del cliente ingrese la clave.')){OP.cobros.splice(+b.dataset.i,1);opCommit();cobrosHtml();toast('Cobro eliminado')}}
 });
 document.addEventListener('input',e=>{
-  const t=e.target;if(!OP||!t.dataset||!t.dataset.ocob)return;
-  const x=OP.cobros[+t.dataset.i];if(!x)return;const k=t.dataset.ocob;
-  x[k]=(k==='monto'||k==='tc')?num(t.value):t.value;opCommitSoon();
-  const row=t.closest('.gx2cob');if(row)row.querySelector('.gx2bs').textContent='Bs '+nf(cobBs(x),2);cobTot()});
+  const t=e.target;if(!cobDraft||!t.dataset||!t.dataset.cd)return;const k=t.dataset.cd;
+  cobDraft.x[k]=(k==='monto'||k==='tc')?num(t.value):t.value;
+  const bsEl=q$('#cdBs');if(bsEl)bsEl.textContent='Bs '+nf(cobBs(cobDraft.x),2)});
 document.addEventListener('change',e=>{
-  const t=e.target;
-  if(t.dataset&&t.dataset.g2==='year'){dashYear=+t.value;renderDash()}
-  if(OP&&t.dataset&&t.dataset.ocob==='moneda'){OP.cobros[+t.dataset.i].moneda=t.value;opCommit();cobrosHtml()}});
+  const t=e.target,d=t.dataset||{};
+  if(d.g2==='year'){dashYear=+t.value;renderDash()}
+  if(cobDraft&&d.cd==='moneda'){cobDraft.x.moneda=t.value;cobrosHtml()}
+  if(d.g2==='pedEst'){const p=GX.DB.purchases.find(x=>x.id===d.id);if(p){p.estado=t.value;if(t.value==='Recibido'&&!p.recepcion)p.recepcion=new Date().toISOString().slice(0,10);GX.save();toast('Pedido '+p.numero+': '+p.estado);trkRender()}}
+  if(d.g2==='impEst'){const i=GX.DB.imports.find(x=>x.id===d.id);if(i){i.estado=t.value;GX.save();toast('Importación '+i.numero+': '+i.estado);trkRender();propagarImp(i)}}});
 window.GX2={pinOk,cambiarPin,renderDash};
 })();
 

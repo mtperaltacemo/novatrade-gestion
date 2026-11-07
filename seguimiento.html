@@ -67,7 +67,7 @@ dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:8px 14px;font-size:1
 /* Prefijo de las colecciones: 'test_' en modo prueba; vacío en producción. Debe coincidir con CP del index.html */
 const CP='test_';
 const PROJ='crm-novatrade',KEY='AIzaSyA2J3Z4gHQyYYvU8AzSVs9r_L_DG6Ax9AE';
-const ETAPAS=[['enviada','Cotización enviada'],['confirmada','Confirmada'],['pedido','Pedido realizado'],['transito','En tránsito'],['aduana','En aduana'],['demorado','Demorado por Aduana'],['disponible','Disponible para Entrega'],['entregada','Entregada']];
+const ETAPAS=[['enviada','Cotización enviada'],['confirmada','Confirmada'],['pedido','Pedido realizado'],['transito','En tránsito'],['puerto','Arribado a puerto'],['aduanap','Arribo parcial en aduana'],['aduana','Arribo en aduana'],['demorado','Demorado por aduana'],['disponible','Disponible para entrega'],['entregap','Entregado parcial'],['entregada','Entrega finalizada']];
 const $=s=>document.querySelector(s);
 let timer=null,cur='';
 function val(v){ // valor tipado de Firestore REST -> JS
@@ -98,14 +98,14 @@ function show(d,code){
   $('#rProd').textContent=d.producto||'Su pedido';
   $('#rNum').textContent=d.numero?'Cotización '+d.numero:'';
   const e=d.etapa,idx=ETAPAS.findIndex(x=>x[0]===e),b=$('#rEtapa');
-  b.textContent=e==='cancelada'?'Cancelado':(ETAPAS[idx]||['',''])[1];b.className='badge'+(e==='entregada'||e==='disponible'?' ok':e==='cancelada'||e==='demorado'?' bad':'');
+  b.textContent=e==='cancelada'?'Sin efecto':(ETAPAS[idx]||['',''])[1];b.className='badge'+(e==='entregada'||e==='disponible'||e==='entregap'?' ok':e==='cancelada'||e==='demorado'?' bad':'');
   let eta='';
   if(d.eta&&e!=='entregada'&&e!=='cancelada'){const n=Math.round((new Date(d.eta+'T12:00:00')-new Date(new Date().toISOString().slice(0,10)+'T12:00:00'))/864e5);
     eta=`Llegada estimada: <b>${fdi(d.eta)}</b>`+(n>0?` (en ${n} día${n===1?'':'s'})`:n===0?' (hoy)':' (en revisión)')}
   else if(e==='entregada')eta='Su pedido fue entregado. ¡Gracias por su confianza!';
   $('#rEta').innerHTML=eta;
   const hist=d.hist||[];
-  $('#rSteps').innerHTML=ETAPAS.map(([k,l],i)=>({k,l,i})).filter(o=>o.k!=='demorado'||e==='demorado'||hist.some(x=>x.etapa==='demorado')).map(({k,l,i})=>{const h=hist.slice().reverse().find(x=>x.etapa===k);
+  $('#rSteps').innerHTML=ETAPAS.map(([k,l],i)=>({k,l,i})).filter(o=>!['demorado','aduanap','entregap','puerto'].includes(o.k)||e===o.k||hist.some(x=>x.etapa===o.k)).map(({k,l,i})=>{const h=hist.slice().reverse().find(x=>x.etapa===k);
     const cls=e==='cancelada'?(h?'done':''):i<idx?'done':i===idx?'cur':'';
     return `<li class="${cls}"><i>${cls==='done'?'✓':''}</i><b>${l}</b><span>${h?fd(h.ts):(cls?'':'Pendiente')}</span></li>`}).join('');
   const env=[['Tipo de transporte',d.modalidad],['Naviera',d.naviera],['Contenedor',d.contenedor],['Documento de embarque',d.bl],['Fecha de embarque',(d.etd||d.salida)?fdi(d.etd||d.salida):''],['Llegada a puerto',d.eta?fdi(d.eta):''],['Entrega estimada',d.entrega?fdi(d.entrega):'']].filter(x=>x[1]);
