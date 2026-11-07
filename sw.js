@@ -1,4 +1,4 @@
-* Service worker de Gestión Novatrade: permite abrir la app sin internet.
+/* Service worker de Gestión Novatrade: permite abrir la app sin internet.
    Cuando publique una versión nueva, cambie el número de VERSION. */
 const VERSION='g2';
 const CACHE = 'nt-gestion-' + VERSION;
