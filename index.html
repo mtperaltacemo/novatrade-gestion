@@ -415,9 +415,9 @@ body.inhome{padding-block:0 calc(88px + env(safe-area-inset-bottom,0px))}
     <section id="view-saved" hidden style="flex-direction:column;gap:14px">
 <div class="gx2h">Nueva cotización</div><div class="gx2hub">
   <button class="gx2card" data-g2="vstock" type="button"><b>Venta de stock</b><small>Vende de tu inventario con margen, IVA e IT</small></button>
-  <button class="gx2card soon" data-g2="soon" data-msg="Importación individual: en construcción (parte 6)." type="button"><b>Importación individual</b><small>Todos los cobros por categoría, con T/C por pago</small><em>Próximamente</em></button>
+  <button class="gx2card" data-g2="indnew" data-t="individual" type="button"><b>Importación individual</b><small>Todos los cobros por categoría, con T/C por pago</small></button>
   <button class="gx2card" data-go="startQuote" type="button"><b>Importación grupal</b><small id="tQuote">Cotizar una operación de importación</small></button>
-  <button class="gx2card soon" data-g2="soon" data-msg="Importación urgente (aérea): en construcción (parte 6)." type="button"><b>Importación urgente</b><small>Vía aérea: peso volumétrico y pickup</small><em>Próximamente</em></button>
+  <button class="gx2card" data-g2="indnew" data-t="urgente" type="button"><b>Importación urgente</b><small>Vía aérea: peso volumétrico y pickup</small></button>
 </div>
 <div class="hc hgreen" id="homeFollowCard" hidden><h2>Contactar hoy</h2><div id="homeFollow" style="display:flex;flex-direction:column;gap:8px"></div></div>
       <input class="plain" id="qSearch" placeholder="Buscar por código de cliente, apellido o N.º de cotización" autocomplete="off">
@@ -504,6 +504,7 @@ body.inhome{padding-block:0 calc(88px + env(safe-area-inset-bottom,0px))}
 
     <!-- CATÁLOGO -->
     <section id="view-compras" class="gx" hidden style="flex-direction:column;gap:14px"></section>
+    <section id="view-ind" class="gx" hidden style="flex-direction:column;gap:14px"></section>
     <section id="view-vstock" class="gx" hidden style="flex-direction:column;gap:14px"></section>
     <section id="view-inventario" class="gx" hidden style="flex-direction:column;gap:14px"></section>
     <section id="view-catalog" hidden style="flex-direction:column;gap:14px">
@@ -876,7 +877,7 @@ function loadList(){qCache=lsGet('nt_quotes',[]).sort((a,b)=>b.ts-a.ts);renderLi
 function renderList(){
   const el=$('#qList'),f=nz(qQuery.trim());
   const l=qCache.filter(q=>!f||nz((q.numero||'')+' '+(q.cliente||'')+' '+((q.meta&&q.meta.clienteCodigo)||'')).includes(f));
-  el.innerHTML=l.length?l.map(q=>`<div class="q"><div><b>${esc(q.numero)}</b><br><small>${esc(((q.meta&&q.meta.clienteCodigo)?q.meta.clienteCodigo+' · ':'')+(q.cliente||'Sin cliente'))} · ${new Date(q.ts).toLocaleDateString('es-BO')}</small></div><div class="amt">${bs(q.total)}</div>
+  el.innerHTML=l.length?l.map(q=>`<div class="q"><div><b>${esc(q.numero)}</b>${q.tipoCot?' <span class="tag">'+(q.tipoCot==='urgente'?'Urgente':'Individual')+'</span>':''}<br><small>${esc(((q.meta&&q.meta.clienteCodigo)?q.meta.clienteCodigo+' · ':'')+(q.cliente||'Sin cliente'))} · ${new Date(q.ts).toLocaleDateString('es-BO')}</small></div><div class="amt">${bs(q.total)}</div>
    <div class="acts"><button class="btn sm pri" data-act="abrir" data-id="${q.id}" type="button">Abrir</button><button class="btn sm" data-act="dupQ" data-id="${q.id}" type="button">Duplicar</button><button class="btn sm" data-act="trk" data-id="${q.id}" type="button">${opByQuote(q.id)?'Ver seguimiento':'Seguimiento'}</button>${
    confirmDel===q.id?`<button class="btn sm danger" data-act="delQ" data-id="${q.id}" type="button">Sí, eliminar</button><button class="btn sm ghost" data-act="noDel" type="button">Cancelar</button>`:`<button class="btn sm danger ghost" data-act="askDel" data-id="${q.id}" type="button">Eliminar</button>`}</div></div>`).join('')
    :`<p class="hint">${qCache.length?'Ninguna cotización coincide con la búsqueda.':'Aún no hay cotizaciones guardadas. Use «Guardar» dentro de una cotización.'}</p>`;
@@ -1012,8 +1013,8 @@ document.addEventListener('click',async e=>{
   else if(a==='guardar')guardar();
   else if(a==='pdf')downloadPDF(false);
   else if(a==='copyTxt')copyText();
-  else if(a==='abrir'){const q=qCache.find(x=>x.id===b.dataset.id);if(q)adopt(q,false)}
-  else if(a==='dupQ'){const q=qCache.find(x=>x.id===b.dataset.id);if(q)adopt(q,true)}
+  else if(a==='abrir'){const q=qCache.find(x=>x.id===b.dataset.id);if(q){if(q.tipoCot&&window.GX)GX.indOpen(q.id,false);else adopt(q,false)}}
+  else if(a==='dupQ'){const q=qCache.find(x=>x.id===b.dataset.id);if(q){if(q.tipoCot&&window.GX)GX.indOpen(q.id,true);else adopt(q,true)}}
   else if(a==='askDel'){confirmDel=b.dataset.id;renderList()}
   else if(a==='noDel'){confirmDel=null;renderList()}
   else if(a==='delQ')removeQ(b.dataset.id);
@@ -1028,8 +1029,8 @@ document.addEventListener('click',async e=>{
 });
 
 /* ---------- pantalla principal, clientes (CRM) y navegación ---------- */
-const VIEWS=['vstock','inventario','compras','home','quote','saved','clients','client','catalog','product','send','login','track','op','flyers','flyer'];
-const TITLES={vstock:'Venta de stock',quote:'Hacer cotización',saved:'Cotizaciones guardadas',clients:'Clientes',client:'Ficha de cliente',catalog:'Catálogo',product:'Producto',send:'Enviar por WhatsApp',flyers:'Volantes',flyer:'Volante',track:'Seguimiento',op:'Operación',compras:'Importaciones',inventario:'Inventario'};
+const VIEWS=['ind','vstock','inventario','compras','home','quote','saved','clients','client','catalog','product','send','login','track','op','flyers','flyer'];
+const TITLES={ind:'Cotización de importación',vstock:'Venta de stock',quote:'Hacer cotización',saved:'Cotizaciones guardadas',clients:'Clientes',client:'Ficha de cliente',catalog:'Catálogo',product:'Producto',send:'Enviar por WhatsApp',flyers:'Volantes',flyer:'Volante',track:'Seguimiento',op:'Operación',compras:'Importaciones',inventario:'Inventario'};
 const ESTADOS=[['nuevo','Nuevo'],['cotizado','Cotizado'],['ganado','Ganado'],['perdido','Perdido']];
 let clients=[],C=null,cNew=false,cPick=false,pickMode=false,cFilter='todos',cQuery='',qQuery='',confirmDelClient=false,newArm=false,cTimer;
 const loadClients=()=>{clients=lsGet('nt_clients',[])};
@@ -1051,11 +1052,12 @@ function setView(v,push=true){
   if(v==='home')pickMode=false;
   $('#ttl').textContent=(v==='clients'&&pickMode)?'Elegir cliente':(TITLES[v]||'');
   $('#pickNote').hidden=!(v==='clients'&&pickMode);
-  $('#btnBack').textContent=v==='client'?'‹ Clientes':(v==='product'||v==='send')?'‹ Catálogo':v==='flyer'?'‹ Volantes':v==='op'?'‹ Seguimiento':v==='vstock'?'‹ Cotizaciones':'‹ Inicio';
+  $('#btnBack').textContent=v==='client'?'‹ Clientes':(v==='product'||v==='send')?'‹ Catálogo':v==='flyer'?'‹ Volantes':v==='op'?'‹ Seguimiento':(v==='vstock'||v==='ind')?'‹ Cotizaciones':'‹ Inicio';
   if(v==='home')renderHome();
   if(v==='compras'){$('#subtitle').textContent='';if(window.GX)GX.render()}
   if(v==='inventario'){$('#subtitle').textContent='';if(window.GX)GX.renderInv()}
   if(v==='vstock'){$('#subtitle').textContent='';if(window.GX)GX.renderVs()}
+  if(v==='ind'){$('#subtitle').textContent='';if(window.GX)GX.renderInd()}
   if(v==='saved'){$('#subtitle').textContent=qCache.length+' guardadas';renderList();renderHome()}
   if(v==='clients'){$('#subtitle').textContent=clients.length+' clientes';renderClients()}
   if(v==='client')$('#subtitle').textContent='';
@@ -1152,7 +1154,7 @@ document.addEventListener('input',e=>{
 document.addEventListener('click',e=>{
   const b=e.target.closest('[data-go]');if(!b)return;
   const g=b.dataset.go;
-  if(g==='back'){if(view==='client'){if(String(C.nombre||'').trim())commitClient();setView('clients')}else if(view==='product'||view==='send')setView('catalog');else if(view==='flyer')setView('flyers');else if(view==='op')setView('track');else if(view==='vstock')setView('saved');else setView('home')}
+  if(g==='back'){if(view==='client'){if(String(C.nombre||'').trim())commitClient();setView('clients')}else if(view==='product'||view==='send')setView('catalog');else if(view==='flyer')setView('flyers');else if(view==='op')setView('track');else if(view==='vstock'||view==='ind')setView('saved');else setView('home')}
   else if(g==='home')setView('home');
   else if(g==='startQuote'){if(S.dirty){show('datos');setView('quote')}else startQuoteFlow()}
   else if(g==='saved'||g==='clients'||g==='compras'||g==='inventario')setView(g);
@@ -1491,6 +1493,7 @@ const r2=x=>Math.round((+x||0)*100)/100;
 const daysTo=s=>Math.round((new Date(s+'T12:00:00')-new Date(today()+'T12:00:00'))/DAYMS);
 function opCotizado(o){
   const q=lsGet('nt_quotes',[]).find(x=>x.id===o.quoteId);
+  if(q&&q.indRes)return q.indRes;
   if(q){const r=calcular({...DEF,...q.params},(q.prods||[]).map(p=>({...blankProd(),...p})));
     return {prod:r.costoProd,flete:r.fleteBs,ga:r.ga,otros:r.rows.reduce((s,w)=>s+w.O,0),iva:r.iva,neto:r.costoNeto,fob:r.FOB,total:r.totalFact}}
   return o.cot||{prod:0,flete:0,ga:0,otros:0,iva:0,neto:0,fob:0,total:0}
@@ -2147,7 +2150,7 @@ function ingresarPedido(p,i,cm){
     const q=qty(l);if(q<=0)continue;const costo=Math.round((m[l.id]||0)*100)/100,q0=l.quoteId?quoteOf(l.quoteId):null;
     const base={importId:i.id,importNum:i.numero,dim:i.dim||'',dimFecha:i.dimFecha||'',lineId:l.id,pedidoNum:p.numero,provisional:prov,fecha:i.dimFecha||TODAY(),creado:now};
     if(l.quoteId||l.destino==='cliente'){
-      const cli=l.cliente||(q0&&q0.cliente)||'',nro=q0?q0.numero:l.id.slice(-4),tc=(q0&&q0.tipoCot==='individual')?'2':'1';
+      const cli=l.cliente||(q0&&q0.cliente)||'',nro=q0?q0.numero:l.id.slice(-4),tc=(q0&&q0.tipoCot)?'2':'1';
       DB.invAsig.push({id:uid(),sku:'PRE-'+slug(cli).toUpperCase().slice(0,12)+'-'+nro,codigo:codigoCot(l.producto,tc),tipoCod:tc,producto:l.producto,qty:q,entregado:0,costo,quoteId:l.quoteId||'',cliente:cli,serie:'',...base})}
     else{const pr=prodPorNombre(l.producto);DB.invMov.push({id:uid(),productId:pr.id,tipo:'entrada',qty:q,costo,doc:'Importación '+i.numero+(i.dim?' · DIM '+i.dim:''),...base})}
     n++}
@@ -2172,7 +2175,7 @@ function nextCodigo(tipo){
 function codigoCot(nombre,tipo){const x=DB.invAsig.find(a=>a.tipoCod===tipo&&a.codigo&&nzs(a.producto)===nzs(nombre));return x?x.codigo:nextCodigo(tipo)}
 function migrarCodigos(){let ch=0;
   DB.invProducts.forEach(x=>{if(!x.codigo){x.codigo=nextCodigo('stock');ch++}});
-  DB.invAsig.forEach(a=>{if(!a.codigo){const q0=a.quoteId?quoteOf(a.quoteId):null;a.tipoCod=(q0&&q0.tipoCot==='individual')?'2':'1';a.codigo=codigoCot(a.producto,a.tipoCod);ch++}});
+  DB.invAsig.forEach(a=>{if(!a.codigo){const q0=a.quoteId?quoteOf(a.quoteId):null;a.tipoCod=(q0&&q0.tipoCot)?'2':'1';a.codigo=codigoCot(a.producto,a.tipoCod);ch++}});
   if(ch)save();return ch}
 const GRUPO_DESP=['Pedido','En producción'];
 /* mercadería en tránsito (pedidos que aún no ingresan al inventario): solo cantidades y USD FOB */
@@ -2420,8 +2423,9 @@ function vsRows(d,live){return d.items.map(it=>{const cost=live?vsCpp(it.pid):nu
   return{it,cost,pu,q,sub:pu*q,cst:cost*q,bajo:pu<cost-1e-9,saldo:saldoProd(it.pid).q}})}
 function vsTot(d,live){
   const rows=vsRows(d,live),venta=rows.reduce((x,r)=>x+r.sub,0),costo=rows.reduce((x,r)=>x+r.cst,0);
-  const fac=d.comprobante==='Factura',iva=fac?venta*0.13/1.13:0,it=(!fac&&d.itOff)?0:venta*0.03,util=venta-iva-it-costo;
-  return{rows,venta,costo,iva,it,util,bruto:venta>0?(venta-costo)/venta*100:0,neto:venta>0?util/venta*100:0}}
+  /* el precio es lo que quieres quedarte (sin IVA ni IT); IVA e IT se suman sobre el total facturado */
+  const fac=d.comprobante==='Factura',pIva=fac?0.13:0,pIt=(!fac&&d.itOff)?0:0.03,total=venta/(1-pIva-pIt),iva=total*pIva,it=total*pIt,util=venta-costo;
+  return{rows,venta,costo,iva,it,total,util,bruto:venta>0?util/venta*100:0,neto:venta>0?util/venta*100:0}}
 const vsCob=s=>(s.cobros||[]).reduce((x,c)=>x+(c.moneda==='USD'?num(c.monto)*num(c.tc):num(c.monto)),0);
 const vsList=()=>[...DB.stockSales].sort((a,b)=>(b.numero||'').localeCompare(a.numero||''));
 function renderVs(){
@@ -2441,7 +2445,7 @@ function vsLista(){
    <div class="card"><div class="kv"><div><span>Enviadas</span><b>${cnt('enviada')}</b></div><div><span>Confirmadas</span><b>${cnt('confirmada')}</b></div><div><span>Entregadas</span><b>${cnt('entregada')}</b></div><div><span>Caídas</span><b>${cnt('caida')}</b></div></div></div>
    <div class="seg" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">${tabs.map(([k,t])=>`<button type="button" class="btn sm ${k===f?'on':''}" style="padding:8px 2px" onclick="GX.vsFiltro('${k}')">${t}</button>`).join('')}</div>`+
    (l.length?l.map(s=>{const t=vsTot(s,false),cob=vsCob(s);return `<button class="item" type="button" onclick="GX.vsGo('det','${s.id}')"><span class="tag ${s.estado==='caida'?'warn':''}">${VS_ET[s.estado]}</span><b>${E(s.numero)} · ${E(s.cliente)}</b>
-     <small>${s.items.length} producto(s) · venta Bs ${N(t.venta)} · utilidad neta Bs ${N(t.util)} (${N(t.neto,1)} %)</small><small>${s.comprobante}${s.docNumero?' '+E(s.docNumero):''} · cobrado Bs ${N(cob)}${cob>=t.venta-0.005&&t.venta>0?' ✓':''}</small></button>`}).join(''):'<div class="card empty">No hay ventas en esta lista.</div>')}
+     <small>${s.items.length} producto(s) · total Bs ${N(t.total)} · utilidad Bs ${N(t.util)} (${N(t.neto,1)} %)</small><small>${s.comprobante}${s.docNumero?' '+E(s.docNumero):''} · cobrado Bs ${N(cob)}${cob>=t.total-0.005&&t.total>0?' ✓':''}</small></button>`}).join(''):'<div class="card empty">No hay ventas en esta lista.</div>')}
 function vsNueva(d0){
   if(!DB.invProducts.some(x=>saldoProd(x.id).q>0)){toastX('No hay stock libre disponible para vender');return}
   VSD=d0||{numero:nextNum('VS',DB.stockSales),fecha:TODAY(),cliente:'',items:[{pid:'',qty:'',modo:'pct',val:''}],comprobante:'Factura',itOff:false};
@@ -2458,11 +2462,11 @@ function vsEditor(){
   ${d.items.map((it,k)=>`<div class="card"><div class="row sp"><b>Producto ${k+1}</b>${d.items.length>1?`<button class="btn sm bad" type="button" onclick="GX.vsQuitar(${k})">Quitar</button>`:''}</div><div class="grid" style="margin-top:8px">
     <label class="f full"><span>Producto del inventario</span><select class="plain" data-vi="${k}" data-f="pid"><option value="">Seleccionar…</option>${ps.map(x=>{const s0=saldoProd(x.id);return `<option value="${x.id}" ${x.id===it.pid?'selected':''}>${E(x.codigo||'')} · ${E(x.nombre)} · saldo ${N(s0.q,0)} · CPP Bs ${N(s0.cpp)}</option>`}).join('')}</select></label>
     <label class="f"><span>Cantidad</span><input class="plain" inputmode="decimal" data-vi="${k}" data-f="qty" value="${E(it.qty)}"></label>
-    <label class="f"><span>Cómo fijar el precio</span><select class="plain" data-vi="${k}" data-f="modo"><option value="pct" ${it.modo==='pct'?'selected':''}>Margen %</option><option value="bs" ${it.modo==='bs'?'selected':''}>Margen en Bs por unidad</option><option value="precio" ${it.modo==='precio'?'selected':''}>Precio de venta Bs</option></select></label>
-    <label class="f full"><span>${it.modo==='pct'?'Margen sobre el precio de venta (%)':it.modo==='bs'?'Margen por unidad (Bs)':'Precio de venta por unidad (Bs)'}</span><input class="plain" inputmode="decimal" data-vi="${k}" data-f="val" value="${E(it.val)}"></label>
+    <label class="f"><span>Cómo fijar el precio</span><select class="plain" data-vi="${k}" data-f="modo"><option value="pct" ${it.modo==='pct'?'selected':''}>Margen %</option><option value="bs" ${it.modo==='bs'?'selected':''}>Margen en Bs por unidad</option><option value="precio" ${it.modo==='precio'?'selected':''}>Precio neto de venta Bs</option></select></label>
+    <label class="f full"><span>${it.modo==='pct'?'Margen sobre el precio de venta (%)':it.modo==='bs'?'Margen por unidad (Bs)':'Precio de venta neto por unidad (Bs, sin IVA ni IT)'}</span><input class="plain" inputmode="decimal" data-vi="${k}" data-f="val" value="${E(it.val)}"></label>
     <div class="full hint" id="vsro${k}" style="margin:0"></div></div></div>`).join('')}
   <button class="btn" type="button" onclick="GX.vsAgregar()">+ Agregar otro producto</button>
-  <div class="card"><h2>Resumen</h2><div id="vsSum"></div><p class="hint" style="margin:8px 0 0">El precio es el precio final al cliente (con IVA incluido si es factura). Las cifras de IVA e IT son una guía: valídalas con tu contador.</p></div>
+  <div class="card"><h2>Resumen</h2><div id="vsSum"></div><p class="hint" style="margin:8px 0 0">El precio que escribes es el neto que quieres quedarte, sin IVA ni IT. El sistema suma IVA e IT sobre el total facturado, de modo que la utilidad es el margen que pusiste. Las cifras de impuestos son una guía: valídalas con tu contador.</p></div>
   <div class="row sp"><button class="btn" type="button" onclick="GX.vsCancelar()">Cancelar</button><button class="btn pri" type="button" onclick="GX.vsGuardar()">Guardar venta</button></div>`}
 function vsCalc(){
   const d=VSD;if(!d)return;const t=vsTot(d,true);
@@ -2470,7 +2474,7 @@ function vsCalc(){
     el.innerHTML=r.it.pid?`Costo u. Bs ${N(r.cost)} (CPP) · precio u. Bs <b>${N(r.pu)}</b> · subtotal Bs ${N(r.sub)} · margen ${r.pu>0?N((r.pu-r.cost)/r.pu*100,1):'0,0'} %`+
       (r.bajo?'<br><b style="color:var(--bad)">Precio por debajo del costo: pedirá la clave para autorizar.</b>':'')+(r.q>r.saldo+1e-9?`<br><b style="color:var(--warn)">Supera el saldo (${N(r.saldo,0)}): no se podrá entregar hasta reponer stock.</b>`:''):'Elige un producto.'});
   const kv=(l,v)=>`<div><span>${l}</span><b>${v}</b></div>`;
-  const sm=document.getElementById('vsSum');if(sm)sm.innerHTML=`<div class="kv">${kv('Venta total (Bs)',N(t.venta))}${kv('Costo (CPP, Bs)',N(t.costo))}${d.comprobante==='Factura'?kv('IVA débito fiscal 13% (Bs)',N(t.iva)):''}${kv('IT 3% (Bs)',N(t.it))}${kv('<b>Utilidad neta (Bs)</b>','<b>'+N(t.util)+'</b>')}${kv('Margen bruto · neto',N(t.bruto,1)+' % · '+N(t.neto,1)+' %')}</div>`}
+  const sm=document.getElementById('vsSum');if(sm)sm.innerHTML=`<div class="kv">${kv('Precio neto de venta (Bs)',N(t.venta))}${kv('Costo (CPP, Bs)',N(t.costo))}${d.comprobante==='Factura'?kv('+ IVA 13% (Bs)',N(t.iva)):''}${kv('+ IT '+(t.it>0?'3':'0')+'% (Bs)',N(t.it))}${kv('<b>Total a cobrar al cliente (Bs)</b>','<b>'+N(t.total)+'</b>')}${kv('<b>Utilidad (Bs)</b>','<b>'+N(t.util)+'</b>')}${kv('Margen sobre el precio neto',N(t.neto,1)+' %')}</div>`}
 function vsQuitar(k){VSD.items.splice(k,1);renderVs()}
 function vsAgregar(){VSD.items.push({pid:'',qty:'',modo:'pct',val:''});renderVs()}
 function vsCancelar(){const id=VSD&&VSD.id;VSD=null;id?vsGo('det',id):vsGo('list')}
@@ -2490,19 +2494,19 @@ async function vsGuardar(){
   if(d.id){Object.assign(byId(DB.stockSales,d.id),base);save();toastX('Venta actualizada');VSD=null;vsGo('det',d.id)}
   else{const n={id:uid(),estado:'enviada',cobros:[],ts:Date.now(),...base};DB.stockSales.push(n);save();toastX('Venta guardada');VSD=null;vsGo('det',n.id)}}
 function vsDet(s){
-  const t=vsTot(s,false),cob=vsCob(s),saldo=t.venta-cob,kv=(l,v)=>`<div><span>${l}</span><b>${v}</b></div>`,fin=s.estado==='entregada'||s.estado==='caida';
+  const t=vsTot(s,false),cob=vsCob(s),saldo=t.total-cob,kv=(l,v)=>`<div><span>${l}</span><b>${v}</b></div>`,fin=s.estado==='entregada'||s.estado==='caida';
   const btn=(f,tx,c)=>`<button class="btn ${c||''}" type="button" onclick="GX.${f}('${s.id}')">${tx}</button>`;
   return `<button class="back" type="button" onclick="GX.vsGo('list')">← Ventas de stock</button>
   <div class="card"><div class="row sp"><div><span class="tag ${s.estado==='caida'?'warn':''}">${VS_ET[s.estado]}</span><b style="font-size:19px">${E(s.numero)}</b></div>${s.estado==='entregada'?'':`<button class="btn sm" type="button" onclick="GX.vsEditar('${s.id}')">Editar</button>`}</div>
    <div class="kv" style="margin-top:12px">${kv('Cliente',E(s.cliente))}${kv('Fecha',FD(s.fecha))}${kv('Comprobante',s.comprobante+(s.itOff?' (sin IT)':''))}${kv('N.º de '+s.comprobante.toLowerCase(),s.docNumero?E(s.docNumero):'—')}</div>
    ${s.bajoCosto?'<p class="hint" style="margin:8px 0 0"><span class="tag warn">Vendida bajo el costo con autorización</span></p>':''}
    ${s.estado==='caida'?`<p class="hint" style="margin:8px 0 0">Motivo: ${E(s.motivo||'—')}</p>`:''}</div>
-  <div class="card"><h2>Productos</h2><table><tr><th>Producto</th><th class="n">Cant.</th><th class="n">Precio u.</th><th class="n">Subtotal</th></tr>${t.rows.map(r=>`<tr><td>${E(r.it.nombre)}<br><small style="color:var(--muted)">${E(r.it.codigo||'')} · costo u. Bs ${N(r.cost)}</small></td><td class="n">${N(r.q,0)}</td><td class="n">${N(r.pu)}</td><td class="n">${N(r.sub)}</td></tr>`).join('')}</table>
-   <div class="kv" style="margin-top:10px">${kv('Venta total (Bs)',N(t.venta))}${kv('Costo (Bs)',N(t.costo))}${s.comprobante==='Factura'?kv('IVA débito 13% (Bs)',N(t.iva)):''}${kv('IT 3% (Bs)',N(t.it))}${kv('<b>Utilidad neta (Bs)</b>','<b>'+N(t.util)+'</b>')}${kv('Margen bruto · neto',N(t.bruto,1)+' % · '+N(t.neto,1)+' %')}</div>
+  <div class="card"><h2>Productos</h2><table><tr><th>Producto</th><th class="n">Cant.</th><th class="n">Neto u.</th><th class="n">Subtotal</th></tr>${t.rows.map(r=>`<tr><td>${E(r.it.nombre)}<br><small style="color:var(--muted)">${E(r.it.codigo||'')} · costo u. Bs ${N(r.cost)}</small></td><td class="n">${N(r.q,0)}</td><td class="n">${N(r.pu)}</td><td class="n">${N(r.sub)}</td></tr>`).join('')}</table>
+   <div class="kv" style="margin-top:10px">${kv('Precio neto (Bs)',N(t.venta))}${kv('Costo (Bs)',N(t.costo))}${s.comprobante==='Factura'?kv('+ IVA 13% (Bs)',N(t.iva)):''}${kv('+ IT '+(t.it>0?'3':'0')+'% (Bs)',N(t.it))}${kv('<b>Total al cliente (Bs)</b>','<b>'+N(t.total)+'</b>')}${kv('<b>Utilidad (Bs)</b>','<b>'+N(t.util)+'</b>')}${kv('Margen sobre el precio neto',N(t.neto,1)+' %')}</div>
    ${s.estado!=='entregada'?'<p class="hint" style="margin:8px 0 0">El costo se actualiza con el CPP vigente cuando se registra la entrega.</p>':''}</div>
   <div class="card"><div class="row sp"><h2 style="margin:0">Cobros del cliente</h2>${s.estado==='caida'?'':`<button class="btn sm" type="button" onclick="GX.vsCobro('${s.id}')">+ Cobro</button>`}</div>
    <div class="kv" style="margin:10px 0"><div><span>Cobrado (Bs)</span><b>${N(cob)}</b></div><div><span>Saldo por cobrar (Bs)</span><b>${N(Math.max(saldo,0))}</b></div></div>
-   ${t.venta>0&&saldo<=0.005?'<p class="hint"><span class="tag">Cobro completo ✓</span></p>':''}
+   ${t.total>0&&saldo<=0.005?'<p class="hint"><span class="tag">Cobro completo ✓</span></p>':''}
    ${(s.cobros||[]).length?`<table><tr><th>Fecha</th><th>Detalle</th><th class="n">Bs</th><th></th></tr>${s.cobros.map((c,k)=>`<tr><td>${FD(c.fecha)}</td><td>${N(num(c.monto))} ${c.moneda}${c.moneda==='USD'?' × '+N(num(c.tc)):''}${c.nota?'<br><small style="color:var(--muted)">'+E(c.nota)+'</small>':''}</td><td class="n">${N(c.moneda==='USD'?num(c.monto)*num(c.tc):num(c.monto))}</td><td><button class="btn sm bad" type="button" onclick="GX.vsQuitarCobro('${s.id}',${k})">Quitar</button></td></tr>`).join('')}</table>`:'<div class="empty">Sin cobros registrados.</div>'}</div>
   <div class="card"><h2>Estado de la venta</h2><div class="row" style="flex-wrap:wrap">
    ${s.estado==='enviada'?btn('vsConfirmar','Confirmar venta','pri'):''}
@@ -2556,7 +2560,7 @@ async function vsQuitarCobro(id,k){const s=byId(DB.stockSales,id);if(!s)return;
 function vsFiltro(f){VS.filtro=f;renderVs()}
 function vsResumenAnio(y){const o={enviada:0,confirmada:0,entregada:0,caida:0,n:0,bs:0,cob:0,util:0,fac:0,rec:0};
   DB.stockSales.forEach(s=>{const yr=s.estado==='entregada'?new Date(s.entregaTs||s.ts||Date.now()).getFullYear():new Date(s.ts||Date.now()).getFullYear();if(yr!==y)return;o[s.estado]++;
-    if(s.estado==='entregada'){const t=vsTot(s,false);o.n++;o.bs+=t.venta;o.cob+=vsCob(s);o.util+=t.util;if(s.comprobante==='Factura')o.fac++;else o.rec++}});return o}
+    if(s.estado==='entregada'){const t=vsTot(s,false);o.n++;o.bs+=t.total;o.cob+=vsCob(s);o.util+=t.util;if(s.comprobante==='Factura')o.fac++;else o.rec++}});return o}
 /* un solo oyente para los campos del editor (no se vuelve a pintar al teclear: así no se pierde el cursor) */
 document.addEventListener('input',e=>{const t=e.target;if(!VSD||!t.closest||!t.closest('#view-vstock'))return;
   if(t.dataset.vs){VSD[t.dataset.vs]=t.type==='checkbox'?t.checked:t.value;if(t.dataset.vs!=='cliente'&&t.dataset.vs!=='fecha')vsCalc()}
@@ -2565,7 +2569,128 @@ document.addEventListener('change',e=>{const t=e.target;if(!VSD||!t.closest||!t.
   if(t.dataset.vs==='comprobante'){VSD.comprobante=t.value;renderVs()}
   else if(t.dataset.vs==='itOff'){VSD.itOff=t.checked;vsCalc()}
   else if(t.dataset.vi!==undefined&&t.tagName==='SELECT'){VSD.items[+t.dataset.vi][t.dataset.f]=t.value;renderVs()}});
-window.GX={render,go,fImp,fPed,fLin,fPag,fCotEnPed,quitarCot,syncOps,lockOp,setCol,save,fCierre,fProv,fLoc,migrarProv,renderInv,invGo,fJalar,fEntrada,fAjuste,fPegar,fProdInv,fSerie,fEntrega,ingresarBtn,recalcBtn,ingresarImp,recalcImp,invResumen,transito,renderVs,vsGo,vsNueva,vsQuitar,vsAgregar,vsCancelar,vsGuardar,vsEditar,vsConfirmar,vsCaida,vsReabrir,vsEliminar,vsEntregar,vsAnular,vsCobro,vsQuitarCobro,vsFiltro,vsResumenAnio,vsTot,vsCob,saldoPedido,totalPedido,ESTADOS_PED,ESTADOS_IMP,
+
+/* ================= IMPORTACIÓN INDIVIDUAL Y URGENTE (AÉREA) ================= */
+let IND=null;
+const IND_L={merc:'Mercadería (FOB)',giro:'Comisión por giro al exterior',flete:'Flete internacional',manejo:'Otros gastos logísticos (manejo)',recojo:'Recojo en origen (EXW)',seguro:'Seguro',origen:'Gastos en puerto / origen',ga:'Gravamen aduanero',iva:'IVA de importación',agencia:'Agencia despachante',transp:'Transporte local',almac:'Almacenaje',otros:'Otros gastos',com:'Comisión Novatrade'};
+function indBlank(t){return{tipo:t,numero:'',fecha:TODAY(),cliente:'',tc:'',proveedor:'',peso:'',cbm:'',bultos:'',
+  prods:[{desc:'',qty:'',fob:''}],fleteUsd:'',seguroUsd:'',origenUsd:'',propio:false,
+  paq:[{qty:'1',L:'',A:'',H:'',kg:''}],tarifaKg:'',manejoUsd:'',recojo:false,recojoUsd:'',
+  giroPct:'3',gaPct:'',ivaPct:'14,94',agencia:'',transpLocal:'',almacen:'',otros:'',comModo:'pct',comVal:''}}
+function indCalc(d){
+  const n=num,tc=n(d.tc),urg=d.tipo==='urgente',merc=d.prods.reduce((x,p)=>x+n(p.qty)*n(p.fob),0);
+  let real=0,pv=0,fact=0,fleteB=0,manejo=0,recojo=0;
+  if(urg){real=d.paq.reduce((x,p)=>x+n(p.qty)*n(p.kg),0);pv=d.paq.reduce((x,p)=>x+n(p.qty)*n(p.L)*n(p.A)*n(p.H)/5000,0);fact=Math.max(real,pv);fleteB=fact*n(d.tarifaKg);manejo=n(d.manejoUsd);recojo=d.recojo?n(d.recojoUsd):0}
+  else fleteB=n(d.fleteUsd);
+  const own=!urg&&!!d.propio,flete=own?0:fleteB,seguro=own?0:n(d.seguroUsd),origen=(urg||own)?0:n(d.origenUsd);
+  const giro=(merc+flete+manejo+recojo+origen)*n(d.giroPct)/100;
+  const cif=merc+flete+manejo+recojo+seguro,ga=cif*n(d.gaPct)/100,iva=(cif+ga)*n(d.ivaPct)/100;
+  const bsU=x=>tc>0?n(x)/tc:0;
+  const R={merc,giro,flete,manejo,recojo,seguro,origen,ga,iva,agencia:bsU(d.agencia),transp:own?0:bsU(d.transpLocal),almac:bsU(d.almacen),otros:bsU(d.otros)};
+  const sub=Object.values(R).reduce((x,y)=>x+y,0),com=d.comModo==='pct'?sub*n(d.comVal)/100:n(d.comVal);R.com=com;
+  const total=sub+com;
+  const rows=Object.keys(IND_L).filter(k=>k==='merc'||R[k]>0.0004).map(k=>({k,l:k==='flete'&&urg?'Flete aéreo':IND_L[k],usd:R[k]}));
+  return{R,rows,sub,com,total,totalBs:total*tc,tc,merc,real,pv,fact,cif,bultos:d.paq.reduce((x,p)=>x+n(p.qty),0)}}
+function indNueva(t){IND=indBlank(t||'individual');IND.numero='';setView('ind')}
+async function indOpen(id,dup){
+  const q=lsGet('nt_quotes',[]).find(x=>x.id===id);if(!q||!q.ind)return;
+  const o=opByQuote(id);
+  if(!dup&&o&&o.etapa!=='enviada'&&!(await gxPin('Esta cotización ya está confirmada. Ingrese la clave para modificarla.')))return;
+  IND=JSON.parse(JSON.stringify(q.ind));IND.tipo=q.tipoCot;
+  if(dup){delete IND.id;IND.numero='';IND.fecha=TODAY()}else{IND.id=id;IND.numero=q.numero}
+  setView('ind')}
+function renderInd(){
+  const root=document.getElementById('view-ind');if(!root||!IND)return;
+  const d=IND,urg=d.tipo==='urgente',cl=(typeof clients!=='undefined'?clients:[]).map(c=>c.nombre).filter(Boolean);
+  const f=(k,l,o={})=>`<label class="f ${o.full?'full':''}"><span>${l}</span><input class="plain" data-ind="${k}" ${o.t?`type="${o.t}"`:`inputmode="${o.txt?'text':'decimal'}"`} ${o.list?`list="${o.list}"`:''} value="${E(d[k]==null?'':d[k])}" ${o.ph?`placeholder="${o.ph}"`:''} autocomplete="off"></label>`;
+  const sk=(k,l,opts,o={})=>`<label class="f ${o.full?'full':''}"><span>${l}</span><select class="plain" data-ind="${k}">${opts.map(([v,t])=>`<option value="${v}" ${v===d[k]?'selected':''}>${t}</option>`).join('')}</select></label>`;
+  const q=d.id?lsGet('nt_quotes',[]).find(x=>x.id===d.id):null;
+  root.innerHTML=`<button class="back" type="button" onclick="setView('saved')">← Cotizaciones</button>
+  <div class="card"><h2>${urg?'Importación urgente (aérea)':'Importación individual'} ${d.numero?'· '+E(d.numero):'· nueva'}</h2><div class="grid">
+   ${f('cliente','Cliente',{full:1,txt:1,list:'indCl'})}<datalist id="indCl">${cl.map(x=>`<option value="${E(x)}">`).join('')}</datalist>
+   ${f('fecha','Fecha',{t:'date'})}${f('tc','T/C de la cotización (Bs por USD)',{ph:'12,08'})}
+   ${f('proveedor','Proveedor',{full:1,txt:1})}
+   ${urg?'':f('peso','Peso total (kg)')+f('cbm','CBM total')+f('bultos','Bultos',{full:1})}</div></div>
+  <div class="card"><h2>Productos</h2>${d.prods.map((p,k)=>`<div style="border:1px solid var(--line);border-radius:10px;padding:8px;margin-top:8px"><div class="row sp"><b>${k+1}</b>${d.prods.length>1?`<button class="btn sm bad" type="button" onclick="GX.indDel('prods',${k})">Quitar</button>`:''}</div><div class="grid" style="padding-top:6px">
+    <label class="f full"><span>Descripción</span><input class="plain" data-ip="${k}" data-f="desc" value="${E(p.desc)}" autocomplete="off"></label>
+    <label class="f"><span>Cantidad</span><input class="plain" inputmode="decimal" data-ip="${k}" data-f="qty" value="${E(p.qty)}"></label>
+    <label class="f"><span>FOB unitario (USD)</span><input class="plain" inputmode="decimal" data-ip="${k}" data-f="fob" value="${E(p.fob)}"></label></div></div>`).join('')}
+   <button class="btn sm" style="margin-top:8px" type="button" onclick="GX.indAdd('prods')">+ Producto</button></div>
+  ${urg?`<div class="card"><h2>Bultos y flete aéreo</h2>${d.paq.map((p,k)=>`<div style="border:1px solid var(--line);border-radius:10px;padding:8px;margin-top:8px"><div class="row sp"><b>Bulto ${k+1}</b>${d.paq.length>1?`<button class="btn sm bad" type="button" onclick="GX.indDel('paq',${k})">Quitar</button>`:''}</div><div class="grid" style="padding-top:6px">
+    ${['qty:Cantidad de bultos iguales','kg:Peso real por bulto (kg)','L:Largo (cm)','A:Ancho (cm)','H:Alto (cm)'].map(x=>{const [kk,l]=x.split(':');return `<label class="f ${kk==='qty'?'full':''}"><span>${l}</span><input class="plain" inputmode="decimal" data-ia="${k}" data-f="${kk}" value="${E(p[kk])}"></label>`}).join('')}</div></div>`).join('')}
+   <button class="btn sm" style="margin-top:8px" type="button" onclick="GX.indAdd('paq')">+ Bulto</button><div class="hint" id="indAir" style="margin:10px 0"></div>
+   <div class="grid">${f('tarifaKg','Tarifa del flete (USD por kg cobrable)')}${f('manejoUsd','Otros gastos logísticos fijos (USD)')}
+    <label class="chk full"><input type="checkbox" data-ind="recojo" ${d.recojo?'checked':''}> Incluir recojo en origen (EXW)</label>${d.recojo?f('recojoUsd','Costo del recojo (USD)',{full:1}):''}</div></div>`
+  :`<div class="card"><h2>Transporte internacional</h2><div class="grid">
+    <label class="chk full"><input type="checkbox" data-ind="propio" ${d.propio?'checked':''}> El cliente contrata su propio transporte (anula flete, seguro, gastos de origen y transporte local)</label>
+    ${f('fleteUsd','Flete internacional (USD)')}${f('seguroUsd','Seguro (USD)')}${f('origenUsd','Gastos en puerto / origen (USD)',{full:1})}</div></div>`}
+  <div class="card"><h2>Comisión, impuestos y gastos</h2><div class="grid">
+   ${f('giroPct','Comisión por giro al exterior (%)')}${f('gaPct','Gravamen aduanero (%)')}${f('ivaPct','IVA de importación (%)',{full:1})}
+   ${f('agencia','Agencia despachante (Bs)')}${urg||d.propio?'':f('transpLocal','Transporte local (Bs)')}${f('almacen','Almacenaje (Bs)')}${f('otros','Otros gastos (Bs)')}
+   ${sk('comModo','Comisión de Novatrade',[['pct','Porcentaje del costo total'],['usd','Monto fijo en USD']],{full:1})}${f('comVal',d.comModo==='pct'?'Comisión Novatrade (%)':'Comisión Novatrade (USD)',{full:1})}</div>
+   <p class="hint" style="margin:8px 0 0">La comisión por giro se aplica a la mercadería, el flete y los gastos de origen. Gravamen e IVA se calculan sobre el valor CIF (mercadería + flete + seguro).</p></div>
+  <div class="card"><h2>Resumen para el cliente</h2><div id="indRes"></div></div>
+  <div class="row" style="flex-wrap:wrap"><button class="btn pri" type="button" onclick="GX.indGuardar()">Guardar cotización</button><button class="btn" type="button" onclick="GX.indCopiar()">Copiar texto para el cliente</button>${q?'<button class="btn" type="button" onclick="GX.indSeg()">Ver seguimiento</button>':''}</div>
+  ${q?`<div class="card"><h2>Cobros por concepto</h2><div id="indCob"></div></div>`:''}`;
+  indRecalc();indCobros()}
+function indRecalc(){
+  const d=IND;if(!d)return;const c=indCalc(d),r=document.getElementById('indRes');if(!r)return;
+  const air=document.getElementById('indAir');if(air)air.innerHTML=`Peso real <b>${N(c.real)} kg</b> · peso volumétrico (L×A×H÷5000) <b>${N(c.pv)} kg</b> · se cobra <b>${N(c.fact)} kg</b> (${c.pv>c.real?'volumétrico':'real'}) · ${N(c.bultos,0)} bulto(s)`;
+  r.innerHTML=(c.tc>0?'':'<p class="hint"><span class="tag warn">Falta el T/C: los gastos en Bs no se pueden convertir</span></p>')+
+   `<table><tr><th>Concepto</th><th class="n">USD</th><th class="n">Bs</th></tr>${c.rows.map(x=>`<tr><td>${E(x.l)}</td><td class="n">${N(x.usd)}</td><td class="n">${c.tc>0?N(x.usd*c.tc):'—'}</td></tr>`).join('')}
+   <tr><td><b>Total a cobrar</b></td><td class="n"><b>${N(c.total)}</b></td><td class="n"><b>${c.tc>0?N(c.totalBs):'—'}</b></td></tr></table>`}
+function indCobros(){
+  const box=document.getElementById('indCob');if(!box||!IND||!IND.id)return;
+  const q=lsGet('nt_quotes',[]).find(x=>x.id===IND.id);if(!q)return;const c=indCalc(IND),o=opByQuote(q.id),cb=(o&&o.cobros)||[];
+  const pag=k=>cb.filter(x=>x.concepto===k&&x.moneda==='USD').reduce((t,x)=>t+num(x.monto),0);
+  const gen=cb.filter(x=>!x.concepto).reduce((t,x)=>t+(x.moneda==='USD'?num(x.monto)*num(x.tc):num(x.monto)),0);
+  box.innerHTML=`<table><tr><th>Concepto</th><th class="n">USD</th><th class="n">Cobrado</th><th></th></tr>${c.rows.filter(x=>x.usd>0.004).map(x=>{const p=pag(x.k),ok=p>=x.usd-0.005;return `<tr><td>${E(x.l)}</td><td class="n">${N(x.usd)}</td><td class="n">${N(p)}</td><td>${ok?'✓':''}</td></tr>`}).join('')}</table>
+   ${gen>0?`<p class="hint" style="margin:8px 0 0">Cobros generales sin concepto: Bs ${N(gen)} (en «Seguimiento»).</p>`:''}
+   <div class="row sp" style="margin-top:10px"><button class="btn sm" type="button" onclick="GX.indPago()">+ Registrar pago de un concepto</button></div>
+   ${cb.filter(x=>x.concepto).length?`<table style="margin-top:10px"><tr><th>Fecha</th><th>Concepto</th><th class="n">Bs</th><th></th></tr>${cb.map((x,k)=>x.concepto?`<tr><td>${FD(x.fecha)}</td><td>${E(IND_L[x.concepto]||x.concepto)}<br><small style="color:var(--muted)">USD ${N(num(x.monto))} × ${N(num(x.tc))}</small></td><td class="n">${N(num(x.monto)*num(x.tc))}</td><td><button class="btn sm bad" type="button" onclick="GX.indQuitarPago(${k})">Quitar</button></td></tr>`:'').join('')}</table>`:''}`}
+function indPago(){
+  const q=lsGet('nt_quotes',[]).find(x=>x.id===IND.id);if(!q)return;const c=indCalc(IND);
+  const b=sheet('Pago del cliente por concepto',sel('concepto','Concepto',c.rows.filter(x=>x.usd>0.004).map(x=>[x.k,x.l]),'',{full:1})+inp('fecha','Fecha del pago',TODAY(),{t:'date'})+inp('monto','Monto (USD)','',{mode:'decimal'})+inp('tc','T/C de la fecha del pago','',{mode:'decimal',full:1,ph:'12,08'})+hintDiv('indPgH',''),
+   v=>{if(num(v.monto)<=0||num(v.tc)<=0){toastX('Falta el monto o el T/C');return false}
+     const o=ensureOp(q.id);if(!o)return false;o.cobros=o.cobros||[];o.cobros.push({fecha:v.fecha,moneda:'USD',monto:num(v.monto),tc:num(v.tc),nota:'',concepto:v.concepto});o.upd=Date.now();saveOps();cloudPushSoon();renderInd();toastX('Pago registrado')});
+  const h=()=>{const v=vals(b);b.querySelector('#indPgH').textContent='Equivale a Bs '+N(num(v.monto)*num(v.tc))};b.addEventListener('input',h);h()}
+async function indQuitarPago(k){const o=IND&&IND.id?opByQuote(IND.id):null;if(!o)return;if(!await gxPin('Para borrar un cobro registrado ingrese la clave.'))return;o.cobros.splice(k,1);o.upd=Date.now();saveOps();cloudPushSoon();renderInd()}
+function indSeg(){if(IND&&IND.id)openOpFromQuote(IND.id)}
+function indAdd(w){IND[w].push(w==='prods'?{desc:'',qty:'',fob:''}:{qty:'1',L:'',A:'',H:'',kg:''});renderInd()}
+function indDel(w,k){IND[w].splice(k,1);renderInd()}
+function indTexto(d,c){
+  const L=['*Cotización '+(d.numero||'')+'* · '+d.cliente,'',...d.prods.filter(p=>p.desc).map(p=>'• '+p.desc+' – '+N(num(p.qty),num(p.qty)%1?2:0)+' u.'),''];
+  if(d.tipo==='urgente')L.push('Envío aéreo: '+N(c.fact)+' kg cobrables ('+N(c.bultos,0)+' bulto(s))','');
+  L.push('Detalle (USD):',...c.rows.map(x=>x.l+': '+N(x.usd)),'','*Total: USD '+N(c.total)+'*','Equivale a Bs '+N(c.totalBs)+' (T/C '+N(c.tc,2)+')');return L.join('\n')}
+function indCopiar(){const d=IND,c=indCalc(d),t=indTexto(d,c);
+  (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toastX('Texto copiado'),()=>{prompt('Copie el texto:',t)})}
+async function indGuardar(){
+  const d=IND;if(!d)return;const c=indCalc(d);
+  if(!d.cliente.trim()){toastX('Falta el cliente');return}
+  if(num(d.tc)<=0){toastX('Falta el T/C de la cotización');return}
+  const pr=d.prods.filter(p=>p.desc.trim()&&num(p.qty)>0);
+  if(!pr.length){toastX('Agregue al menos un producto con cantidad');return}
+  if(String(d.comVal).trim()===''){toastX('Falta la comisión de Novatrade');return}
+  if(d.tipo==='urgente'&&c.fact<=0){toastX('Complete los bultos: peso y medidas');return}
+  const numero=d.numero||nextNumber(),id=d.id||('q'+Date.now()),tc=c.tc;
+  const R=c.R,bs=x=>x*tc;
+  const indRes={prod:bs(R.merc),flete:bs(R.flete+R.manejo+R.recojo+R.seguro+R.origen),ga:bs(R.ga),otros:bs(R.giro+R.agencia+R.transp+R.almac+R.otros),iva:bs(R.iva),neto:bs(c.sub),fob:R.merc,total:c.totalBs};
+  const ind={...JSON.parse(JSON.stringify(d)),prods:pr};delete ind.id;
+  const q={id,numero,cliente:d.cliente.trim(),ts:Date.now(),total:c.totalBs,tipoCot:d.tipo,meta:{...newMeta(),numero,cliente:d.cliente.trim(),fecha:d.fecha},params:{...DEF},
+    prods:pr.map(p=>({...blankProd(),desc:p.desc,qty:num(p.qty),exw:num(p.fob)})),ind,indRes};
+  const l=lsGet('nt_quotes',[]).filter(x=>x.id!==id);l.unshift(q);
+  if(!lsSet('nt_quotes',l.slice(0,300))){toastX('No se pudo guardar: sin espacio en el teléfono');return}
+  const o=opByQuote(id);if(o){o.numero=numero;o.total=q.total;o.clienteNombre=q.cliente;o.cot=indRes;o.upd=Date.now();saveOps()}
+  try{const old=S;S={...old,meta:{...newMeta(),cliente:q.cliente}};try{syncClientFromQuote()}finally{S=old}}catch(_){}
+  IND.id=id;IND.numero=numero;loadList();renderHome();syncSoon();cloudPushSoon();renderInd();toastX('Cotización '+numero+' guardada')}
+document.addEventListener('input',e=>{const t=e.target;if(!IND||!t.closest||!t.closest('#view-ind'))return;
+  if(t.dataset.ind&&t.type!=='checkbox'&&t.tagName==='INPUT')IND[t.dataset.ind]=t.value;
+  else if(t.dataset.ip!==undefined)IND.prods[+t.dataset.ip][t.dataset.f]=t.value;
+  else if(t.dataset.ia!==undefined)IND.paq[+t.dataset.ia][t.dataset.f]=t.value;
+  else return;indRecalc();indCobros()});
+document.addEventListener('change',e=>{const t=e.target;if(!IND||!t.closest||!t.closest('#view-ind'))return;
+  if(t.dataset.ind&&(t.type==='checkbox'||t.tagName==='SELECT')){IND[t.dataset.ind]=t.type==='checkbox'?t.checked:t.value;renderInd()}});
+window.GX={render,go,fImp,fPed,fLin,fPag,fCotEnPed,quitarCot,syncOps,lockOp,setCol,save,fCierre,fProv,fLoc,migrarProv,renderInv,invGo,fJalar,fEntrada,fAjuste,fPegar,fProdInv,fSerie,fEntrega,ingresarBtn,recalcBtn,ingresarImp,recalcImp,invResumen,transito,renderInd,indNueva,indOpen,indGuardar,indCopiar,indPago,indQuitarPago,indSeg,indAdd,indDel,renderVs,vsGo,vsNueva,vsQuitar,vsAgregar,vsCancelar,vsGuardar,vsEditar,vsConfirmar,vsCaida,vsReabrir,vsEliminar,vsEntregar,vsAnular,vsCobro,vsQuitarCobro,vsFiltro,vsResumenAnio,vsTot,vsCob,saldoPedido,totalPedido,ESTADOS_PED,ESTADOS_IMP,
   get DB(){return DB},COLS:COLS_GX,KEYS};
 try{migrarProv()}catch(e){console.error(e)}
 try{syncOps()}catch(_){}
@@ -2687,7 +2812,7 @@ function renderDash(){
     <div class="hcnt" style="grid-template-columns:repeat(3,1fr);row-gap:12px">${imp.map(([e,n],i)=>tile(n,e,['c1','c2','c3','c4','c2','c1'][i%6])).join('')}</div></div>
   ${(()=>{const v=GX.vsResumenAnio(dashYear);return `<div class="hc"><div class="hrow"><h2>Venta de stock ${dashYear}</h2><button class="hlink" data-g2="vstock" type="button">Ver</button></div>
     <div class="hcnt">${tile(v.enviada,'Enviadas','c1')}${tile(v.confirmada,'Confirmadas','c2')}${tile(v.entregada,'Entregadas','c4')}${tile(v.caida,'Caídas','c3')}</div>
-    ${v.n?`<p class="hint" style="margin:10px 0 0">Utilidad neta de lo entregado: Bs ${nf(v.util,0)}.</p>`:''}</div>`})()}
+    ${v.n?`<p class="hint" style="margin:10px 0 0">Utilidad de lo entregado: Bs ${nf(v.util,0)}.</p>`:''}</div>`})()}
   ${(()=>{const r=GX.invResumen();return `<div class="hc"><div class="hrow"><h2>Inventario</h2><button class="hlink" data-go="inventario" type="button">Ver</button></div>
     <div class="hcnt" style="grid-template-columns:repeat(3,1fr)">${tile(nf(r.uLibre+r.uCot,0),'Uds. en almacén','c1')}${tile(nf(r.valor+r.asig,0),'Bs en inventario','c2')}${tile(nf(r.tUnits,0),'Uds. en tránsito','c3')}</div><p class="hint" style="margin:10px 0 0">En tránsito: USD ${nf(r.tUsd,0)} FOB (no incluido en el valor del inventario).</p></div>`})()}
   <div class="hc hgreen"><h2>Acciones a realizar</h2>
@@ -2819,6 +2944,7 @@ document.addEventListener('click',async e=>{
   const b=e.target.closest('[data-g2]');if(!b)return;const a=b.dataset.g2;
   if(a==='soon'){toast(b.dataset.msg)}
   else if(a==='vstock'){setView('vstock')}
+  else if(a==='indnew'){GX.indNueva(b.dataset.t)}
   else if(a==='gxgo'){setView('compras');GX.go(b.dataset.v,b.dataset.id||null)}
   else if(a==='pin')cambiarPin();
   else if(a==='trkg'){trkGroup=b.dataset.k;trkRender()}
