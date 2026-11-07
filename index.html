@@ -198,7 +198,7 @@ body.inhome{padding-block:0 calc(88px + env(safe-area-inset-bottom,0px))}
 .hfl i{width:9px;height:9px;border-radius:50%;background:var(--bad);flex:none}.hfl span{flex:1;min-width:0}.hfl b{display:block;font-size:14px;font-weight:800}.hfl small{display:block;font-size:12px;font-weight:700}
 .hfl svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
 .hnav{position:fixed;left:0;right:0;bottom:0;background:var(--h-nav);z-index:20;padding-bottom:env(safe-area-inset-bottom,0px)}
-.hnavin{max-width:760px;margin:0 auto;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));padding:8px 2px 10px}
+.hnavin{max-width:760px;margin:0 auto;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));padding:8px 2px 10px}
 .hnavin button{background:none;border:0;display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 0;color:var(--h-navt);cursor:pointer;font-size:10.5px;font-weight:700}
 .hnavin button[aria-current]{color:#fff;font-weight:800}
 .hnavin svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
@@ -272,7 +272,7 @@ body.inhome{padding-block:0 calc(88px + env(safe-area-inset-bottom,0px))}
 .gx2box label{display:block;font-size:13px;font-weight:700;margin-top:8px}.gx2box input{display:block;width:100%;margin-top:4px;padding:12px;font-size:22px;letter-spacing:.5em;text-align:center;border:1.5px solid var(--line,#ccd);border-radius:10px}
 .gx2btns{display:flex;gap:8px;margin-top:14px}.gx2btns button{flex:1;padding:11px;border-radius:10px;border:1.5px solid var(--line,#ccd);background:#fff;font-weight:800;font-size:15px}.gx2btns .pri{background:var(--accent);color:#fff;border-color:var(--accent)}
 .gx2cob{display:grid;grid-template-columns:1.3fr 1fr 1.3fr;gap:6px;align-items:center;padding:10px 0;border-bottom:1px solid var(--h-line,#dde)}
-.gx2bs{font-weight:800;font-size:13px;grid-column:span 2}.gx2cob .btn{justify-self:end}.gx2cob select{min-width:70px}.hnavin span{font-size:9.5px}
+.gx2bs{font-weight:800;font-size:13px;grid-column:span 2}.gx2cob .btn{justify-self:end}.gx2cob select{min-width:70px}.hnavin span{font-size:8.6px;letter-spacing:-.2px}
 #gxHome{display:flex;flex-direction:column;gap:10px}
 .gx2h{font-size:13px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
 .gx2hub{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -347,6 +347,7 @@ body.inhome{padding-block:0 calc(88px + env(safe-area-inset-bottom,0px))}
         <button type="button" data-go="clients"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c.6-3.4 3-5 6-5s5.4 1.6 6 5"/><path d="M16 5.2a3 3 0 010 5.6M18.5 15.3c1.6.7 2.6 2.1 2.9 4.7"/></svg><span>Clientes</span></button>
         <button type="button" data-go="catalog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8l9-5 9 5v8l-9 5-9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg><span>Catálogo</span></button>
         <button type="button" data-go="compras"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg><span>Importaciones</span></button>
+        <button type="button" data-go="inventario"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l8-4 8 4v8l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v8"/></svg><span>Inventario</span></button>
         <button type="button" data-go="track"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/></svg><span>Seguimiento</span></button>
       </div></nav>
     </section>
@@ -503,6 +504,7 @@ body.inhome{padding-block:0 calc(88px + env(safe-area-inset-bottom,0px))}
 
     <!-- CATÁLOGO -->
     <section id="view-compras" class="gx" hidden style="flex-direction:column;gap:14px"></section>
+    <section id="view-inventario" class="gx" hidden style="flex-direction:column;gap:14px"></section>
     <section id="view-catalog" hidden style="flex-direction:column;gap:14px">
 <button class="hc htile" data-go="flyers" type="button" style="width:100%;text-align:left"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8.5 8h7M8.5 12h7M8.5 16h4"/></svg><b>Volantes</b><small><span class="count">17</span> volantes listos para enviar por WhatsApp</small></button>
       <div class="row"><input class="plain" id="catSearch" placeholder="Buscar producto o modelo" autocomplete="off" style="flex:1"><button class="btn sm" data-go="newProduct" type="button">+ Producto</button></div>
@@ -1025,8 +1027,8 @@ document.addEventListener('click',async e=>{
 });
 
 /* ---------- pantalla principal, clientes (CRM) y navegación ---------- */
-const VIEWS=['compras','home','quote','saved','clients','client','catalog','product','send','login','track','op','flyers','flyer'];
-const TITLES={quote:'Hacer cotización',saved:'Cotizaciones guardadas',clients:'Clientes',client:'Ficha de cliente',catalog:'Catálogo',product:'Producto',send:'Enviar por WhatsApp',flyers:'Volantes',flyer:'Volante',track:'Seguimiento',op:'Operación',compras:'Importaciones'};
+const VIEWS=['inventario','compras','home','quote','saved','clients','client','catalog','product','send','login','track','op','flyers','flyer'];
+const TITLES={quote:'Hacer cotización',saved:'Cotizaciones guardadas',clients:'Clientes',client:'Ficha de cliente',catalog:'Catálogo',product:'Producto',send:'Enviar por WhatsApp',flyers:'Volantes',flyer:'Volante',track:'Seguimiento',op:'Operación',compras:'Importaciones',inventario:'Inventario'};
 const ESTADOS=[['nuevo','Nuevo'],['cotizado','Cotizado'],['ganado','Ganado'],['perdido','Perdido']];
 let clients=[],C=null,cNew=false,cPick=false,pickMode=false,cFilter='todos',cQuery='',qQuery='',confirmDelClient=false,newArm=false,cTimer;
 const loadClients=()=>{clients=lsGet('nt_clients',[])};
@@ -1051,6 +1053,7 @@ function setView(v,push=true){
   $('#btnBack').textContent=v==='client'?'‹ Clientes':(v==='product'||v==='send')?'‹ Catálogo':v==='flyer'?'‹ Volantes':v==='op'?'‹ Seguimiento':'‹ Inicio';
   if(v==='home')renderHome();
   if(v==='compras'){$('#subtitle').textContent='';if(window.GX)GX.render()}
+  if(v==='inventario'){$('#subtitle').textContent='';if(window.GX)GX.renderInv()}
   if(v==='saved'){$('#subtitle').textContent=qCache.length+' guardadas';renderList();renderHome()}
   if(v==='clients'){$('#subtitle').textContent=clients.length+' clientes';renderClients()}
   if(v==='client')$('#subtitle').textContent='';
@@ -1150,7 +1153,7 @@ document.addEventListener('click',e=>{
   if(g==='back'){if(view==='client'){if(String(C.nombre||'').trim())commitClient();setView('clients')}else if(view==='product'||view==='send')setView('catalog');else if(view==='flyer')setView('flyers');else if(view==='op')setView('track');else setView('home')}
   else if(g==='home')setView('home');
   else if(g==='startQuote'){if(S.dirty){show('datos');setView('quote')}else startQuoteFlow()}
-  else if(g==='saved'||g==='clients'||g==='compras')setView(g);
+  else if(g==='saved'||g==='clients'||g==='compras'||g==='inventario')setView(g);
   else if(g==='soon')toast('El catálogo llega en la próxima versión');
   else if(g==='newClient')openClient(null);
   else if(g==='openClient')openClient(b.dataset.id);
@@ -1341,13 +1344,13 @@ document.addEventListener('input',e=>{if(e.target.id==='flMsg')flMsgEdited=true}
 const CP='test_';
 try{if(CP){const b=document.getElementById('testBanner');if(b)b.hidden=false}}catch(_){}
 const FB_CFG={apiKey:"AIzaSyA2J3Z4gHQyYYvU8AzSVs9r_L_DG6Ax9AE",authDomain:"crm-novatrade.firebaseapp.com",projectId:"crm-novatrade",storageBucket:"crm-novatrade.firebasestorage.app",messagingSenderId:"944968945401",appId:"1:944968945401:web:c7af94f3b5e478442c9c28"};
-const COLS=['clients','quotes','catalog','ops','imports','purchases','purchaseLines','payments','settings','suppliers','localPurchases'];
-let cloudUser=null,cloudRemote={clients:{},quotes:{},catalog:{},ops:{},imports:{},purchases:{},purchaseLines:{},payments:{},settings:{},suppliers:{},localPurchases:{}},cloudUnsubs=[],cloudT,cloudSeen={},cloudMsg='';
+const COLS=['clients','quotes','catalog','ops','imports','purchases','purchaseLines','payments','settings','suppliers','localPurchases','invProducts','invMov','invAsig'];
+let cloudUser=null,cloudRemote={clients:{},quotes:{},catalog:{},ops:{},imports:{},purchases:{},purchaseLines:{},payments:{},settings:{},suppliers:{},localPurchases:{},invProducts:{},invMov:{},invAsig:{}},cloudUnsubs=[],cloudT,cloudSeen={},cloudMsg='';
 const strip=o=>JSON.parse(JSON.stringify(o));
 const gxd=c=>window.GX?GX.DB[c]:[];
-const cl_get={clients:()=>clients,quotes:()=>lsGet('nt_quotes',[]),catalog:()=>catalog,ops:()=>ops,imports:()=>gxd('imports'),purchases:()=>gxd('purchases'),purchaseLines:()=>gxd('purchaseLines'),payments:()=>gxd('payments'),settings:()=>gxd('settings'),suppliers:()=>gxd('suppliers'),localPurchases:()=>gxd('localPurchases')};
-const cl_upd={clients:c=>c.actualizado||c.creado||0,quotes:q=>q.ts||0,catalog:p=>p.upd||0,ops:o=>o.upd||0,imports:r=>r.upd||0,purchases:r=>r.upd||0,purchaseLines:r=>r.upd||0,payments:r=>r.upd||0,settings:r=>r.upd||0,suppliers:r=>r.upd||0,localPurchases:r=>r.upd||0};
-const GX_COLS=['imports','purchases','purchaseLines','payments','settings','suppliers','localPurchases'];
+const cl_get={clients:()=>clients,quotes:()=>lsGet('nt_quotes',[]),catalog:()=>catalog,ops:()=>ops,imports:()=>gxd('imports'),purchases:()=>gxd('purchases'),purchaseLines:()=>gxd('purchaseLines'),payments:()=>gxd('payments'),settings:()=>gxd('settings'),suppliers:()=>gxd('suppliers'),localPurchases:()=>gxd('localPurchases'),invProducts:()=>gxd('invProducts'),invMov:()=>gxd('invMov'),invAsig:()=>gxd('invAsig')};
+const cl_upd={clients:c=>c.actualizado||c.creado||0,quotes:q=>q.ts||0,catalog:p=>p.upd||0,ops:o=>o.upd||0,imports:r=>r.upd||0,purchases:r=>r.upd||0,purchaseLines:r=>r.upd||0,payments:r=>r.upd||0,settings:r=>r.upd||0,suppliers:r=>r.upd||0,localPurchases:r=>r.upd||0,invProducts:r=>r.upd||0,invMov:r=>r.upd||0,invAsig:r=>r.upd||0};
+const GX_COLS=['imports','purchases','purchaseLines','payments','settings','suppliers','localPurchases','invProducts','invMov','invAsig'];
 function cl_set(col,arr){
   if(col==='clients'){clients=arr;saveClients();updateDatalist()}
   else if(col==='quotes'){lsSet('nt_quotes',arr);loadList()}
@@ -1667,8 +1670,8 @@ document.addEventListener('change',e=>{
 <script>
 /* ===== Módulo Compras e importaciones (Pedidos, Importaciones, Pagos) · integrado al cotizador ===== */
 (function(){
-const COLS_GX=['imports','purchases','purchaseLines','payments','settings','suppliers','localPurchases'];
-const KEYS={imports:'nt_imports',purchases:'nt_purchases',purchaseLines:'nt_purchaseLines',payments:'nt_payments',settings:'nt_settings',suppliers:'nt_suppliers',localPurchases:'nt_localPurchases'};
+const COLS_GX=['imports','purchases','purchaseLines','payments','settings','suppliers','localPurchases','invProducts','invMov','invAsig'];
+const KEYS={imports:'nt_imports',purchases:'nt_purchases',purchaseLines:'nt_purchaseLines',payments:'nt_payments',settings:'nt_settings',suppliers:'nt_suppliers',localPurchases:'nt_localPurchases',invProducts:'nt_invProducts',invMov:'nt_invMov',invAsig:'nt_invAsig'};
 const DB={};
 for(const c of COLS_GX){const v=lsGet(KEYS[c],[]);DB[c]=Array.isArray(v)?v:[]}
 /* instantánea para detectar qué registros cambiaron (y ponerles marca de fecha 'upd' que usa la nube) */
@@ -1678,7 +1681,7 @@ function resnap(c){snap[c]={};for(const r of DB[c])snap[c][r.id]=sig(r)}
 COLS_GX.forEach(resnap);
 function stamp(){const now=Date.now();let k=0;for(const c of COLS_GX)for(const r of DB[c]){const s=sig(r);if(snap[c][r.id]!==s){r.upd=now+(k++);if(!r.creado)r.creado=now;snap[c][r.id]=s}}}
 function save(){stamp();for(const c of COLS_GX)lsSet(KEYS[c],DB[c]);syncOps();cloudPushSoon()}
-function setCol(c,arr){DB[c]=arr;lsSet(KEYS[c],arr);resnap(c);syncOps();if(typeof view!=='undefined'&&view==='compras')render()}
+function setCol(c,arr){DB[c]=arr;lsSet(KEYS[c],arr);resnap(c);syncOps();if(typeof view!=='undefined'){if(view==='compras')render();if(view==='inventario')renderInv()}}
 function del(c,id){DB[c]=DB[c].filter(x=>x.id!==id);delete snap[c][id];addTomb(c,id)}
 
 /* ---------- utilidades ---------- */
@@ -1841,6 +1844,8 @@ function vImpDet(){
     <div><span>Pedidos asociados</span><b>${r.peds}</b></div><div><span>Total FOB</span><b>USD ${N(r.fob)}</b></div>
     <div><span>Pagado a proveedores</span><b>USD ${N(r.pagProv)}</b></div><div><span>Gastos de importación</span><b>Bs ${N(r.gastos)}</b></div></div>
    <p class="hint">El costo real por producto se calcula en una etapa posterior.</p></div>
+  <div class="card"><h2>Inventario</h2><p class="hint" style="margin:0 0 10px">${peds.length&&peds.every(p=>p.invIngresado)?'Todos los pedidos ya ingresaron al inventario.':'Al guardar el DIM con su fecha, los productos de los pedidos ingresan solos al inventario.'}${peds.some(p=>p.invIngresado)&&i.estado!=='Cerrada'?' El costo es provisional hasta cerrar la importación.':''}</p>
+   <div class="row"><button class="btn sm" type="button" onclick="GX.ingresarBtn('${i.id}')">Ingresar al inventario</button><button class="btn sm" type="button" onclick="GX.recalcBtn('${i.id}')">Recalcular costos</button></div></div>
   <div class="card"><div class="row sp"><h2 style="margin:0">Pedidos en este embarque</h2><button class="btn sm" type="button" onclick="GX.fPed(null,'${i.id}')">+ Pedido</button></div><div style="margin-top:10px">
    ${peds.length?peds.map(p=>`<button class="item" type="button" onclick="GX.go('pedd','${p.id}')"><span class="tag">${E(p.estado)}</span><b>${E(p.numero)} · ${E(p.proveedor)}</b><small>USD ${N(totalPedido(p.id))} · saldo USD ${N(saldoPedido(p.id))}</small></button>`).join(''):'<div class="empty">Sin pedidos asociados.</div>'}</div></div>
   <div class="card"><div class="row sp"><h2 style="margin:0">Pagos y gastos</h2><button class="btn sm" type="button" onclick="GX.fPag(null,'${i.id}')">+ Pago</button></div><div style="margin-top:10px">${tablaPagos(pags)}</div></div>`}
@@ -1887,12 +1892,12 @@ function vPag(){
   <div class="card">${tablaPagos(l)}<p class="hint">Cada pago guarda su propio tipo de cambio, su origen y la entidad bancaria. Sin factura: se registra la retención del 16% que asume la empresa.</p></div>`}
 
 /* ---------- formularios ---------- */
-function sheet(title,html,onSave,onDel){
+function sheet(title,html,onSave,onDel,onCancel){
   const bg=document.createElement('div');bg.className='gx sheetbg';
   bg.innerHTML=`<div class="sheet"><h3>${E(title)}</h3><div class="grid">${html}</div><div class="row sp" style="margin-top:16px"><div>${onDel?'<button class="btn bad" type="button" data-x="del">Eliminar</button>':''}</div><div class="row"><button class="btn" type="button" data-x="no">Cancelar</button><button class="btn pri" type="button" data-x="ok">Guardar</button></div></div></div>`;
-  const close=()=>bg.remove();
-  bg.addEventListener('mousedown',e=>{if(e.target===bg)close()});
-  bg.addEventListener('click',e=>{const x=e.target.dataset&&e.target.dataset.x;if(x==='no')close();
+  const close=()=>bg.remove(),cancel=()=>{bg.remove();if(onCancel)onCancel()};
+  bg.addEventListener('mousedown',e=>{if(e.target===bg)cancel()});
+  bg.addEventListener('click',e=>{const x=e.target.dataset&&e.target.dataset.x;if(x==='no')cancel();
     else if(x==='ok'){const v=vals(bg);if(onSave(v)!==false)close()}
     else if(x==='del'&&confirm('¿Eliminar este registro? No se puede deshacer.')){onDel();close()}});
   document.body.appendChild(bg);return bg}
@@ -1929,7 +1934,8 @@ function fImp(id){
    inp('tcAduana','T/C de referencia (informativo)',i.tcAduana,{mode:'decimal',ph:'6,96'})+inp('tcRef','Fecha del T/C',i.tcRef,{t:'date'})+
    hintDiv('','El T/C solo informa con qué tipo de cambio se emitieron el DIM y la planilla de la agencia. Si pones la fecha del DIM te sugiero el viernes anterior; revisa si fue feriado.'),
    v=>{if(!v.numero){toastX('Falta el número');return false}
-     if(id)Object.assign(i,v);else DB.imports.push({id:uid(),...v});save();render();toastX('Guardado')},
+     const tgt=id?i:{id:uid(),...v};if(id)Object.assign(i,v);else DB.imports.push(tgt);save();
+     const n=(tgt.dim&&tgt.dimFecha)?ingresarImp(tgt):0;render();toastX(n?'Guardado. '+n+' producto(s) ingresaron al inventario':'Guardado')},
    id?()=>{DB.purchases.forEach(p=>{if(p.importId===id)p.importId=''});DB.payments.forEach(p=>{if(p.importId===id)p.importId=''});del('imports',id);save();go('imp')}:null);
   b.querySelector('[data-k=permiso]').onchange=e=>{b.querySelector('#gxPm').style.display=e.target.value==='si'?'':'none'};
   b.querySelector('[data-k=dimFecha]').onchange=e=>{const r=b.querySelector('[data-k=tcRef]');if(!r.value)r.value=viernesAnterior(e.target.value)};
@@ -2019,6 +2025,163 @@ function fLoc(id){
     b.querySelector('[data-k=nroFactura]').parentElement.style.display=v.factura==='si'?'':'none';
     b.querySelector('#gxLocH').textContent=v.factura==='no'?`Sin factura: retención del 16% que asume la empresa = Bs ${N(m*RETENCION)}. Costo total Bs ${N(m*(1+RETENCION))}.`:`Con factura: crédito fiscal estimado (13%) = Bs ${N(m*0.13)}.`};
   b.addEventListener('input',upd);b.addEventListener('change',upd);upd()}
+
+/* ================= INVENTARIO ================= */
+const slug=t=>nzs(t).replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+function kardexRows(pid){
+  const mv=DB.invMov.filter(m=>m.productId===pid).sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||'')||(a.creado||0)-(b.creado||0));
+  let q=0,v=0;const rows=[];
+  for(const m of mv){const n=num(m.qty);
+    if(m.tipo==='entrada'||(m.tipo==='ajuste'&&n>0)){const c=num(m.costo);v+=n*c;q+=n;rows.push({m,in:n,out:0,costo:c,q,v,cpp:q?v/q:0})}
+    else{const out=Math.abs(n),cpp=q?v/q:0;v-=out*cpp;q-=out;rows.push({m,in:0,out,costo:cpp,q,v,cpp:q?v/q:0})}}
+  return rows}
+const saldoProd=pid=>{const r=kardexRows(pid);return r.length?r[r.length-1]:{q:0,v:0,cpp:0}};
+function costoImp(i){
+  const peds=DB.purchases.filter(p=>p.importId===i.id),ids=new Set(peds.map(p=>p.id));
+  const prov=DB.payments.filter(p=>p.categoria==='Pago a proveedor'&&(ids.has(p.purchaseId)||p.importId===i.id)).reduce((s,p)=>s+bsMonto(p),0);
+  const otros=DB.payments.filter(p=>p.importId===i.id&&p.categoria!=='Pago a proveedor').reduce((s,p)=>s+costoBs(p),0);
+  const fobUsd=peds.reduce((s,p)=>s+totalPedido(p.id),0);
+  let provBs=prov,est=false;if(prov<=0&&fobUsd>0){provBs=fobUsd*(num(i.tcAduana)||6.96);est=true}
+  const otrosNeto=Math.max(otros+num(i.reajuste)+num(i.multas)-num(i.ivaDim),0);
+  return{prov:provBs,otros:otrosNeto,est}}
+function costosPorLinea(i){
+  const lines=DB.purchases.filter(p=>p.importId===i.id).flatMap(p=>lineasDe(p.id)),c=costoImp(i);
+  const qty=l=>num(l.recibido!=null&&l.recibido!==''?l.recibido:l.qty);
+  const fobs=lines.filter(l=>num(l.fob)>0),avg=fobs.length?fobs.reduce((s,l)=>s+num(l.fob),0)/fobs.length:1;
+  const wf=l=>qty(l)*num(l.fob),wo=l=>qty(l)*(num(l.fob)>0?num(l.fob):avg);
+  const sf=lines.reduce((s,l)=>s+wf(l),0),so=lines.reduce((s,l)=>s+wo(l),0),m={};
+  lines.forEach(l=>{const q=qty(l);m[l.id]=q>0?((sf>0?c.prov*wf(l)/sf:0)+(so>0?c.otros*wo(l)/so:0))/q:0});
+  return{m,qty,c}}
+function prodPorNombre(nombre){
+  let pr=DB.invProducts.find(x=>nzs(x.nombre)===nzs(nombre));
+  if(!pr){pr={id:uid(),codigo:'P-'+String(DB.invProducts.length+1).padStart(3,'0'),nombre,unidad:'unid.'};DB.invProducts.push(pr)}
+  return pr}
+function ingresarPedido(p,i,cm){
+  if(p.invIngresado)return 0;
+  const {m,qty}=cm||costosPorLinea(i),prov=i.estado!=='Cerrada',now=Date.now();let n=0;
+  for(const l of lineasDe(p.id)){
+    const q=qty(l);if(q<=0)continue;const costo=Math.round((m[l.id]||0)*100)/100,q0=l.quoteId?quoteOf(l.quoteId):null;
+    const base={importId:i.id,importNum:i.numero,dim:i.dim||'',dimFecha:i.dimFecha||'',lineId:l.id,pedidoNum:p.numero,provisional:prov,fecha:i.dimFecha||TODAY(),creado:now};
+    if(l.quoteId||l.destino==='cliente'){
+      const cli=l.cliente||(q0&&q0.cliente)||'',nro=q0?q0.numero:l.id.slice(-4);
+      DB.invAsig.push({id:uid(),sku:'PRE-'+slug(cli).toUpperCase().slice(0,12)+'-'+nro,producto:l.producto,qty:q,entregado:0,costo,quoteId:l.quoteId||'',cliente:cli,serie:'',...base})}
+    else{const pr=prodPorNombre(l.producto);DB.invMov.push({id:uid(),productId:pr.id,tipo:'entrada',qty:q,costo,doc:'Importación '+i.numero+(i.dim?' · DIM '+i.dim:''),...base})}
+    n++}
+  p.invIngresado=true;p.invFecha=TODAY();return n}
+function ingresarImp(i){
+  const cm=costosPorLinea(i);let n=0;
+  DB.purchases.filter(p=>p.importId===i.id).forEach(p=>{n+=ingresarPedido(p,i,cm)});
+  if(n){save();if(typeof view!=='undefined'&&view==='inventario')renderInv()}return n}
+function recalcImp(i){
+  const {m}=costosPorLinea(i),prov=i.estado!=='Cerrada';let n=0;
+  const up=r=>{if(r.importId===i.id&&r.lineId in m){r.costo=Math.round(m[r.lineId]*100)/100;r.provisional=prov;n++}};
+  DB.invMov.forEach(up);DB.invAsig.forEach(up);if(n)save();return n}
+function ingresarBtn(id){const i=byId(DB.imports,id);if(!i)return;
+  if(!i.dim&&!confirm('Esta importación aún no tiene DIM registrado. ¿Ingresar al inventario de todos modos?'))return;
+  const n=ingresarImp(i);toastX(n?n+' producto(s) ingresaron al inventario':'No hay pedidos pendientes de ingresar');render()}
+function recalcBtn(id){const i=byId(DB.imports,id);if(!i)return;const n=recalcImp(i);toastX(n?'Costos recalculados ('+n+')':'Nada que recalcular');render()}
+function invResumen(){
+  let val=0;DB.invProducts.forEach(x=>{val+=saldoProd(x.id).v});
+  const asig=DB.invAsig.reduce((s,a)=>s+Math.max(num(a.qty)-num(a.entregado),0)*num(a.costo),0);
+  return{nProd:DB.invProducts.length,valor:val,asig}}
+
+let INV={view:'stock',pid:''};
+function invGo(v,pid){INV={view:v,pid:pid||''};renderInv()}
+function renderInv(){
+  const root=document.getElementById('view-inventario');if(!root)return;
+  const t=[['stock','Existencias'],['asig','Asignados'],['kdx','Kardex'],['prod','Productos']];
+  const seg=`<div class="seg">${t.map(([k,l])=>`<button type="button" class="btn sm ${k===INV.view?'on':''}" onclick="GX.invGo('${k}')">${l}</button>`).join('')}</div>`;
+  const acts=`<div class="row" style="flex-wrap:wrap"><button class="btn sm" type="button" onclick="GX.fJalar()">Jalar importación</button><button class="btn sm" type="button" onclick="GX.fEntrada()">+ Entrada</button><button class="btn sm" type="button" onclick="GX.fPegar()">Pegar de Excel</button><button class="btn sm" type="button" onclick="GX.fAjuste()">Ajuste</button></div>`;
+  const fn={stock:vStock,asig:vAsig,kdx:vKdx,prod:vProdInv}[INV.view]||vStock;
+  root.innerHTML=seg+acts+fn()}
+function vStock(){
+  const l=DB.invProducts.map(x=>({x,s:saldoProd(x.id)})).sort((a,b)=>nzs(a.x.nombre).localeCompare(nzs(b.x.nombre)));
+  const tot=l.reduce((s,r)=>s+r.s.v,0);
+  return `<div class="card"><h2>Stock libre (costo promedio ponderado)</h2>${l.length?`<table><tr><th>Producto</th><th class="n">Saldo</th><th class="n">CPP Bs</th><th class="n">Valor Bs</th></tr>${l.map(r=>`<tr onclick="GX.invGo('kdx','${r.x.id}')" style="cursor:pointer"><td>${E(r.x.nombre)}<br><small style="color:var(--muted)">${E(r.x.codigo||'')}</small></td><td class="n">${N(r.s.q,0)}</td><td class="n">${N(r.s.cpp)}</td><td class="n">${N(r.s.v)}</td></tr>`).join('')}<tr><td colspan="3"><b>Total</b></td><td class="n"><b>${N(tot)}</b></td></tr></table>`:'<div class="empty">Sin productos. Usa «+ Entrada», «Pegar de Excel» o «Jalar importación».</div>'}</div>
+  <p class="hint">Los productos de importaciones pedidas para un cliente no entran aquí: quedan en «Asignados» con su costo propio.</p>`}
+function vAsig(){
+  const l=[...DB.invAsig].sort((a,b)=>(b.creado||0)-(a.creado||0));
+  const pend=l.reduce((s,a)=>s+Math.max(num(a.qty)-num(a.entregado),0)*num(a.costo),0);
+  return `<div class="card"><h2>Asignados a cotizaciones</h2><div class="kv"><div><span>Líneas</span><b>${l.length}</b></div><div><span>Valor pendiente de entrega (Bs)</span><b>${N(pend)}</b></div></div></div>`+
+  (l.length?l.map(a=>{const rest=num(a.qty)-num(a.entregado),q0=a.quoteId?quoteOf(a.quoteId):null;
+    return `<button class="item" type="button" onclick="GX.fSerie('${a.id}')"><span class="tag">${rest<=0?'Entregado':'En almacén'}</span>${a.provisional?'<span class="tag warn">Costo provisional</span>':''}<b>${E(a.producto)}</b>
+     <small>${E(a.sku)} · ${E(a.cliente||'—')}${q0?' · '+E(q0.numero):''}</small><small>${N(num(a.entregado),0)} entregado(s) de ${N(num(a.qty),0)} · costo u. Bs ${N(num(a.costo))} · ${E(a.importNum||'')}${a.dim?' · DIM '+E(a.dim)+(a.dimFecha?' ('+FD(a.dimFecha)+')':''):''}${a.serie?' · serie '+E(a.serie):''}</small></button>`}).join(''):'<div class="card empty">Aún no hay productos asignados. Se crean al ingresar una importación pedida para un cliente.</div>')}
+function vKdx(){
+  const ps=[...DB.invProducts].sort((a,b)=>nzs(a.nombre).localeCompare(nzs(b.nombre)));
+  if(!ps.length)return '<div class="card empty">Aún no hay productos.</div>';
+  const pid=INV.pid||ps[0].id,rows=kardexRows(pid);
+  return `<label class="f full"><span>Producto</span><select class="plain" onchange="GX.invGo('kdx',this.value)">${ps.map(x=>`<option value="${x.id}" ${x.id===pid?'selected':''}>${E(x.nombre)}</option>`).join('')}</select></label>
+  <div class="card">${rows.length?`<table><tr><th>Fecha</th><th class="n">Entra</th><th class="n">Sale</th><th class="n">Saldo</th><th class="n">CPP</th></tr>${rows.map(r=>`<tr><td>${FD(r.m.fecha)}<br><small style="color:var(--muted)">${E(r.m.doc||r.m.tipo)}${r.m.provisional?' · provisional':''}</small></td><td class="n">${r.in?N(r.in,0):''}${r.in?'<br><small>Bs '+N(r.costo)+'</small>':''}</td><td class="n">${r.out?N(r.out,0):''}</td><td class="n">${N(r.q,0)}</td><td class="n">${N(r.cpp)}</td></tr>`).join('')}</table>`:'<div class="empty">Sin movimientos.</div>'}</div>`}
+function vProdInv(){
+  const l=[...DB.invProducts].sort((a,b)=>nzs(a.nombre).localeCompare(nzs(b.nombre)));
+  return `<div class="row sp"><b style="font-size:17px">Productos de stock</b><button class="btn pri sm" type="button" onclick="GX.fProdInv()">+ Nuevo</button></div>`+
+  (l.length?l.map(x=>`<button class="item" type="button" onclick="GX.fProdInv('${x.id}')"><b>${E(x.nombre)}</b><small>${E(x.codigo||'')} · ${E(x.unidad||'')} · saldo ${N(saldoProd(x.id).q,0)}</small></button>`).join(''):'<div class="card empty">Aún no hay productos.</div>')}
+function fProdInv(id){
+  const x=id?byId(DB.invProducts,id):{codigo:'P-'+String(DB.invProducts.length+1).padStart(3,'0'),unidad:'unid.'};
+  sheet(id?'Editar producto':'Nuevo producto de stock',inp('codigo','Código',x.codigo)+inp('unidad','Unidad',x.unidad)+inp('nombre','Nombre del producto',x.nombre,{full:1}),
+   v=>{if(!v.nombre){toastX('Falta el nombre');return false}
+     const dup=DB.invProducts.find(y=>y.id!==id&&nzs(y.nombre)===nzs(v.nombre));if(dup){toastX('Ya existe un producto con ese nombre');return false}
+     if(id)Object.assign(x,v);else DB.invProducts.push({id:uid(),...v});save();renderInv();toastX('Guardado')},
+   id?()=>{if(DB.invMov.some(m=>m.productId===id)){toastX('No se puede eliminar: tiene movimientos');return}del('invProducts',id);save();renderInv()}:null)}
+function fEntrada(){
+  if(!DB.invProducts.length){toastX('Primero crea un producto (pestaña Productos)');return}
+  sheet('Entrada de stock',sel('productId','Producto',DB.invProducts.map(x=>[x.id,x.nombre]),'',{full:1})+inp('fecha','Fecha',TODAY(),{t:'date'})+inp('qty','Cantidad',"",{mode:'decimal'})+
+   inp('costo','Costo unitario (Bs)',"",{mode:'decimal',full:1})+inp('doc','Documento o referencia (compra, factura)',"",{full:1}),
+   v=>{if(num(v.qty)<=0||num(v.costo)<0||v.costo===''){toastX('Falta la cantidad o el costo');return false}
+     DB.invMov.push({id:uid(),productId:v.productId,fecha:v.fecha,tipo:'entrada',qty:num(v.qty),costo:num(v.costo),doc:v.doc||'Entrada manual',creado:Date.now()});save();renderInv();toastX('Entrada registrada')})}
+function fAjuste(){
+  if(!DB.invProducts.length){toastX('Primero crea un producto');return}
+  const b=sheet('Ajuste de inventario',sel('productId','Producto',DB.invProducts.map(x=>[x.id,x.nombre]),'',{full:1})+sel('signo','Tipo de ajuste',[['+','Ingreso (+)'],['-','Salida o merma (−)']],'-')+inp('fecha','Fecha',TODAY(),{t:'date'})+
+   inp('qty','Cantidad',"",{mode:'decimal'})+inp('costo','Costo unitario (Bs, solo ingresos)',"",{mode:'decimal'})+inp('motivo','Motivo (obligatorio)',"",{full:1}),
+   v=>{const q=num(v.qty);if(q<=0){toastX('Falta la cantidad');return false}if(!v.motivo){toastX('Escriba el motivo del ajuste');return false}
+     const s0=saldoProd(v.productId);
+     if(v.signo==='-'&&q>s0.q+1e-9){toastX('No hay stock suficiente (saldo '+N(s0.q,0)+')');return false}
+     DB.invMov.push({id:uid(),productId:v.productId,fecha:v.fecha,tipo:'ajuste',qty:v.signo==='-'?-q:q,costo:v.signo==='+'?(v.costo===''?s0.cpp:num(v.costo)):0,doc:'Ajuste: '+v.motivo,creado:Date.now()});save();renderInv();toastX('Ajuste registrado')})}
+function fPegar(){
+  sheet('Cargar desde Excel',hintDiv('','Pega filas copiadas de Excel, una por producto, con 5 columnas: código, nombre, unidad, cantidad y costo unitario (Bs). Se aceptan tabulaciones o punto y coma.')+
+   `<label class="f full"><span>Filas</span><textarea class="ta" data-k="txt" rows="8" placeholder="P-001&#9;Correa A38&#9;unid.&#9;50&#9;35,50"></textarea></label>`,
+   v=>{const rows=v.txt.split(/\r?\n/).map(r=>r.split(/\t|;/).map(c=>c.trim())).filter(r=>r.length>=5&&r[1]);
+     let n=0;
+     for(const r of rows){const q=num(r[3]),c=num(r[4]);if(q<=0||!/\d/.test(r[3]))continue;
+       let pr=DB.invProducts.find(x=>(r[0]&&x.codigo===r[0])||nzs(x.nombre)===nzs(r[1]));
+       if(!pr){pr={id:uid(),codigo:r[0]||'P-'+String(DB.invProducts.length+1).padStart(3,'0'),nombre:r[1],unidad:r[2]||'unid.'};DB.invProducts.push(pr)}
+       DB.invMov.push({id:uid(),productId:pr.id,fecha:TODAY(),tipo:'entrada',qty:q,costo:c,doc:'Carga inicial',creado:Date.now()+n});n++}
+     if(!n){toastX('No se encontraron filas válidas');return false}
+     save();renderInv();toastX(n+' fila(s) cargadas')})}
+function fJalar(){
+  const pend=DB.purchases.filter(p=>p.importId&&!p.invIngresado&&lineasDe(p.id).length);
+  if(!pend.length){toastX('No hay pedidos con importación pendientes de ingresar');return}
+  sheet('Jalar al inventario',hintDiv('','Elige los pedidos que ya llegaron. El costo es provisional hasta cerrar la importación.')+
+   pend.map(p=>{const i=byId(DB.imports,p.importId);return `<label class="chk" style="background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:9px;display:block"><input type="checkbox" data-k="p_${p.id}"> ${E(p.numero)} · ${E(p.proveedor||'')} <small style="color:var(--muted)">(${E(i?i.numero:'')}${i&&i.dim?' · DIM '+E(i.dim):' · sin DIM'})</small></label>`}).join(''),
+   v=>{const ids=Object.keys(v).filter(k=>k.startsWith('p_')&&v[k]).map(k=>k.slice(2));if(!ids.length){toastX('Elige al menos un pedido');return false}
+     let n=0;ids.forEach(id=>{const p=byId(DB.purchases,id),i=byId(DB.imports,p.importId);if(p&&i)n+=ingresarPedido(p,i)});
+     save();renderInv();toastX(n+' producto(s) ingresaron')})}
+function fSerie(id){
+  const a=byId(DB.invAsig,id);if(!a)return;
+  sheet('Producto asignado',hintDiv('',`SKU ${E(a.sku)} · ${E(a.producto)} · costo propio Bs ${N(num(a.costo))} por unidad (no se promedia).`)+inp('serie','N.º de serie o chasis (si es una máquina)',a.serie,{full:1}),
+   v=>{a.serie=v.serie;save();renderInv();toastX('Guardado')})}
+/* confirmación de entrega: descuenta lo entregado de lo asignado a la cotización */
+function fEntrega(op,parcial){
+  return new Promise(res=>{
+    const as=DB.invAsig.filter(a=>a.quoteId===op.quoteId&&num(a.qty)-num(a.entregado)>1e-9);
+    const rows=as.map(a=>{const rest=num(a.qty)-num(a.entregado);
+      return `<div class="full" style="border:1px solid var(--line);border-radius:10px;padding:8px"><b>${E(a.producto)}</b><small style="color:var(--muted)"> · pendiente ${N(rest,0)} de ${N(num(a.qty),0)}</small>
+       <div class="grid" style="padding:6px 0 0">${inp('q_'+a.id,'Unidades entregadas',parcial?'':rest,{mode:'decimal'})}${sel('t_'+a.id,'Comprobante',['Factura','Recibo'],'Factura')}</div></div>`}).join('');
+    sheet(parcial?'Entrega parcial':'Entrega finalizada',
+     hintDiv('',as.length?'Confirme lo entregado. Esto descuenta el producto del inventario.':'Esta cotización no tiene productos en inventario: registre solo el comprobante.')+rows+
+     (as.length?'':sel('tipoUnico','Comprobante',['Factura','Recibo'],'Factura',{full:1}))+
+     inp('numero','N.º de factura o recibo',op.docVenta&&op.docVenta.numero,{full:1})+(parcial?inp('detalle','Detalle de la entrega parcial (obligatorio)',"",{full:1}):''),
+     v=>{if(!v.numero){toastX('Falta el número de factura o recibo');return false}
+       if(parcial&&!v.detalle){toastX('Escriba el detalle de la entrega parcial');return false}
+       const items=[];let restante=0;
+       for(const a of as){const q=num(v['q_'+a.id]),rest=num(a.qty)-num(a.entregado);
+         if(q<0||q>rest+1e-9){toastX('Cantidad inválida en: '+a.producto);return false}
+         if(q>0)items.push({asigId:a.id,producto:a.producto,qty:q,tipo:v['t_'+a.id]});restante+=rest-q}
+       if(as.length&&parcial&&!items.length){toastX('Indique al menos una unidad entregada');return false}
+       if(as.length&&!parcial&&restante>1e-9&&!confirm('Quedan '+N(restante,0)+' unidad(es) sin entregar. ¿Marcar la entrega como finalizada igualmente?'))return false;
+       items.forEach(it=>{const a=byId(DB.invAsig,it.asigId);a.entregado=num(a.entregado)+it.qty});if(items.length)save();
+       const tipos=[...new Set(items.map(x=>x.tipo))],tipo=as.length?(tipos.length>1?'Mixto':(tipos[0]||v.tipoUnico||'Factura')):v.tipoUnico;
+       res({tipo,numero:v.numero,items,detalle:v.detalle||''})},null,()=>res(null))})}
 function opcionesImp(){return [['','— Sin asignar —'],...[...DB.imports].sort((a,b)=>(b.numero||'').localeCompare(a.numero||'')).map(i=>[i.id,i.numero+(i.contenedor?' · '+i.contenedor:'')])]}
 function fPed(id,impId){
   const p=id?byId(DB.purchases,id):{numero:nextNum('PED',DB.purchases),estado:'Pedido',empaque:'no',importId:impId||''};
@@ -2107,7 +2270,7 @@ function fPag(id,impId,pedId){
   b.addEventListener('input',upd);b.addEventListener('change',upd);upd();
 }
 
-window.GX={render,go,fImp,fPed,fLin,fPag,fCotEnPed,quitarCot,syncOps,lockOp,setCol,save,fCierre,fProv,fLoc,migrarProv,saldoPedido,totalPedido,ESTADOS_PED,ESTADOS_IMP,
+window.GX={render,go,fImp,fPed,fLin,fPag,fCotEnPed,quitarCot,syncOps,lockOp,setCol,save,fCierre,fProv,fLoc,migrarProv,renderInv,invGo,fJalar,fEntrada,fAjuste,fPegar,fProdInv,fSerie,fEntrega,ingresarBtn,recalcBtn,ingresarImp,recalcImp,invResumen,saldoPedido,totalPedido,ESTADOS_PED,ESTADOS_IMP,
   get DB(){return DB},COLS:COLS_GX,KEYS};
 try{migrarProv()}catch(e){console.error(e)}
 try{syncOps()}catch(_){}
@@ -2226,6 +2389,8 @@ function renderDash(){
     <div class="hcnt" style="grid-template-columns:repeat(3,1fr);row-gap:12px">${ped.map(([e,n],i)=>tile(n,e,['c1','c2','c3','c2','c4'][i%5])).join('')}</div></div>
   <div class="hc"><div class="hrow"><h2>Importaciones</h2><button class="hlink" data-g2="gxgo" data-v="imp" type="button">Ver</button></div>
     <div class="hcnt" style="grid-template-columns:repeat(3,1fr);row-gap:12px">${imp.map(([e,n],i)=>tile(n,e,['c1','c2','c3','c4','c2','c1'][i%6])).join('')}</div></div>
+  ${(()=>{const r=GX.invResumen();return `<div class="hc"><div class="hrow"><h2>Inventario</h2><button class="hlink" data-go="inventario" type="button">Ver</button></div>
+    <div class="hcnt" style="grid-template-columns:repeat(3,1fr)">${tile(r.nProd,'Productos','c1')}${tile(nf(r.valor,0),'Bs en stock','c2')}${tile(nf(r.asig,0),'Bs asignado','c3')}</div></div>`})()}
   <div class="hc hgreen"><h2>Acciones a realizar</h2>
     ${acc.length?`<div style="display:flex;flex-direction:column;gap:2px;margin-top:6px">${acc.map(a=>`<button class="hfl" type="button" ${a.go}><i style="background:var(--${a.c==='bad'?'bad':'warn'})"></i><span><b>${E(a.t)}</b><small>${E(a.s)}</small></span></button>`).join('')}</div>`:'<p class="hint" style="margin:8px 0 0">Todo al día. No hay acciones pendientes.</p>'}</div>
   <div class="hc"><h2>Pasivos bancarios</h2><p class="hint" style="margin:8px 0 0">Próximamente: alertas por fecha de pago de préstamos y cuotas.</p></div>
@@ -2317,15 +2482,18 @@ function trkRender(){
   if(trkGroup==='imp')q$('#trkImp').innerHTML=trkImpHtml()}
 const _rt=renderTrack;renderTrack=function(){_rt();try{trkRender()}catch(e){console.error(e)}};
 const _se=setEtapa;
-const CONF={demorado:['Confirmar: Demorado por aduana','Motivo de la demora'],aduanap:['Confirmar: Arribo parcial en aduana','Detalle del arribo parcial (qué llegó y qué falta)'],entregap:['Confirmar: Entregado parcial','Detalle de la entrega parcial (qué se entregó)']};
+const CONF={demorado:['Confirmar: Demorado por aduana','Motivo de la demora'],aduanap:['Confirmar: Arribo parcial en aduana','Detalle del arribo parcial (qué llegó y qué falta)']};
 setEtapa=async function(e){
   if(!OP||OP.etapa===e)return;
   if(CONF[e]){
     const r=await askForm({title:CONF[e][0],msg:'Este estado lo verá el cliente en su seguimiento. Escriba el motivo para confirmar.',fields:[{k:'motivo',l:CONF[e][1],req:1}]});
     if(!r)return;_se(e);OP.hist[OP.hist.length-1].nota=r.motivo.trim();opCommit();renderOp();return}
-  if(e==='entregada'){
-    const r=await askForm({title:'Entrega finalizada',msg:'Registre el comprobante de la venta.',fields:[{k:'tipo',l:'Comprobante',t:'select',o:['Factura','Recibo']},{k:'numero',l:'Número de factura o recibo',req:1}]});
-    if(!r)return;OP.docVenta={tipo:r.tipo,numero:r.numero.trim(),fecha:new Date().toISOString().slice(0,10)}}
+  if(e==='entregada'||e==='entregap'){
+    const r=await GX.fEntrega(OP,e==='entregap');if(!r)return;
+    const hoy=new Date().toISOString().slice(0,10);
+    OP.docVenta={tipo:r.tipo,numero:r.numero.trim(),fecha:hoy};
+    (OP.entregas=OP.entregas||[]).push({fecha:hoy,tipo:r.tipo,numero:r.numero.trim(),items:r.items,detalle:r.detalle});
+    _se(e);if(r.detalle){OP.hist[OP.hist.length-1].nota=r.detalle;opCommit()}return}
   if(e==='cancelada'){
     const r=await askForm({title:'Cotización caída o perdida',msg:'¿Por qué se perdió?',fields:[{k:'motivo',l:'Motivo',t:'select',o:['Precio','Competencia','Sin respuesta','Otro']},{k:'nota',l:'Comentario (opcional)'}]});
     if(!r)return;OP.motivo=r.motivo;OP.motivoNota=r.nota||''}
@@ -2381,7 +2549,7 @@ document.addEventListener('change',async e=>{
       const r=await askForm({title:'Importación liberada',msg:'Registre los datos de aduana.',fields:[{k:'canal',l:'Canal aduanero asignado',t:'select',o:['Verde','Amarillo','Rojo'],v:i.canal},{k:'reajuste',l:'Reajuste de la aduana en Bs (si hubo)',v:i.reajuste},{k:'multas',l:'Multas en Bs (si hubo)',v:i.multas},{k:'obs',l:'Observaciones',v:i.obsAduana}]});
       if(!r){trkRender();return}
       i.canal=r.canal;i.reajuste=r.reajuste;i.multas=r.multas;i.obsAduana=r.obs}
-    i.estado=t.value;GX.save();toast('Importación '+i.numero+': '+i.estado);trkRender();propagarImp(i)}}});
+    i.estado=t.value;GX.save();if(t.value==='Cerrada')GX.recalcImp(i);toast('Importación '+i.numero+': '+i.estado);trkRender();propagarImp(i)}}});
 window.GX2={pinOk,cambiarPin,renderDash};
 })();
 
