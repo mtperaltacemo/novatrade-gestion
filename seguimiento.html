@@ -40,6 +40,7 @@ li.cur i{background:var(--accent);border-color:var(--accent);box-shadow:0 0 0 5p
 li b{display:block;line-height:24px}li span{font-size:13px;color:var(--muted)}
 li:not(.done):not(.cur) b{color:var(--muted);font-weight:600}
 dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:8px 14px;font-size:15px}dt{color:var(--muted)}dd{margin:0;font-weight:600;word-break:break-word}
+.emb{border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px}.emb:last-child{margin-bottom:0}.eh{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
 .err{color:var(--bad);font-weight:600;margin-top:10px}
 .foot{text-align:center;font-size:12px;color:var(--muted)}
 [hidden]{display:none!important}
@@ -55,9 +56,11 @@ dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:8px 14px;font-size:1
     <p class="err" id="err" hidden></p>
   </div>
   <div id="res" hidden>
-    <div class="card now"><p class="muted" id="rCli"></p><h1 id="rProd"></h1><p class="muted" id="rNum"></p><span class="badge" id="rEtapa"></span><p class="eta" id="rEta"></p></div>
+    <div class="card now"><p class="muted" id="rCli"></p><h1 id="rProd">Seguimiento de su pedido</h1><p class="muted" id="rNum"></p><span class="badge" id="rEtapa"></span><p class="eta" id="rEta"></p></div>
     <div class="card"><h2>Avance</h2><ol id="rSteps"></ol></div>
     <div class="card" id="cCom" hidden><h2>Información</h2><p id="rCom" style="white-space:pre-wrap"></p></div>
+    <div class="card" id="cCarga" hidden><h2>Su carga</h2><dl id="rCarga"></dl></div>
+    <div class="card" id="cEmbs" hidden><h2>Envío parcial</h2><p class="muted" id="rEmbH" style="margin-bottom:12px"></p><div id="rEmbs"></div></div>
     <div class="card" id="cEnv"><h2>Embarque</h2><dl id="rEnv"></dl><div id="rTrk" hidden style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap"><a class="btn ghost" id="rTrkA" target="_blank" rel="noopener">Rastrear en la naviera</a><button class="btn ghost" id="rTrkC" type="button">Copiar N.º</button></div><p class="muted" id="rTrkH" style="margin-top:8px" hidden></p></div>
     <div class="card"><h2>¿Consultas?</h2><p class="muted" style="margin-bottom:12px" id="rTel"></p><a class="btn" id="rWa" target="_blank" rel="noopener">Escribirnos por WhatsApp</a></div>
     <p class="foot" id="rUpd"></p>
@@ -94,13 +97,13 @@ function fail(m){const e=$('#err');e.textContent=m;e.hidden=false;$('#res').hidd
 function show(d,code){
   $('#err').hidden=true;cur=code;
   try{history.replaceState(null,'','?c='+code)}catch(_){}
-  $('#rCli').textContent=d.cliente?'Pedido de '+d.cliente:'';
-  $('#rProd').textContent=d.producto||'Su pedido';
+  $('#rCli').textContent='';
+  $('#rProd').textContent='Seguimiento de su pedido';
   $('#rNum').textContent=d.numero?'Cotización '+d.numero:'';
   const e=d.etapa,idx=ETAPAS.findIndex(x=>x[0]===e),b=$('#rEtapa');
   b.textContent=e==='cancelada'?'Sin efecto':(ETAPAS[idx]||['',''])[1];b.className='badge'+(e==='entregada'||e==='disponible'||e==='entregap'?' ok':e==='cancelada'||e==='demorado'?' bad':'');
   let eta='';
-  if(d.eta&&e!=='entregada'&&e!=='cancelada'){const n=Math.round((new Date(d.eta+'T12:00:00')-new Date(new Date().toISOString().slice(0,10)+'T12:00:00'))/864e5);
+  if(d.eta&&!(Array.isArray(d.embarques)&&d.embarques.length>1)&&e!=='entregada'&&e!=='cancelada'){const n=Math.round((new Date(d.eta+'T12:00:00')-new Date(new Date().toISOString().slice(0,10)+'T12:00:00'))/864e5);
     eta=`Llegada estimada: <b>${fdi(d.eta)}</b>`+(n>0?` (en ${n} día${n===1?'':'s'})`:n===0?' (hoy)':' (en revisión)')}
   else if(e==='entregada')eta='Su pedido fue entregado. ¡Gracias por su confianza!';
   $('#rEta').innerHTML=eta;
@@ -109,8 +112,16 @@ function show(d,code){
     const cls=e==='cancelada'?(h?'done':''):i<idx?'done':i===idx?'cur':'';
     return `<li class="${cls}"><i>${cls==='done'?'✓':''}</i><b>${l}</b><span>${h?fd(h.ts):(cls?'':'Pendiente')}</span></li>`}).join('');
   const env=[['Tipo de transporte',d.modalidad],['Naviera',d.naviera],['Contenedor',d.contenedor],['Documento de embarque',d.bl],['Fecha de embarque',(d.etd||d.salida)?fdi(d.etd||d.salida):''],['Llegada a puerto',d.eta?fdi(d.eta):''],['Entrega estimada',d.entrega?fdi(d.entrega):'']].filter(x=>x[1]);
-  $('#cEnv').hidden=!env.length;$('#rEnv').innerHTML=env.map(([a,b])=>`<dt>${a}</dt><dd>${String(b).replace(/</g,'&lt;')}</dd>`).join('');
-  {const tr=$('#rTrk'),ok=!!(d.rastreo&&d.rastreoNum&&e!=='entregada'&&e!=='cancelada');tr.hidden=!ok;$('#rTrkH').hidden=!ok;
+  const em=Array.isArray(d.embarques)?d.embarques:[],multi=em.length>1,esc=x=>String(x).replace(/</g,'&lt;'),kg=x=>(+x||0).toLocaleString('es-BO',{maximumFractionDigits:2});
+  const carga=[['Bultos',d.bultos?kg(d.bultos):''],['Peso',d.pesoKg?kg(d.pesoKg)+' kg':'']].filter(x=>x[1]);
+  $('#cCarga').hidden=!carga.length;$('#rCarga').innerHTML=carga.map(([a,b])=>`<dt>${a}</dt><dd>${b}</dd>`).join('');
+  $('#cEmbs').hidden=!multi;
+  if(multi){$('#rEmbH').textContent='Su pedido llega en '+em.length+' embarques. Cada uno avanza por separado.';
+    $('#rEmbs').innerHTML=em.map(x=>{const rows=[['Bultos',x.bultos?kg(x.bultos):''],['Peso',x.peso?kg(x.peso)+' kg':''],['Naviera',x.naviera],['Contenedor',x.contenedor],['Documento de embarque',x.bl],['Fecha de embarque',x.etd?fdi(x.etd):''],['Llegada a puerto',x.eta?fdi(x.eta):''],['Entrega estimada',x.entrega?fdi(x.entrega):'']].filter(r=>r[1]);
+      const tr=(x.rastreo&&x.rastreoNum&&!x.fin)?`<div style="margin-top:10px"><a class="btn ghost" href="${esc(x.rastreo)}" target="_blank" rel="noopener">Rastrear en la naviera</a></div>`:'';
+      return `<div class="emb"><div class="eh"><b>Embarque ${x.n}</b><span class="badge${x.fin?' ok':''}">${esc(x.estado)}</span></div><dl>${rows.map(([a,b])=>`<dt>${a}</dt><dd>${esc(b)}</dd>`).join('')}</dl>${tr}</div>`}).join('')}
+  $('#cEnv').hidden=multi||!env.length;$('#rEnv').innerHTML=env.map(([a,b])=>`<dt>${a}</dt><dd>${String(b).replace(/</g,'&lt;')}</dd>`).join('');
+  {const tr=$('#rTrk'),ok=!multi&&!!(d.rastreo&&d.rastreoNum&&e!=='entregada'&&e!=='cancelada');tr.hidden=!ok;$('#rTrkH').hidden=!ok;
    if(ok){$('#rTrkA').href=d.rastreo;$('#rTrkH').textContent='Copie el número '+d.rastreoNum+' y péguelo en la página de la naviera si se lo pide.';$('#rTrkC').onclick=()=>{try{navigator.clipboard.writeText(d.rastreoNum).then(()=>{$('#rTrkC').textContent='Copiado'},()=>{})}catch(_){}}}}
   $('#cCom').hidden=!d.comentario;$('#rCom').textContent=d.comentario||'';
   $('#rTel').textContent=d.tel?'Novatrade · '+d.tel:'';

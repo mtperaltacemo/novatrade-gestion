@@ -480,7 +480,8 @@ body.inhome{padding-block:0 calc(88px + env(safe-area-inset-bottom,0px))}
         <div id="opAlertsBox" style="margin-top:10px;display:flex;flex-direction:column;gap:4px"></div>
         <label class="f full" style="margin-top:14px"><span>Comentario informativo (lo ve el cliente)</span><textarea class="ta" data-of="comentario" placeholder="Ej.: La carga llegó a Iquique, en traslado a Santa Cruz."></textarea></label></div>
       <div class="card"><h2>Seguimiento para el cliente</h2>
-        <p class="hint" style="margin:0 0 8px">El cliente ve el estado de su pedido con este código, sin precios ni costos.</p>
+        <p class="hint" style="margin:0 0 8px">El cliente ve con este código solo: N.º de cotización, estado, bultos y peso (sin su nombre, productos ni costos).</p>
+        <label class="f full" style="margin:0 0 10px"><span>Naviera y documento de embarque en el seguimiento</span><select class="plain" data-of="verNav"><option value="">Ocultar (el cliente consulta con Novatrade)</option><option value="1">Mostrar al cliente</option></select></label><div id="opEmbPub" class="hint" style="margin:0 0 10px"></div>
         <p style="font-size:26px;font-weight:800;letter-spacing:.08em;margin:0 0 4px" id="opCode"></p><p class="hint" id="opPubHint" style="margin:0 0 12px"></p>
         <div class="row"><button class="btn pri sm" data-go="opShare" type="button">Enviar código por WhatsApp</button><button class="btn sm" data-go="opCopy" type="button">Copiar enlace</button><button class="btn sm" data-go="opPage" type="button">Ver página</button></div></div>
       <div class="card" id="opEmbCard"><h2>Pedido y embarque</h2><p class="hint" style="margin:0 0 10px">Solo lectura: se completa solo desde Importaciones.</p><div id="opLinkBox" class="gx"></div><div id="opEmbRO" class="gx"></div><div class="grid" id="opEmbGrid" hidden>
@@ -1486,17 +1487,28 @@ const cKey=s=>String(s||'').toLowerCase().replace(/[^a-z]/g,'');
 function carrierUrl(name,n){const k=cKey(name);if(!k||!n)return '';const c=CARRIERS.find(x=>cKey(x[0])===k);return c?c[1](n):''}
 function genCode(){const A='ABCDEFGHJKLMNPQRSTUVWXYZ23456789',u=new Uint8Array(6);(window.crypto||{getRandomValues:a=>a.map(()=>Math.random()*256)}).getRandomValues(u);return 'NT-'+Array.from(u,x=>A[x%A.length]).join('')}
 const trkLink=o=>new URL('seguimiento.html?c='+encodeURIComponent(o.codigo),location.href).href;
+const EMB_LBL={'Programada':'Programado','En tránsito':'En tránsito','En aduana':'En aduana','Liberada':'Liberado de aduana','En almacenes de Novatrade':'Disponible para entrega','Cerrada':'Entregado'};
 function pubDoc(o,activo=true){
-  const q=lsGet('nt_quotes',[]).find(x=>x.id===o.quoteId),prod=q?(q.prods||[]).map(p=>(p.desc||'').trim()).filter(Boolean).join(', '):'';
-  return {activo,codigo:o.codigo,cliente:o.clienteNombre||'',producto:prod||'Su pedido',numero:o.numero||'',etapa:o.etapa,hist:(o.hist||[]).map(h=>({etapa:h.etapa,ts:h.ts})),eta:o.eta||'',etd:o.etd||'',entrega:o.entrega||'',naviera:o.naviera||'',modalidad:o.modalidad||'',comentario:o.comentario||'',contenedor:o.contenedor||'',bl:o.bl||'',rastreo:carrierUrl(o.naviera,o.contenedor||o.bl)||'',rastreoNum:o.contenedor||o.bl||'',tel:cfg.tel||'',upd:o.upd||Date.now()}
+  const q=lsGet('nt_quotes',[]).find(x=>x.id===o.quoteId),nav=!!o.verNav;
+  let em=[];try{em=(window.GX&&GX.embarques)?GX.embarques(o.quoteId):[]}catch(_){}
+  const pn=x=>(+String(x==null?'':x).replace(',','.'))||0;
+  let bultos=em.reduce((t,e)=>t+e.bultos,0),peso=em.reduce((t,e)=>t+e.peso,0);
+  if(!bultos&&!peso&&q&&q.ind){bultos=pn(q.ind.bultos);peso=pn(q.ind.peso)}
+  const emb=em.map(e=>({n:e.n,estado:EMB_LBL[e.estado]||e.estado,fin:e.estado==='Cerrada',bultos:e.bultos,peso:e.peso,etd:e.etd||'',eta:e.eta||'',entrega:e.entrega||'',
+    naviera:nav?(e.naviera||''):'',contenedor:nav?(e.contenedor||''):'',bl:nav?(e.bl||''):'',modalidad:e.modalidad||'',rastreo:nav?(carrierUrl(e.naviera,e.contenedor||e.bl)||''):'',rastreoNum:nav?(e.contenedor||e.bl||''):''}));
+  /* privacidad: el seguimiento público NO lleva nombre del cliente, productos ni montos */
+  return {activo,codigo:o.codigo,cliente:'',producto:'',numero:o.numero||'',etapa:o.etapa,hist:(o.hist||[]).map(h=>({etapa:h.etapa,ts:h.ts})),eta:o.eta||'',etd:o.etd||'',entrega:o.entrega||'',
+    naviera:nav?(o.naviera||''):'',modalidad:o.modalidad||'',comentario:o.comentario||'',contenedor:nav?(o.contenedor||''):'',bl:nav?(o.bl||''):'',
+    rastreo:nav?(carrierUrl(o.naviera,o.contenedor||o.bl)||''):'',rastreoNum:nav?(o.contenedor||o.bl||''):'',
+    bultos,pesoKg:peso,embarques:emb,tel:cfg.tel||'',upd:o.upd||Date.now()}
 }
 function pubPush(){
   if(typeof cloudUser==='undefined'||!cloudUser||!window.NTCloud)return;
   const pub=lsGet('nt_pub',{});let ch=false;
   for(const o of ops){
     if(!o.codigo){o.codigo=genCode();o.upd=Date.now();saveOps()}
-    if(pub[o.id]&&pub[o.id].upd>=o.upd)continue;
-    const id=o.id,code=o.codigo,u=o.upd;pub[id]={upd:u,code};ch=true;
+    if(pub[o.id]&&pub[o.id].upd>=o.upd&&pub[o.id].v===2)continue;
+    const id=o.id,code=o.codigo,u=o.upd;pub[id]={upd:u,code,v:2};ch=true;
     NTCloud.put(CP+'seguimiento',code,pubDoc(o)).catch(e=>{const pp=lsGet('nt_pub',{});delete pp[id];lsSet('nt_pub',pp)})
   }
   if(ch)lsSet('nt_pub',pub)
@@ -1589,6 +1601,7 @@ function renderOp(){
   $('#opPubHint').textContent=(typeof cloudUser!=='undefined'&&cloudUser)?'Se publica solo cada vez que cambia la operación.':'Inicie sesión (Cuenta) para publicar el seguimiento al cliente.';
   for(const el of $$('[data-of]')){const k=el.dataset.of;if(document.activeElement===el)continue;el.value=k==='pedidoUSD'?(OP.pedidoUSD?showNum(OP.pedidoUSD):''):(OP[k]||'')}
   try{GX.syncOps();GX.lockOp(OP)}catch(_){}
+  try{const em=GX.embarques(OP.quoteId),b=document.getElementById('opEmbPub');if(b)b.innerHTML=em.length?'Embarques que ve el cliente ('+em.length+'): '+em.map(e=>'<b>Embarque '+e.n+'</b> · '+(EMB_LBL[e.estado]||e.estado)+' · '+e.bultos+' bulto(s) · '+e.peso+' kg').join(' &nbsp;|&nbsp; ')+(em.length>1?'. Se muestra como envío parcial.':''):'Aún sin pedido/embarque: el cliente verá solo el estado.'}catch(_){}
   renderOpLists();updateOpSummaries()
 }
 function renderOpLists(){
@@ -1761,6 +1774,12 @@ function linkDeCot(qid){
 const MAP_PED={proveedor:p=>p.proveedor||'',pedidoNum:p=>p.numero||''};
 const MAP_IMP={modalidad:i=>i.transporte||'',naviera:i=>i.naviera||'',contenedor:i=>i.contenedor||'',bl:i=>i.embarque||'',etd:i=>i.etd||'',eta:i=>i.eta||'',entrega:i=>i.entrega||''};
 /* Llena solas las operaciones del cotizador (y su seguimiento al cliente) con los datos del pedido/importación */
+function embarques(qid){
+  const ids=[...new Set(DB.purchaseLines.filter(l=>l.quoteId===qid).map(l=>l.purchaseId))];
+  const g=new Map();
+  ids.map(id=>byId(DB.purchases,id)).filter(Boolean).forEach(p=>{const im=p.importId?byId(DB.imports,p.importId):null,k=im?im.id:'_';const a=g.get(k)||{imp:im,bultos:0,peso:0};a.bultos+=num(p.bultos);a.peso+=num(p.pesoKg);g.set(k,a)});
+  return [...g.values()].sort((a,b)=>String((a.imp&&(a.imp.etd||a.imp.eta))||'9999').localeCompare(String((b.imp&&(b.imp.etd||b.imp.eta))||'9999'))).map((a,i)=>{const m=a.imp||{};
+    return{n:i+1,estado:m.estado||'Programada',bultos:a.bultos,peso:a.peso,etd:m.etd||'',eta:m.eta||'',entrega:m.entrega||'',naviera:m.naviera||'',contenedor:m.contenedor||'',bl:m.embarque||'',modalidad:m.transporte||''}})}
 function syncOps(){
   if(typeof ops==='undefined')return;
   let changed=false;
@@ -1769,6 +1788,7 @@ function syncOps(){
     let ch=false;
     const apply=(map,src)=>{for(const k in map){const v=map[k](src);if((o[k]||'')!==v){o[k]=v;ch=true}}};
     apply(MAP_PED,lk.pedido);if(lk.imp)apply(MAP_IMP,lk.imp);
+    {const sg=JSON.stringify(embarques(o.quoteId));if((o.embSig||'')!==sg){o.embSig=sg;ch=true}}
     if(ch){o.upd=Date.now();changed=true;if(typeof OP!=='undefined'&&OP&&OP.id===o.id)Object.assign(OP,JSON.parse(JSON.stringify(o)))}
   }
   if(changed){saveOps();cloudPushSoon();if(typeof view!=='undefined'&&view==='op')try{renderOp()}catch(_){}}
@@ -2753,7 +2773,7 @@ function renderInd(){
     :sk('seguroModo','Seguro contratado por Novatrade',[['con','Con seguro'],['sin','Sin seguro']],{full:1})+(d.seguroModo==='sin'?hintDiv('','Sin costo en el detalle. Para el CIF y los impuestos se toma el 2% del FOB total, completo.')
       :sk('seguroTipo','Se calcula como',[['pct','Porcentaje del FOB total'],['fijo','Valor fijo (USD)']])+f('seguroVal',d.seguroTipo==='fijo'?'Seguro (USD)':'Seguro (% del FOB)')+f('seguroPond','% del seguro que entra al CIF',{full:1}));
   const oo=d.id?opByQuote(d.id):null,cur=oo?oo.etapa:null;
-  const est=d.id?`<div class="card"><h2>Estado de la cotización</h2><div class="chips">${[['enviada','Enviada'],['confirmada','Confirmada'],['cancelada','Caída / perdida']].map(([k,l])=>`<button class="chip" type="button" onclick="GX.indEtapa('${k}')" aria-pressed="${cur===k}">${l}</button>`).join('')}</div><p class="hint" style="margin:10px 0 0">${oo?'Estado actual: <b>'+E(ETL[cur]||cur)+'</b>.':'Sin seguimiento todavía. Toque una etapa para iniciarlo.'}</p><div class="row" style="margin-top:10px"><button class="btn sm" type="button" onclick="GX.indSeg()">Abrir seguimiento completo</button></div></div>`
+  const est=d.id?`<div class="card"><h2>Estado de la cotización</h2><div class="chips">${ETAPAS.map(([k,l])=>`<button class="chip" type="button" onclick="GX.indEtapa('${k}')" aria-pressed="${cur===k}">${l}</button>`).join('')}</div><p class="hint" style="margin:10px 0 0">${oo?(cur==='cancelada'?'Operación cancelada.':'Estado actual: <b>'+E(ETL[cur]||cur)+'</b>. Se actualiza igual desde el módulo de Seguimiento.'):'Sin seguimiento todavía. Toque una etapa para iniciarlo.'}</p><div class="row" style="margin-top:10px"><button class="btn sm" type="button" onclick="GX.indSeg()">Abrir seguimiento completo</button>${oo?`<button class="btn sm" type="button" onclick="GX.indLink(0)">Copiar enlace de rastreo</button><button class="btn sm" type="button" onclick="GX.indLink(1)">Enviar rastreo por WhatsApp</button>`:''}</div></div>`
     :`<div class="card"><p class="hint" style="margin:0">Guarde la cotización para darle seguimiento y poder agregarla a un pedido de Importaciones.</p></div>`;
   root.innerHTML=`<button class="back" type="button" onclick="setView('saved')">← Cotizaciones</button>${est}
   <div class="card"><h2>${urg?'Importación urgente (aérea)':'Importación individual'} ${d.numero?'· '+E(d.numero):'· nueva'}</h2><div class="grid">
@@ -2865,6 +2885,11 @@ async function indPdf(share){
     if(share&&navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:'Cotización '+(IND.numero||'')});return}catch(e){if(e&&e.name==='AbortError')return}}
     saveBlob(blob,name);toastX(share?'Este equipo no puede compartir directo: el PDF se descargó':'PDF listo: revise sus descargas')}
   catch(e){console.error(e);toastX('No se pudo generar el PDF: '+(e&&e.message||e))}}
+function indLink(wa){
+  if(!IND||!IND.id)return;const o=ensureOp(IND.id);if(!o)return;if(!o.codigo){o.codigo=genCode();o.upd=Date.now();saveOps();cloudPushSoon()}
+  const u=trkLink(o),msg='Hola '+(IND.cliente||'')+', puede seguir su importación (cotización '+(IND.numero||'')+') aquí: '+u+'  Código: '+o.codigo;
+  if(wa){const c=clients.find(x=>x.id===o.clienteId),ph=c&&c.telefono&&normPhone(c.telefono);window.open(ph?waLink(c.telefono,msg):'https://wa.me/?text='+encodeURIComponent(msg),'_blank','noopener');return}
+  try{navigator.clipboard.writeText(u).then(()=>toastX('Enlace copiado: '+o.codigo),()=>toastX(u))}catch(_){toastX(u)}}
 function indVolver(k){if(!IND)return;IND[k]='';renderInd()}
 function indRowReset(k){if(!IND)return;delete (IND.tcRow||{})[k];delete (IND.bsRow||{})[k];indRecalc();indCobros()}
 function indTcPagos(){
@@ -3342,7 +3367,7 @@ function fPagoPlan(pid){
    v=>{if(!v.fecha){toastX('Falta la fecha');return false}p.pagada=true;p.fechaPago=v.fecha;p.cuentaId=v.cuentaId||'';ctSyncPlanilla(p);save();renderConta();toastX('Pago registrado')})}
 function planDesPagar(pid){const p=byId(DB.planillas,pid);if(!p)return;gxPin('Para deshacer el pago de la planilla ingrese la clave.').then(ok=>{if(ok){p.pagada=false;p.fechaPago='';p.cuentaId='';ctSyncPlanilla(p);save();renderConta()}})}
 function planEliminar(pid){const p=byId(DB.planillas,pid);if(!p)return;if(!confirm('¿Eliminar la planilla '+p.periodo+'?'))return;gxPin('Para eliminar la planilla ingrese la clave.').then(ok=>{if(ok){p.pagada=false;ctSyncPlanilla(p);del('planillas',pid);save();CT.plan='';renderConta()}})}
-window.GX={render,go,fImp,fPed,fLin,fPag,fCotEnPed,quitarCot,syncOps,lockOp,setCol,save,fCierre,fProv,fLoc,migrarProv,renderInv,invGo,fJalar,fEntrada,fAjuste,fPegar,fProdInv,fSerie,fEntrega,ingresarBtn,recalcBtn,ingresarImp,recalcImp,invResumen,transito,renderPas,pasGo,indEtapa,indPdf,indDesbloq,indVolver,indRowReset,indTcPagos,ctSet,ctAbrirMayor,fAsiento,fPlanCta,ctExcelInf,planAbrir,fEmp,fPlanilla,fLineaPlan,fPagoPlan,planDesPagar,planEliminar,fPrepago,contaTab,ctAbrir,ctFiltro,ctExcel,fCuenta,fMov,fTransf,pasStatsList:()=>pasStats().prox,fPas,fCuota,pasCard,renderConta,contaYear,contaExcel,contaCard,actaCompartir,actaDescargar,limpiarActas,vsFacturar,vsCorregir,vsActa,vsActaDl,renderInd,indNueva,indOpen,indGuardar,indCopiar,indPago,indQuitarPago,indSeg,indAdd,indDel,renderVs,vsGo,vsNueva,vsQuitar,vsAgregar,vsCancelar,vsGuardar,vsEditar,vsConfirmar,vsCaida,vsReabrir,vsEliminar,vsEntregar,vsAnular,vsCobro,vsQuitarCobro,vsFiltro,vsResumenAnio,vsTot,vsCob,saldoPedido,totalPedido,ESTADOS_PED,ESTADOS_IMP,
+window.GX={embarques,render,go,fImp,fPed,fLin,fPag,fCotEnPed,quitarCot,syncOps,lockOp,setCol,save,fCierre,fProv,fLoc,migrarProv,renderInv,invGo,fJalar,fEntrada,fAjuste,fPegar,fProdInv,fSerie,fEntrega,ingresarBtn,recalcBtn,ingresarImp,recalcImp,invResumen,transito,renderPas,pasGo,indEtapa,indPdf,indLink,indDesbloq,indVolver,indRowReset,indTcPagos,ctSet,ctAbrirMayor,fAsiento,fPlanCta,ctExcelInf,planAbrir,fEmp,fPlanilla,fLineaPlan,fPagoPlan,planDesPagar,planEliminar,fPrepago,contaTab,ctAbrir,ctFiltro,ctExcel,fCuenta,fMov,fTransf,pasStatsList:()=>pasStats().prox,fPas,fCuota,pasCard,renderConta,contaYear,contaExcel,contaCard,actaCompartir,actaDescargar,limpiarActas,vsFacturar,vsCorregir,vsActa,vsActaDl,renderInd,indNueva,indOpen,indGuardar,indCopiar,indPago,indQuitarPago,indSeg,indAdd,indDel,renderVs,vsGo,vsNueva,vsQuitar,vsAgregar,vsCancelar,vsGuardar,vsEditar,vsConfirmar,vsCaida,vsReabrir,vsEliminar,vsEntregar,vsAnular,vsCobro,vsQuitarCobro,vsFiltro,vsResumenAnio,vsTot,vsCob,saldoPedido,totalPedido,ESTADOS_PED,ESTADOS_IMP,
   get DB(){return DB},COLS:COLS_GX,KEYS};
 try{migrarProv()}catch(e){console.error(e)}
 try{limpiarActas()}catch(e){console.error(e)}
