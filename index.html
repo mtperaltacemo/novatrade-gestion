@@ -1656,7 +1656,7 @@ document.addEventListener('click',e=>{
     try{navigator.clipboard&&navigator.clipboard.writeText(n).catch(()=>{})}catch(_){}
     toast('Número '+n+' copiado: péguelo en la página de la naviera');window.open(url,'_blank','noopener')}
   else if(g==='opWa'){const c=clients.find(x=>x.id===OP.clienteId),msg=opMsg(),ph=c&&normPhone(c.telefono);window.open(ph?waLink(c.telefono,msg):'https://wa.me/?text='+encodeURIComponent(msg),'_blank','noopener')}
-  else if(g==='opQuote'){const q=qCache.find(x=>x.id===OP.quoteId);if(q)adopt(q,false)}
+  else if(g==='opQuote'){const q=qCache.find(x=>x.id===OP.quoteId);if(q){if(q.tipoCot&&window.GX)GX.indOpen(q.id,false);else adopt(q,false)}}
   else if(g==='askOpDel'){opDelArm=true;renderOpLists()}
   else if(g==='noOpDel'){opDelArm=false;renderOpLists()}
   else if(g==='opDel'){try{if(OP.codigo&&typeof cloudUser!=='undefined'&&cloudUser&&window.NTCloud)NTCloud.put(CP+'seguimiento',OP.codigo,{activo:false,upd:Date.now()}).catch(()=>{})}catch(_){}ops=ops.filter(x=>x.id!==OP.id);saveOps();addTomb('ops',OP.id);OP=null;toast('Operación eliminada');setView('track')}
@@ -2416,6 +2416,9 @@ function fPed(id,impId){
 function addCotAPed(qid,pid){
   const q=quoteOf(qid),p=byId(DB.purchases,pid);if(!q||!p)return;
   if(DB.purchaseLines.some(l=>l.purchaseId===pid&&l.quoteId===qid))return;
+  if(q.ind&&q.ind.prods){const I=q.ind,base=I.prods.reduce((t,x)=>t+num(x.qty)*num(x.fob),0),og=I.precioModo==='exw'?num(I.gastosOrigen):0;
+    I.prods.filter(x=>(x.desc||'').trim()).forEach(x=>{const val=num(x.qty)*num(x.fob),fu=num(x.qty)>0?(val+(base>0?og*val/base:0))/num(x.qty):0;
+      DB.purchaseLines.push({id:uid(),purchaseId:pid,quoteId:qid,producto:x.desc,qty:String(num(x.qty)),fob:String(Math.round(fu*10000)/10000),gaPct:String(x.ga||''),ivaPct:String(x.iva||''),partida:x.partida||'',destino:'cliente',cliente:q.cliente||''})});return}
   (q.prods||[]).filter(x=>(x.desc||'').trim()).forEach(x=>DB.purchaseLines.push({id:uid(),purchaseId:pid,quoteId:qid,producto:x.desc,qty:String(num(x.qty)),fob:String(num(x.exw)),destino:'cliente',cliente:q.cliente||''}))}
 function fCotEnPed(pid){
   const ya=new Set(DB.purchaseLines.filter(l=>l.purchaseId===pid).map(l=>l.quoteId));
@@ -2657,11 +2660,11 @@ document.addEventListener('change',e=>{const t=e.target;if(!VSD||!t.closest||!t.
 
 /* ================= IMPORTACIÓN INDIVIDUAL Y URGENTE (AÉREA) ================= */
 let IND=null;
-const IND_L={merc:'Mercadería',origen:'Gastos en origen hasta el FOB',giro:'Comisión por giro al exterior',flete:'Flete internacional',manejo:'Gastos logísticos',recojo:'Recojo en origen (EXW)',seguro:'Seguro',ga:'Gravamen aduanero',ice:'ICE',iva:'IVA de importación',sistAd:'Uso sistema aduana',agencia:'Agencia despachante',carpeta:'Costo carpeta',despacho:'Gastos de despacho',otrosAg:'Otros gastos de agencia',transp:'Transporte local (entrega a domicilio)',almac:'Almacenaje',otros:'Otros gastos',com:'Comisión Novatrade'};
+const IND_L={merc:'Mercadería',origen:'Gastos en origen hasta el FOB',giro:'Comisión por giro al exterior',flete:'Transporte marítimo',tint:'Transporte terrestre – tramo internacional',tnac:'Transporte terrestre – tramo nacional',manejo:'Gastos logísticos',recojo:'Recojo en origen (EXW)',seguro:'Seguro',ga:'Gravamen aduanero',ice:'ICE',iva:'IVA de importación',sistAd:'Uso sistema aduana',agencia:'Agencia despachante',carpeta:'Costo carpeta',despacho:'Gastos de despacho',otrosAg:'Otros gastos de agencia',transp:'Transporte local (entrega a domicilio)',almac:'Almacenaje',otros:'Otros gastos',com:'Comisión Novatrade'};
 const indProd=()=>({desc:'',qty:'',fob:'',partida:'',ga:'',iva:'14,94',cbm:'',ice:false,iceModo:'pct',iceVal:''});
 function indBlank(t){return{v2:true,tipo:t,numero:'',fecha:TODAY(),cliente:'',tc:'',tcOf:'',proveedor:'',comprobante:'Factura',peso:'',bultos:'',cbmModo:'total',cbm:'',
   precioModo:'fob',gastosOrigen:'',prods:[indProd()],
-  fletePaga:'novatrade',fleteUsd:'',fletePond:'100',seguroPaga:'novatrade',seguroModo:'con',seguroTipo:'pct',seguroVal:'1',seguroUsd:'',seguroPond:'100',
+  fletePaga:'novatrade',fleteUsd:'',fletePond:'100',tIntPaga:'novatrade',tIntUsd:'',tIntPond:'100',tNacPaga:'novatrade',tNacUsd:'',seguroPaga:'novatrade',seguroModo:'con',seguroTipo:'pct',seguroVal:'1',seguroUsd:'',seguroPond:'100',
   logPaga:'novatrade',manejoUsd:'',recojo:false,recojoUsd:'',logPond:'100',
   paq:[{qty:'1',L:'',A:'',H:'',kg:''}],tarifaKg:'',
   giroPct:'3',agencia:'',carpeta:'',despacho:'',otrosAg:'',sistAd:'100',transpLocal:'',almacen:'',otros:'',comModo:'pct',comVal:'',margenModo:'pct',margenVal:'',tcCosto:'',tcRow:{},bsRow:{},vista:'ambas'}}
@@ -2687,11 +2690,12 @@ function indCalc(d){
   if(urg){real=d.paq.reduce((x,p)=>x+n(p.qty)*n(p.kg),0);pvol=d.paq.reduce((x,p)=>x+n(p.qty)*n(p.L)*n(p.A)*n(p.H)/5000,0);fact=Math.max(real,pvol);fleteV=fact*n(d.tarifaKg);recojoV=d.recojo?n(d.recojoUsd):0}
   const manejoV=n(d.manejoUsd),fN=d.fletePaga!=='cliente',lN=d.logPaga!=='cliente';
   const flete=fN?fleteV:0,manejo=lN?manejoV:0,recojo=lN?recojoV:0,fCif=fleteV*pd('fletePond',1),lCif=(manejoV+recojoV)*pd('logPond',1);
+  const tiV=urg?0:n(d.tIntUsd),tnV=urg?0:n(d.tNacUsd),tint=d.tIntPaga!=='cliente'?tiV:0,tnac=d.tNacPaga!=='cliente'?tnV:0,tiCif=tiV*pd('tIntPond',1);
   let seguro=0,sCif=0,segSin=false;
   if(d.seguroPaga==='cliente')sCif=n(d.seguroUsd)*pd('seguroPond',1);
   else if(d.seguroModo==='sin'){segSin=true;sCif=FOB*0.02}
   else{seguro=d.seguroTipo==='fijo'?n(d.seguroVal):FOB*n(d.seguroVal)/100;sCif=seguro*pd('seguroPond',1)}
-  const CIF=FOB+fCif+sCif+lCif,add=CIF-FOB;
+  const CIF=FOB+fCif+tiCif+sCif+lCif,add=CIF-FOB;
   const cbms=pv.map(x=>n(x.p.cbm)),sc=cbms.reduce((a,b)=>a+b,0),byCbm=d.cbmModo==='item'&&!urg&&sc>0;
   let ga=0,ice=0,iva=0;
   const pr=pv.map((x,i)=>{const fobI=base>0?x.val+og*x.val/base:0,sh=byCbm?cbms[i]/sc:(FOB>0?fobI/FOB:0),cifI=fobI+add*sh,gp=n(x.p.ga),vp=(x.p.iva===undefined||x.p.iva==='')?14.94:n(x.p.iva);
@@ -2701,15 +2705,15 @@ function indCalc(d){
   if(CIF<3001)agAuto=minAg;else{let r=0.004;for(const e of ESCALA){if(CIF>=e[0]&&CIF<=e[1]){r=e[2];break}}agAuto=Math.max(minAg,r*cifBs)}
   agAuto=rd(agAuto,0);const almAuto=rd(cifBs*0.0067,0);
   const agBs=String(d.agencia==null?'':d.agencia).trim()===''?agAuto:n(d.agencia),alBs=String(d.almacen==null?'':d.almacen).trim()===''?almAuto:n(d.almacen);
-  const bsU=x=>tc>0?n(x)/tc:0,giro=(base+og+flete+manejo+recojo)*n(d.giroPct)/100;
-  const R={merc:base,origen:og,giro,flete,manejo,recojo,seguro,ga,ice,iva,sistAd:bsU(d.sistAd),agencia:bsU(agBs),carpeta:bsU(d.carpeta),despacho:bsU(d.despacho),otrosAg:bsU(d.otrosAg),transp:bsU(d.transpLocal),almac:bsU(alBs),otros:bsU(d.otros)};
+  const bsU=x=>tc>0?n(x)/tc:0,giro=(base+og+flete+tint+manejo+recojo)*n(d.giroPct)/100;
+  const R={merc:base,origen:og,giro,flete,tint,tnac,manejo,recojo,seguro,ga,ice,iva,sistAd:bsU(d.sistAd),agencia:bsU(agBs),carpeta:bsU(d.carpeta),despacho:bsU(d.despacho),otrosAg:bsU(d.otrosAg),transp:bsU(d.transpLocal),almac:bsU(alBs),otros:bsU(d.otros)};
   const sub=Object.values(R).reduce((x,y)=>x+y,0),com=d.comModo==='usd'?n(d.comVal):FOB*n(d.comVal)/100;R.com=com;const total=sub+com;
   const trw=d.tcRow||{},bsw=d.bsRow||{};
   const rows=Object.keys(IND_L).filter(q=>q==='merc'||R[q]>0.0004||(q==='seguro'&&segSin)).map(q=>{const usd=R[q],t0=n(trw[q]),has=bsw[q]!==undefined&&String(bsw[q]).trim()!=='',bs=has?n(bsw[q]):usd*(t0||tc);
     return{k:q,l:q==='flete'&&urg?'Flete aéreo':(q==='merc'?(exw?'Mercadería (EXW)':'Mercadería (FOB)'):IND_L[q]),usd,tcE:usd>0?bs/usd:(t0||tc),bs,ov:has||t0>0}});
   const rb=q=>{const r=rows.find(x=>x.k===q);return r?r.bs:0},totalBs=rows.reduce((x,r)=>x+r.bs,0);
   /* rentabilidad interna (Bs): costos reales con el T/C con el que se compran los dólares */
-  const tcC=n(d.tcCosto)||tc,cMerc=(R.merc+R.origen)*tcC,cEnv=(R.giro+R.flete+R.manejo+R.recojo+R.seguro)*tcC,cAdu=(R.ga+R.ice+R.sistAd)*tc,
+  const tcC=n(d.tcCosto)||tc,cMerc=(R.merc+R.origen)*tcC,cEnv=(R.giro+R.flete+R.tint+R.tnac+R.manejo+R.recojo+R.seguro)*tcC,cAdu=(R.ga+R.ice+R.sistAd)*tc,
     cGas=(R.agencia+R.carpeta+R.despacho+R.otrosAg+R.transp+R.almac+R.otros)*tc,ivaB=R.iva*tc,costoCaja=cMerc+cEnv+cAdu+cGas+ivaB;
   const T=totalBs,fac=d.comprobante!=='Recibo',pI=fac?0.13:0,pT=0.03,den=1-pI-pT;
   const deb=T*pI,itx=T*pT,cred=fac?ivaB:0,costoNeto=costoCaja-cred,util=T-deb-itx-costoNeto,ivaPag=Math.max(0,deb-cred),fav=Math.max(0,cred-deb),caja=T-costoCaja-ivaPag-itx;
@@ -2748,7 +2752,10 @@ function renderInd(){
   const segBlk=d.seguroPaga==='cliente'?f('seguroUsd','Valor del seguro (USD, para CIF)')+f('seguroPond','% del seguro que entra al CIF')
     :sk('seguroModo','Seguro contratado por Novatrade',[['con','Con seguro'],['sin','Sin seguro']],{full:1})+(d.seguroModo==='sin'?hintDiv('','Sin costo en el detalle. Para el CIF y los impuestos se toma el 2% del FOB total, completo.')
       :sk('seguroTipo','Se calcula como',[['pct','Porcentaje del FOB total'],['fijo','Valor fijo (USD)']])+f('seguroVal',d.seguroTipo==='fijo'?'Seguro (USD)':'Seguro (% del FOB)')+f('seguroPond','% del seguro que entra al CIF',{full:1}));
-  root.innerHTML=`<button class="back" type="button" onclick="setView('saved')">← Cotizaciones</button>
+  const oo=d.id?opByQuote(d.id):null,cur=oo?oo.etapa:null;
+  const est=d.id?`<div class="card"><h2>Estado de la cotización</h2><div class="chips">${[['enviada','Enviada'],['confirmada','Confirmada'],['cancelada','Caída / perdida']].map(([k,l])=>`<button class="chip" type="button" onclick="GX.indEtapa('${k}')" aria-pressed="${cur===k}">${l}</button>`).join('')}</div><p class="hint" style="margin:10px 0 0">${oo?'Estado actual: <b>'+E(ETL[cur]||cur)+'</b>.':'Sin seguimiento todavía. Toque una etapa para iniciarlo.'}</p><div class="row" style="margin-top:10px"><button class="btn sm" type="button" onclick="GX.indSeg()">Abrir seguimiento completo</button></div></div>`
+    :`<div class="card"><p class="hint" style="margin:0">Guarde la cotización para darle seguimiento y poder agregarla a un pedido de Importaciones.</p></div>`;
+  root.innerHTML=`<button class="back" type="button" onclick="setView('saved')">← Cotizaciones</button>${est}
   <div class="card"><h2>${urg?'Importación urgente (aérea)':'Importación individual'} ${d.numero?'· '+E(d.numero):'· nueva'}</h2><div class="grid">
    ${f('cliente','Cliente',{full:1,txt:1,list:'indCl'})}<datalist id="indCl">${cl.map(x=>`<option value="${E(x)}">`).join('')}</datalist>
    ${f('fecha','Fecha',{t:'date'})}${f('tc','T/C de la cotización (Bs por USD)',{ph:'12,08'})}
@@ -2765,7 +2772,10 @@ function renderInd(){
    <button class="btn sm" style="margin-top:8px" type="button" onclick="GX.indAdd('paq')">+ Bulto</button><div class="hint" id="indAir" style="margin:10px 0"></div>
    <div class="grid">${f('tarifaKg','Tarifa del flete (USD por kg cobrable)',{full:1})}</div></div>`:''}
   <div class="card"><h2>Transporte internacional</h2><p class="hint" style="margin:0 0 8px">Para cada gasto indica quién lo paga. Aunque lo pague el cliente, registra el valor: se usa para el CIF y los impuestos. El «% al CIF» es la parte del valor que se toma para el CIF.</p>
-   <div class="grid"><h4 class="sec">Flete</h4>${sk('fletePaga','Flete',pg,{full:1})}${fleteBlk}${f('fletePond','% del flete que entra al CIF',{full:1})}
+   <div class="grid">${urg?`<h4 class="sec">Flete aéreo</h4>${sk('fletePaga','Flete',pg,{full:1})}${fleteBlk}${f('fletePond','% del flete que entra al CIF',{full:1})}`
+   :`<h4 class="sec">Transporte marítimo</h4>${sk('fletePaga','Transporte marítimo',pg,{full:1})}${f('fleteUsd',d.fletePaga==='cliente'?'Valor del transporte marítimo (USD, para CIF)':'Transporte marítimo (USD)',{full:1})}${f('fletePond','% que entra al CIF',{full:1})}
+   <h4 class="sec">Transporte terrestre · tramo internacional</h4>${sk('tIntPaga','Tramo internacional',pg,{full:1})}${f('tIntUsd',d.tIntPaga==='cliente'?'Valor del tramo internacional (USD, para CIF)':'Tramo internacional (USD)',{full:1})}${f('tIntPond','% que entra al CIF',{full:1})}
+   <h4 class="sec">Transporte terrestre · tramo nacional</h4>${sk('tNacPaga','Tramo nacional',[['novatrade','Lo paga Novatrade (se cobra al cliente)'],['cliente','Lo paga el cliente']],{full:1})}${f('tNacUsd','Tramo nacional (USD)',{full:1})}${hintDiv('','El tramo nacional nunca entra al CIF: solo es costo si lo paga Novatrade.')}`}
    <h4 class="sec">Seguro</h4>${sk('seguroPaga','Seguro',pg,{full:1})}${segBlk}
    <h4 class="sec">Gastos logísticos</h4>${sk('logPaga','Gastos logísticos',pg,{full:1})}${f('manejoUsd','Gastos logísticos (USD)',{full:1})}
    ${urg?`<label class="chk full"><input type="checkbox" data-ind="recojo" ${d.recojo?'checked':''}> Incluir recojo en origen (EXW)</label>${d.recojo?f('recojoUsd','Costo del recojo (USD)',{full:1}):''}`:''}${f('logPond','% de los gastos logísticos que entra al CIF',{full:1})}</div></div>
@@ -2779,7 +2789,7 @@ function renderInd(){
    <p class="hint" style="margin:6px 0 8px">Cada línea usa el T/C de la cotización. Puede poner otro T/C en una línea (por ejemplo el del pago al proveedor o del flete) o escribir directamente el monto en Bs si agrupa varios T/C. Con ↺ vuelve al cálculo.</p><div id="indRes"></div></div>
   <div class="card"><h2>Rentabilidad interna (después de facturar)</h2><p class="hint" style="margin:0 0 8px">Solo para ti: no se muestra al cliente. Descuenta el IVA débito y el IT, y el IVA de importación se recupera como crédito fiscal.</p>
    <div class="grid">${f('tcCosto','T/C real con el que compro los dólares (vacío = el de la cotización)',{full:1})}${sk('margenModo','Margen mínimo que quiero ganar',[['pct','Porcentaje del precio facturado'],['bs','Monto fijo en Bs'],['usd','Monto fijo en USD']],{full:1})}${f('margenVal','Margen mínimo',{full:1})}</div><div id="indFac" style="margin-top:10px"></div></div>
-  <div class="row" style="flex-wrap:wrap"><button class="btn pri" type="button" onclick="GX.indGuardar()">Guardar cotización</button><button class="btn" type="button" onclick="GX.indCopiar()">Copiar texto para el cliente</button>${q?'<button class="btn" type="button" onclick="GX.indSeg()">Ver seguimiento</button>':''}</div>
+  <div class="row" style="flex-wrap:wrap"><button class="btn pri" type="button" onclick="GX.indGuardar()">Guardar cotización</button><button class="btn" type="button" onclick="GX.indCopiar()">Copiar texto para el cliente</button><button class="btn" type="button" onclick="GX.indPdf(false)">Descargar PDF</button><button class="btn" type="button" onclick="GX.indPdf(true)">Compartir PDF</button>${q?'<button class="btn" type="button" onclick="GX.indSeg()">Ver seguimiento</button>':''}</div>
   ${q?`<div class="card"><h2>Cobros por concepto</h2><div id="indCob"></div></div>`:''}`;
   indRecalc();indCobros()}
 function indRecalc(){
@@ -2805,6 +2815,56 @@ function indRecalc(){
      <p class="hint" style="margin:6px 0 0">Precio mínimo para no perder: Bs ${N(F.equil)}${F.Tmin!=null?` · para tu margen mínimo: <b>Bs ${N(F.Tmin)}</b> → comisión de Novatrade de al menos USD ${N(F.comMinUsd)} (${N(F.comMinPct,2)}% del FOB)`:''}.</p>`}
   else if(fb)fb.innerHTML='<p class="hint">Escribe el T/C para ver el análisis.</p>'}
 async function indDesbloq(k){if(!IND)return;if(!(await gxPin('Para modificar este valor calculado a mano ingrese la clave.')))return;const c=indCalc(IND);IND[k]=String(Math.round(k==='agencia'?c.agAuto:c.almAuto));renderInd()}
+function indEtapa(e){
+  if(!IND||!IND.id){toastX('Guarde la cotización primero');return}
+  const o=ensureOp(IND.id);if(!o)return;
+  if(o.etapa!==e){o.etapa=e;o.hist=(o.hist||[]).concat([{etapa:e,ts:Date.now(),nota:''}]);o.upd=Date.now();
+    if(e!=='enviada'){const c=clients.find(x=>x.id===o.clienteId);if(c&&c.estado!=='ganado'){c.estado='ganado';c.actualizado=Date.now();saveClients()}}
+    saveOps();cloudPushSoon();toastX('Estado: '+ETL[e])}
+  renderInd()}
+async function indPdfBlob(){
+  if(!(await ensureJsPdf()))throw new Error('no se cargó la librería de PDF (falta jspdf.umd.min.js junto a index.html)');
+  const d=IND,c=indCalc(d),{jsPDF}=window.jspdf,doc=new jsPDF({unit:'mm',format:'a4'});if(!doc.autoTable)throw new Error('falta jspdf.plugin.autotable.min.js junto a index.html');
+  const W=210,M=16,NAVY=[28,53,86],BLUE=[43,127,196],GRAY=[95,108,124],urg=d.tipo==='urgente',o=d.id?opByQuote(d.id):null,cb=((o&&o.cobros)||[]);
+  const lh=24,lw=lh*LOGO_W/LOGO_H;doc.addImage(LOGO,'PNG',M,12,lw,lh);
+  doc.setFont('helvetica','bold');doc.setFontSize(18);doc.setTextColor(...NAVY);doc.text('COTIZACIÓN DE IMPORTACIÓN',W-M,20,{align:'right'});
+  doc.setFontSize(10);doc.setFont('helvetica','normal');doc.setTextColor(...GRAY);
+  doc.text((urg?'Envío urgente (aéreo)':'Importación individual')+' · N° '+(d.numero||'—'),W-M,27,{align:'right'});doc.text('Fecha: '+FD(d.fecha),W-M,32,{align:'right'});
+  doc.text('T/C de la cotización: Bs '+N(c.tc,2)+' por USD',W-M,37,{align:'right'});
+  doc.setDrawColor(...BLUE);doc.setLineWidth(.7);doc.line(M,41,W-M,41);
+  let y=48;doc.setFontSize(10);doc.setTextColor(...NAVY);doc.setFont('helvetica','bold');doc.text('Cliente',M,y);doc.setFont('helvetica','normal');doc.setTextColor(30,40,55);doc.text(d.cliente||'—',M+18,y);
+  const pr=d.prods.filter(p=>p.desc&&num(p.qty)>0);
+  doc.autoTable({startY:y+6,margin:{left:M,right:M,bottom:24},theme:'plain',head:[['Ítem','Descripción','Cant.']],body:pr.map((p,i)=>[i+1,p.desc,N(num(p.qty),num(p.qty)%1?2:0)]),
+    styles:{font:'helvetica',fontSize:9.5,cellPadding:2.4,textColor:[30,40,55],lineColor:[222,229,237],lineWidth:{bottom:.2}},headStyles:{fillColor:NAVY,textColor:255,fontStyle:'bold',lineWidth:0},
+    columnStyles:{0:{cellWidth:12,halign:'center'},2:{cellWidth:24,halign:'right'}},didParseCell:x=>{if(x.section==='head'&&x.column.index===2)x.cell.styles.halign='right'}});
+  if(urg){y=doc.lastAutoTable.finalY+5;doc.setFontSize(9);doc.setTextColor(...GRAY);doc.text('Envío aéreo: '+N(c.fact)+' kg cobrables · '+N(c.bultos,0)+' bulto(s)',M,y);doc.lastAutoTable.finalY=y}
+  const body=[],pagUsd=k=>cb.filter(x=>x.concepto===k&&x.moneda==='USD').reduce((t,x)=>t+num(x.monto),0);let totPagUsd=0,totPagBs=0;
+  c.rows.forEach(r=>{const ps=cb.filter(x=>x.concepto===r.k&&x.moneda==='USD');
+    body.push({cells:[r.l,N(r.usd),'','',''],main:1});
+    ps.forEach(x=>{const bsx=num(x.monto)*num(x.tc);totPagUsd+=num(x.monto);totPagBs+=bsx;body.push({cells:['    Pago recibido','USD '+N(num(x.monto)),FD(x.fecha),N(num(x.tc),2),N(bsx)],main:0})})});
+  const gen=cb.filter(x=>!x.concepto).reduce((t,x)=>t+(x.moneda==='USD'?num(x.monto)*num(x.tc):num(x.monto)),0);
+  doc.autoTable({startY:doc.lastAutoTable.finalY+8,margin:{left:M,right:M,bottom:24},theme:'plain',head:[['Concepto','Valor (USD)','Fecha de pago','T/C del pago','Pagado en Bs']],body:body.map(b=>b.cells),
+    styles:{font:'helvetica',fontSize:9,cellPadding:2.2,textColor:[30,40,55],lineColor:[222,229,237],lineWidth:{bottom:.2}},headStyles:{fillColor:NAVY,textColor:255,fontStyle:'bold',lineWidth:0},
+    columnStyles:{0:{cellWidth:'auto'},1:{cellWidth:28,halign:'right'},2:{cellWidth:28,halign:'center'},3:{cellWidth:24,halign:'right'},4:{cellWidth:30,halign:'right'}},
+    didParseCell:x=>{if(x.section==='head'&&x.column.index>=1)x.cell.styles.halign=x.column.index===2?'center':'right';
+      if(x.section==='body'){const b=body[x.row.index];if(b&&!b.main){x.cell.styles.fontStyle='italic';x.cell.styles.textColor=[43,127,196]}else if(b){x.cell.styles.fontStyle='bold'}}}});
+  y=doc.lastAutoTable.finalY+7;const need=h=>{if(y+h>272){doc.addPage();y=20}};need(34);
+  doc.setFont('helvetica','bold');doc.setFontSize(12);doc.setTextColor(...NAVY);doc.text('TOTAL',W-M-70,y);doc.text('USD '+N(c.total),W-M,y,{align:'right'});y+=6;
+  doc.setFont('helvetica','normal');doc.setFontSize(9.5);doc.setTextColor(50,62,78);
+  if(totPagUsd>0){doc.text('Pagado a la fecha',W-M-70,y);doc.text('USD '+N(totPagUsd)+'  =  Bs '+N(totPagBs),W-M,y,{align:'right'});y+=5.5;
+    doc.text('Saldo pendiente',W-M-70,y);doc.text('USD '+N(Math.max(0,c.total-totPagUsd)),W-M,y,{align:'right'});y+=5.5}
+  if(gen>0){doc.text('Otros pagos recibidos sin concepto: Bs '+N(gen),M,y);y+=5.5}
+  doc.setFontSize(8.5);doc.setTextColor(...GRAY);doc.text(doc.splitTextToSize('Los pagos se registran en Bs al tipo de cambio de la fecha en que se recibe cada pago, para que usted controle cuánto le cuesta su mercadería. Los conceptos sin pago muestran solo el valor en USD.',W-2*M),M,y+2);
+  const n=doc.getNumberOfPages(),contact=[cfg.tel,cfg.mail,cfg.dir].filter(Boolean).join('  ·  ');
+  for(let i=1;i<=n;i++){doc.setPage(i);doc.setDrawColor(215,224,234);doc.setLineWidth(.3);doc.line(M,282,W-M,282);doc.setFontSize(8.5);doc.setTextColor(...GRAY);
+    doc.text(doc.splitTextToSize('NOVATRADE Import & Export'+(contact?'  ·  '+contact:''),W-2*M-30).slice(0,2),M,286.5);doc.text(`Página ${i} de ${n}`,W-M,286.5,{align:'right'})}
+  return doc.output('blob')}
+async function indPdf(share){
+  if(!IND)return;if(!IND.id){toastX('Guarde la cotización primero: así el PDF lleva su número y los pagos');return}
+  try{const blob=await indPdfBlob(),name='Cotizacion-'+(IND.numero||'ind')+'-'+String(IND.cliente||'').replace(/[^\w]+/g,'_').slice(0,30)+'.pdf',file=new File([blob],name,{type:'application/pdf'});
+    if(share&&navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:'Cotización '+(IND.numero||'')});return}catch(e){if(e&&e.name==='AbortError')return}}
+    saveBlob(blob,name);toastX(share?'Este equipo no puede compartir directo: el PDF se descargó':'PDF listo: revise sus descargas')}
+  catch(e){console.error(e);toastX('No se pudo generar el PDF: '+(e&&e.message||e))}}
 function indVolver(k){if(!IND)return;IND[k]='';renderInd()}
 function indRowReset(k){if(!IND)return;delete (IND.tcRow||{})[k];delete (IND.bsRow||{})[k];indRecalc();indCobros()}
 function indTcPagos(){
@@ -2849,7 +2909,7 @@ async function indGuardar(){
   if(d.tipo==='urgente'&&c.fact<=0){toastX('Complete los bultos: peso y medidas');return}
   const numero=d.numero||nextNumber(),id=d.id||('q'+Date.now()),tc=c.tc;
   const R=c.R,bs=x=>x*tc;
-  const rb=c.rb,indRes={prod:rb('merc')+rb('origen'),flete:rb('flete')+rb('manejo')+rb('recojo')+rb('seguro'),ga:rb('ga')+rb('ice')+rb('sistAd'),otros:rb('giro')+rb('agencia')+rb('carpeta')+rb('despacho')+rb('otrosAg')+rb('transp')+rb('almac')+rb('otros'),iva:rb('iva'),neto:c.totalBs-rb('com'),fob:c.FOB,total:c.totalBs};
+  const rb=c.rb,indRes={prod:rb('merc')+rb('origen'),flete:rb('flete')+rb('tint')+rb('tnac')+rb('manejo')+rb('recojo')+rb('seguro'),ga:rb('ga')+rb('ice')+rb('sistAd'),otros:rb('giro')+rb('agencia')+rb('carpeta')+rb('despacho')+rb('otrosAg')+rb('transp')+rb('almac')+rb('otros'),iva:rb('iva'),neto:c.totalBs-rb('com'),fob:c.FOB,total:c.totalBs};
   const ind={...JSON.parse(JSON.stringify(d)),prods:pr};delete ind.id;
   const q={id,numero,cliente:d.cliente.trim(),ts:Date.now(),total:c.totalBs,tipoCot:d.tipo,meta:{...newMeta(),numero,cliente:d.cliente.trim(),fecha:d.fecha},params:{...DEF},
     prods:pr.map(p=>({...blankProd(),desc:p.desc,qty:num(p.qty),exw:num(p.fob)})),ind,indRes,indFac:c.fac};
@@ -3282,7 +3342,7 @@ function fPagoPlan(pid){
    v=>{if(!v.fecha){toastX('Falta la fecha');return false}p.pagada=true;p.fechaPago=v.fecha;p.cuentaId=v.cuentaId||'';ctSyncPlanilla(p);save();renderConta();toastX('Pago registrado')})}
 function planDesPagar(pid){const p=byId(DB.planillas,pid);if(!p)return;gxPin('Para deshacer el pago de la planilla ingrese la clave.').then(ok=>{if(ok){p.pagada=false;p.fechaPago='';p.cuentaId='';ctSyncPlanilla(p);save();renderConta()}})}
 function planEliminar(pid){const p=byId(DB.planillas,pid);if(!p)return;if(!confirm('¿Eliminar la planilla '+p.periodo+'?'))return;gxPin('Para eliminar la planilla ingrese la clave.').then(ok=>{if(ok){p.pagada=false;ctSyncPlanilla(p);del('planillas',pid);save();CT.plan='';renderConta()}})}
-window.GX={render,go,fImp,fPed,fLin,fPag,fCotEnPed,quitarCot,syncOps,lockOp,setCol,save,fCierre,fProv,fLoc,migrarProv,renderInv,invGo,fJalar,fEntrada,fAjuste,fPegar,fProdInv,fSerie,fEntrega,ingresarBtn,recalcBtn,ingresarImp,recalcImp,invResumen,transito,renderPas,pasGo,indDesbloq,indVolver,indRowReset,indTcPagos,ctSet,ctAbrirMayor,fAsiento,fPlanCta,ctExcelInf,planAbrir,fEmp,fPlanilla,fLineaPlan,fPagoPlan,planDesPagar,planEliminar,fPrepago,contaTab,ctAbrir,ctFiltro,ctExcel,fCuenta,fMov,fTransf,pasStatsList:()=>pasStats().prox,fPas,fCuota,pasCard,renderConta,contaYear,contaExcel,contaCard,actaCompartir,actaDescargar,limpiarActas,vsFacturar,vsCorregir,vsActa,vsActaDl,renderInd,indNueva,indOpen,indGuardar,indCopiar,indPago,indQuitarPago,indSeg,indAdd,indDel,renderVs,vsGo,vsNueva,vsQuitar,vsAgregar,vsCancelar,vsGuardar,vsEditar,vsConfirmar,vsCaida,vsReabrir,vsEliminar,vsEntregar,vsAnular,vsCobro,vsQuitarCobro,vsFiltro,vsResumenAnio,vsTot,vsCob,saldoPedido,totalPedido,ESTADOS_PED,ESTADOS_IMP,
+window.GX={render,go,fImp,fPed,fLin,fPag,fCotEnPed,quitarCot,syncOps,lockOp,setCol,save,fCierre,fProv,fLoc,migrarProv,renderInv,invGo,fJalar,fEntrada,fAjuste,fPegar,fProdInv,fSerie,fEntrega,ingresarBtn,recalcBtn,ingresarImp,recalcImp,invResumen,transito,renderPas,pasGo,indEtapa,indPdf,indDesbloq,indVolver,indRowReset,indTcPagos,ctSet,ctAbrirMayor,fAsiento,fPlanCta,ctExcelInf,planAbrir,fEmp,fPlanilla,fLineaPlan,fPagoPlan,planDesPagar,planEliminar,fPrepago,contaTab,ctAbrir,ctFiltro,ctExcel,fCuenta,fMov,fTransf,pasStatsList:()=>pasStats().prox,fPas,fCuota,pasCard,renderConta,contaYear,contaExcel,contaCard,actaCompartir,actaDescargar,limpiarActas,vsFacturar,vsCorregir,vsActa,vsActaDl,renderInd,indNueva,indOpen,indGuardar,indCopiar,indPago,indQuitarPago,indSeg,indAdd,indDel,renderVs,vsGo,vsNueva,vsQuitar,vsAgregar,vsCancelar,vsGuardar,vsEditar,vsConfirmar,vsCaida,vsReabrir,vsEliminar,vsEntregar,vsAnular,vsCobro,vsQuitarCobro,vsFiltro,vsResumenAnio,vsTot,vsCob,saldoPedido,totalPedido,ESTADOS_PED,ESTADOS_IMP,
   get DB(){return DB},COLS:COLS_GX,KEYS};
 try{migrarProv()}catch(e){console.error(e)}
 try{limpiarActas()}catch(e){console.error(e)}
