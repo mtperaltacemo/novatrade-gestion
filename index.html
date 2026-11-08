@@ -2339,14 +2339,17 @@ function fotosUI(bg,fot){bg.addEventListener('change',async e=>{const t=e.target
 function nextActa(){const y=new Date().getFullYear(),re=new RegExp('^AE-'+y+'-(\\d+)$');let max=0;
   const all=[...((typeof ops!=='undefined'?ops:[]).flatMap(o=>o.actas||[])),...DB.stockSales.map(x=>x.acta).filter(Boolean)];
   all.forEach(a=>{const m=re.exec(a.numero||'');if(m)max=Math.max(max,+m[1])});return 'AE-'+y+'-'+String(max+1).padStart(3,'0')}
-function mkActa(o){return{id:uid(),numero:nextActa(),fecha:o.fecha||TODAY(),cliente:o.cliente||'',ref:o.ref||'',items:o.items||[],receptor:o.receptor,ci:o.ci||'',obs:o.obs||'',fotos:(o.fot||[]).filter(Boolean)}}
+function mkActa(o){return{id:uid(),numero:nextActa(),fecha:o.fecha||TODAY(),cliente:o.cliente||'',ref:o.ref||'',items:o.items||[],receptor:o.receptor,entregador:o.entregador||'',ci:o.ci||'',obs:o.obs||'',fotos:(o.fot||[]).filter(Boolean)}}
 function actaPdf(a){
   const {jsPDF}=window.jspdf,doc=new jsPDF({unit:'mm',format:'a4'});let y=18;
   const nueva=h=>{if(y+h>280){doc.addPage();y=18}};
-  doc.setFont('helvetica','bold');doc.setFontSize(16);doc.text('NOVATRADE IMPORTACIONES',14,y);y+=7;
-  doc.setFontSize(13);doc.text('ACTA DE ENTREGA '+a.numero,14,y);y+=9;doc.setFontSize(10);
+  try{const lh=20,lw=lh*LOGO_W/LOGO_H;doc.addImage(LOGO,'PNG',14,y-6,lw,lh)}catch(_){}
+  doc.setFont('helvetica','bold');doc.setFontSize(16);doc.setTextColor(28,53,86);doc.text('ACTA DE ENTREGA',196,y+2,{align:'right'});
+  doc.setFontSize(12);doc.text('N.º '+a.numero,196,y+9,{align:'right'});doc.setTextColor(0,0,0);y+=20;
+  doc.setDrawColor(43,127,196);doc.setLineWidth(.6);doc.line(14,y,196,y);doc.setLineWidth(.2);doc.setDrawColor(0);y+=8;doc.setFontSize(10);
+  if(a.anulada){doc.setFont('helvetica','bold');doc.setFontSize(13);doc.setTextColor(192,57,43);doc.text('ACTA ANULADA',14,y);y+=6;doc.setFontSize(9.5);doc.setFont('helvetica','normal');const t=doc.splitTextToSize('Motivo: '+(a.motivoAnula||'-')+(a.fechaAnula?' · '+FD(a.fechaAnula):''),182);doc.text(t,14,y);y+=t.length*5+3;doc.setTextColor(0,0,0);doc.setFontSize(10)}
   const line=(l,v)=>{doc.setFont('helvetica','bold');doc.text(l,14,y);doc.setFont('helvetica','normal');doc.text(String(v||'-'),50,y);y+=6};
-  line('Fecha:',FD(a.fecha));line('Cliente:',a.cliente);line('Referencia:',a.ref);line('Recibido por:',(a.receptor||'')+(a.ci?'  ·  C.I. '+a.ci:''));
+  line('Fecha:',FD(a.fecha));line('Cliente:',a.cliente);line('Referencia:',a.ref);line('Entregado por:',a.entregador);line('Recibido por:',(a.receptor||'')+(a.ci?'  ·  C.I. '+a.ci:''));
   y+=3;doc.setFont('helvetica','bold');doc.text('Código',14,y);doc.text('Producto entregado',42,y);doc.text('Cant.',196,y,{align:'right'});y+=2;doc.line(14,y,196,y);y+=5;doc.setFont('helvetica','normal');
   (a.items.length?a.items:[{codigo:'',producto:'(ver detalle)',qty:''}]).forEach(it=>{const t=doc.splitTextToSize(String(it.producto||''),135);nueva(t.length*5+2);
     doc.text(String(it.codigo||''),14,y);doc.text(t,42,y);doc.text(it.qty===''?'':N(num(it.qty),num(it.qty)%1?2:0),196,y,{align:'right'});y+=t.length*5+2});
@@ -2356,7 +2359,7 @@ function actaPdf(a){
     let x=14,rowH=0;a.fotos.forEach((f,k)=>{const w0=88,h0=Math.min(f.h*w0/f.w,95),w=Math.min(w0,f.w*h0/f.h);if(k&&k%2===0){y+=rowH+4;x=14;rowH=0}nueva(h0+4);
       doc.addImage(f.d,'JPEG',x,y,w,h0);rowH=Math.max(rowH,h0);x+=94});y+=rowH+4}
   nueva(30);y+=8;doc.setFont('helvetica','normal');doc.setFontSize(9);
-  doc.text('Constancia de entrega generada por Novatrade Importaciones. La mercadería indicada fue entregada y recibida conforme.',14,y);
+  doc.text(a.anulada?'Documento anulado: no tiene validez como constancia de entrega.':'Constancia de entrega generada por Novatrade Importaciones. La mercadería indicada fue entregada y recibida conforme.',14,y);
   return doc}
 async function ensureJsPdf(){if(window.jspdf)return true;
   for(const u of ['jspdf.umd.min.js','https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js']){
@@ -2387,6 +2390,11 @@ async function fEntrega(op,parcial){
   else if(sin.length&&!parcial){toastX('Aún no ingresaron al inventario: '+[...new Set(sin)].join(', ')+'. Use "Entregado parcial" o ingrese primero esa importación.');
     if(!(await gxPin('Faltan productos por ingresar al inventario: '+[...new Set(sin)].join(', ')+'. Ingrese la clave para finalizar la entrega igualmente.')))return null}
   return fEntregaSheet(op,parcial,sin)}
+function actaAnular(op,a,motivo,por){
+  const en=(op.entregas||[]).find(x=>x.acta===a.numero&&!x.anulada);
+  if(en){(en.items||[]).forEach(it=>{const x=byId(DB.invAsig,it.asigId);if(x)x.entregado=Math.max(0,num(x.entregado)-num(it.qty))});en.anulada=true}
+  a.anulada=true;a.motivoAnula=motivo;a.fechaAnula=TODAY();a.porAnula=por||'';a.nFotos=(a.fotos||[]).length;a.fotos=[];
+  save();return !!en}
 function fEntregaSheet(op,parcial,sin){
   return new Promise(res=>{
     const as=DB.invAsig.filter(a=>a.quoteId===op.quoteId&&num(a.qty)-num(a.entregado)>1e-9);
@@ -2396,10 +2404,12 @@ function fEntregaSheet(op,parcial,sin){
     let fot=[null,null];
     const bg=sheet(parcial?'Acta de entrega parcial':'Acta de entrega',
      hintDiv('',as.length?'Confirme lo entregado (descuenta del inventario), quién recibió y adjunte la foto de constancia. La factura se registra después.':'Entrega autorizada sin inventario: se registra solo el acta, sin descontar nada.')+((sin&&sin.length)?hintDiv('','<b>Aún sin ingresar al inventario (no se pueden entregar):</b> '+[...new Set(sin)].map(E).join(', ')):'')+rows+
+     inp('entregador','Entregado por (nombre de quien entrega)',lsGet('nt_entregador','')||'',{full:1,txt:1})+
      inp('receptor','Recibido por (nombre)',op.clienteNombre||'',{full:1,txt:1})+inp('ci','C.I. de quien recibe',"",{full:1})+
      fotoHtml()+inp('obs','Observaciones',"",{full:1})+(parcial?inp('detalle','Detalle de la entrega parcial (obligatorio)',"",{full:1}):'')+
      sec('Comprobante (déjelo en blanco si aún no factura)')+sel('tipoUnico','Comprobante',[['','— Aún sin comprobante —'],'Factura','Recibo'],'')+inp('numero','N.º de factura o recibo',"",{}),
-     v=>{if(!v.receptor){toastX('Escriba quién recibió');return false}
+     v=>{if(!(v.entregador||'').trim()){toastX('Escriba el nombre de quien entrega');return false}
+       if(!v.receptor){toastX('Escriba quién recibió');return false}
        if(v.numero&&!v.tipoUnico){toastX('Elija si el comprobante es factura o recibo');return false}
        if(parcial&&!v.detalle){toastX('Escriba el detalle de la entrega parcial');return false}
        if(!fot.some(Boolean)&&!confirm('No adjuntó foto de constancia. ¿Guardar el acta sin foto?'))return false;
@@ -2411,7 +2421,7 @@ function fEntregaSheet(op,parcial,sin){
        if(as.length&&!parcial&&restante>1e-9&&!confirm('Quedan '+N(restante,0)+' unidad(es) sin entregar. ¿Marcar la entrega como finalizada igualmente?'))return false;
        items.forEach(it=>{const a=byId(DB.invAsig,it.asigId);a.entregado=num(a.entregado)+it.qty});if(items.length)save();
        const q0=quoteOf(op.quoteId),lista=items.length?items:((q0&&q0.prods)||[]).filter(p=>(p.desc||'').trim()).map(p=>({codigo:'',producto:p.desc,qty:p.qty}));
-       const acta=mkActa({cliente:op.clienteNombre,ref:'Cotización '+(op.numero||''),items:lista.map(x=>({codigo:x.codigo,producto:x.producto,qty:x.qty})),receptor:v.receptor,ci:v.ci,obs:[v.detalle,v.obs].filter(Boolean).join(' · '),fot});
+       const acta=mkActa({cliente:op.clienteNombre,ref:'Cotización '+(op.numero||''),items:lista.map(x=>({codigo:x.codigo,producto:x.producto,qty:x.qty})),receptor:v.receptor,entregador:v.entregador.trim(),ci:v.ci,obs:[v.detalle,v.obs].filter(Boolean).join(' · '),fot});lsSet('nt_entregador',v.entregador.trim());
        res({tipo:v.tipoUnico,numero:v.numero||'',items,detalle:v.detalle||'',acta})},null,()=>res(null));
     fotosUI(bg,fot)})}
 function opcionesImp(){return [['','— Sin asignar —'],...[...DB.imports].sort((a,b)=>(b.numero||'').localeCompare(a.numero||'')).map(i=>[i.id,i.numero+(i.contenedor?' · '+i.contenedor:'')])]}
@@ -2635,9 +2645,10 @@ function vsEntregar(id){
   const s=byId(DB.stockSales,id);if(!s)return;let fot=[null,null];
   const bg=sheet('Acta de entrega · '+s.numero,hintDiv('','Confirme lo entregado (descuenta el inventario a costo promedio), quién recibió y adjunte la foto de constancia. La factura o recibo se registra después.')+
     s.items.map(i=>`<div class="full" style="border:1px solid var(--line);border-radius:10px;padding:8px"><b>${E(i.nombre)}</b> <span class="tag">${E(i.codigo||'')}</span><small style="color:var(--muted)"> · saldo ${N(saldoProd(i.pid).q,0)}</small><div class="grid" style="padding:6px 0 0">${inp('q_'+i.pid,'Unidades entregadas',i.qty,{mode:'decimal',full:1})}</div></div>`).join('')+
-    inp('receptor','Recibido por (nombre)',s.cliente,{full:1,txt:1})+inp('ci','C.I. de quien recibe',"",{full:1})+fotoHtml()+inp('obs','Observaciones',"",{full:1})+inp('fecha','Fecha de entrega',TODAY(),{t:'date',full:1})+
+    inp('entregador','Entregado por (nombre de quien entrega)',lsGet('nt_entregador','')||'',{full:1,txt:1})+inp('receptor','Recibido por (nombre)',s.cliente,{full:1,txt:1})+inp('ci','C.I. de quien recibe',"",{full:1})+fotoHtml()+inp('obs','Observaciones',"",{full:1})+inp('fecha','Fecha de entrega',TODAY(),{t:'date',full:1})+
     sec('Comprobante (opcional ahora)')+sel('tipo','Comprobante',['Factura','Recibo'],s.comprobante)+inp('numero','N.º si ya lo tienes',s.docNumero,{}),
-   v=>{if(!v.receptor){toastX('Escriba quién recibió');return false}
+   v=>{if(!(v.entregador||'').trim()){toastX('Escriba el nombre de quien entrega');return false}
+     if(!v.receptor){toastX('Escriba quién recibió');return false}
      const q={};let menos=false;
      for(const i of s.items){const n=num(v['q_'+i.pid]),sd=saldoProd(i.pid).q;
        if(n<=0){toastX('Cantidad inválida en: '+i.nombre);return false}
@@ -2649,7 +2660,7 @@ function vsEntregar(id){
      s.items.forEach(i=>{const cpp=vsCpp(i.pid);i.qty=q[i.pid];i.costo=Math.round(cpp*100)/100;
        DB.invMov.push({id:uid(),productId:i.pid,fecha:v.fecha,tipo:'salida',qty:-i.qty,costo:cpp,doc:'Venta '+s.numero+(v.numero?' · '+v.tipo+' '+v.numero:' · pendiente de facturar'),saleId:s.id,creado:now})});
      if(v.tipo!==s.comprobante){s.comprobante=v.tipo;if(v.tipo==='Factura')s.itOff=false}
-     const acta=mkActa({fecha:v.fecha,cliente:s.cliente,ref:'Venta '+s.numero,items:s.items.map(i=>({codigo:i.codigo,producto:i.nombre,qty:i.qty})),receptor:v.receptor,ci:v.ci,obs:v.obs,fot});
+     const acta=mkActa({fecha:v.fecha,cliente:s.cliente,ref:'Venta '+s.numero,items:s.items.map(i=>({codigo:i.codigo,producto:i.nombre,qty:i.qty})),receptor:v.receptor,entregador:v.entregador.trim(),ci:v.ci,obs:v.obs,fot});lsSet('nt_entregador',v.entregador.trim());
      vsEstado(s,'entregada',{docNumero:(v.numero||'').trim(),fechaEntrega:v.fecha,entregaTs:now,acta});renderVs();toastX(v.numero?'Entrega registrada':'Entrega registrada: pendiente de facturar')});
   fotosUI(bg,fot)}
 function vsFacturar(id){const s=byId(DB.stockSales,id);if(!s)return;
@@ -3381,7 +3392,7 @@ function fPagoPlan(pid){
    v=>{if(!v.fecha){toastX('Falta la fecha');return false}p.pagada=true;p.fechaPago=v.fecha;p.cuentaId=v.cuentaId||'';ctSyncPlanilla(p);save();renderConta();toastX('Pago registrado')})}
 function planDesPagar(pid){const p=byId(DB.planillas,pid);if(!p)return;gxPin('Para deshacer el pago de la planilla ingrese la clave.').then(ok=>{if(ok){p.pagada=false;p.fechaPago='';p.cuentaId='';ctSyncPlanilla(p);save();renderConta()}})}
 function planEliminar(pid){const p=byId(DB.planillas,pid);if(!p)return;if(!confirm('¿Eliminar la planilla '+p.periodo+'?'))return;gxPin('Para eliminar la planilla ingrese la clave.').then(ok=>{if(ok){p.pagada=false;ctSyncPlanilla(p);del('planillas',pid);save();CT.plan='';renderConta()}})}
-window.GX={embarques,render,go,fImp,fPed,fLin,fPag,fCotEnPed,quitarCot,syncOps,lockOp,setCol,save,fCierre,fProv,fLoc,migrarProv,renderInv,invGo,fJalar,fEntrada,fAjuste,fPegar,fProdInv,fSerie,fEntrega,ingresarBtn,recalcBtn,ingresarImp,recalcImp,invResumen,transito,renderPas,pasGo,indEtapa,indPdf,indLink,indDesbloq,indVolver,indRowReset,indTcPagos,ctSet,ctAbrirMayor,fAsiento,fPlanCta,ctExcelInf,planAbrir,fEmp,fPlanilla,fLineaPlan,fPagoPlan,planDesPagar,planEliminar,fPrepago,contaTab,ctAbrir,ctFiltro,ctExcel,fCuenta,fMov,fTransf,pasStatsList:()=>pasStats().prox,fPas,fCuota,pasCard,renderConta,contaYear,contaExcel,contaCard,actaCompartir,actaDescargar,limpiarActas,vsFacturar,vsCorregir,vsActa,vsActaDl,renderInd,indNueva,indOpen,indGuardar,indCopiar,indPago,indQuitarPago,indSeg,indAdd,indDel,renderVs,vsGo,vsNueva,vsQuitar,vsAgregar,vsCancelar,vsGuardar,vsEditar,vsConfirmar,vsCaida,vsReabrir,vsEliminar,vsEntregar,vsAnular,vsCobro,vsQuitarCobro,vsFiltro,vsResumenAnio,vsTot,vsCob,saldoPedido,totalPedido,ESTADOS_PED,ESTADOS_IMP,
+window.GX={actaAnular,embarques,render,go,fImp,fPed,fLin,fPag,fCotEnPed,quitarCot,syncOps,lockOp,setCol,save,fCierre,fProv,fLoc,migrarProv,renderInv,invGo,fJalar,fEntrada,fAjuste,fPegar,fProdInv,fSerie,fEntrega,ingresarBtn,recalcBtn,ingresarImp,recalcImp,invResumen,transito,renderPas,pasGo,indEtapa,indPdf,indLink,indDesbloq,indVolver,indRowReset,indTcPagos,ctSet,ctAbrirMayor,fAsiento,fPlanCta,ctExcelInf,planAbrir,fEmp,fPlanilla,fLineaPlan,fPagoPlan,planDesPagar,planEliminar,fPrepago,contaTab,ctAbrir,ctFiltro,ctExcel,fCuenta,fMov,fTransf,pasStatsList:()=>pasStats().prox,fPas,fCuota,pasCard,renderConta,contaYear,contaExcel,contaCard,actaCompartir,actaDescargar,limpiarActas,vsFacturar,vsCorregir,vsActa,vsActaDl,renderInd,indNueva,indOpen,indGuardar,indCopiar,indPago,indQuitarPago,indSeg,indAdd,indDel,renderVs,vsGo,vsNueva,vsQuitar,vsAgregar,vsCancelar,vsGuardar,vsEditar,vsConfirmar,vsCaida,vsReabrir,vsEliminar,vsEntregar,vsAnular,vsCobro,vsQuitarCobro,vsFiltro,vsResumenAnio,vsTot,vsCob,saldoPedido,totalPedido,ESTADOS_PED,ESTADOS_IMP,
   get DB(){return DB},COLS:COLS_GX,KEYS};
 try{migrarProv()}catch(e){console.error(e)}
 try{limpiarActas()}catch(e){console.error(e)}
@@ -3626,9 +3637,9 @@ function fd(v){const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(v||'');return m?m[3]+'/'+
 function actasBoxFix(){}
 function actasBox(){
   const box=q$('#opActas'),card=q$('#opActaCard');if(!box||!OP)return;
-  const A=OP.actas||[],ent=['entregada','entregap'].includes(OP.etapa),dv=OP.docVenta&&OP.docVenta.numero,pend=ent&&!dv;
+  const A=OP.actas||[],AV=A.filter(x=>!x.anulada),ent=['entregada','entregap'].includes(OP.etapa),dv=OP.docVenta&&OP.docVenta.numero,pend=ent&&!dv;
   card.hidden=!(A.length||ent);
-  box.innerHTML=(A.length?A.map((a,i)=>`<div class="gx2cobro"><div><b>${E(a.numero)}</b> · ${fd(a.fecha)}<small>Recibió: ${E(a.receptor)}${a.ci?' · C.I. '+E(a.ci):''} · ${a.fotosRetiradas?'fotos retiradas (90 días)':(a.fotos||[]).length+' foto(s)'}</small></div><div class="row"><button class="btn sm" data-g2="actadl" data-i="${i}" type="button">Descargar</button><button class="btn sm" data-g2="actapdf" data-i="${i}" type="button">Compartir</button></div></div>`).join(''):'<p class="hint">Aún no hay actas de entrega.</p>')+(A.length?'<p class="hint" style="margin:8px 0 0">Comparte el acta al correo de la empresa: las fotos se borran del sistema a los 90 días y el acta queda sin fotos.</p>':'')+
+  box.innerHTML=(A.length?A.map((a,i)=>`<div class="gx2cobro"><div><b>${E(a.numero)}</b> · ${fd(a.fecha)}<small>${a.entregador?'Entregó: '+E(a.entregador)+' · ':''}Recibió: ${E(a.receptor)}${a.ci?' · C.I. '+E(a.ci):''} · ${a.anulada?'':(a.fotosRetiradas?'fotos retiradas (90 días)':(a.fotos||[]).length+' foto(s)')}</small>${a.anulada?`<small style="color:var(--bad);font-weight:700">ANULADA ${fd(a.fechaAnula)}: ${E(a.motivoAnula||'')}</small>`:''}</div><div class="row"><button class="btn sm" data-g2="actadl" data-i="${i}" type="button">Descargar</button>${a.anulada?'':`<button class="btn sm" data-g2="actapdf" data-i="${i}" type="button">Compartir</button><button class="btn sm ghost danger" data-g2="actadel" data-i="${i}" type="button">Anular</button>`}</div></div>`).join(''):'<p class="hint">Aún no hay actas de entrega.</p>')+(A.length?'<p class="hint" style="margin:8px 0 0">Comparte el acta al correo de la empresa: las fotos se borran del sistema a los 90 días y el acta queda sin fotos.</p>':'')+
    (pend?`<p class="hint" style="margin:10px 0 6px"><span class="tag warn">Entregado, pendiente de facturar</span></p><button class="btn pri sm" data-g2="regdoc" type="button">Registrar factura o recibo</button>`:(dv?`<p class="hint" style="margin:10px 0 6px">${E(OP.docVenta.tipo)} N.º ${E(OP.docVenta.numero)}</p><button class="btn sm" data-g2="fixdoc" type="button">Corregir comprobante (clave)</button>`:''))}
 function embRO(){
   const box=q$('#opEmbRO');if(!box||!OP)return;
@@ -3657,6 +3668,14 @@ document.addEventListener('click',async e=>{
     const r=await askForm({title:'Corregir comprobante',msg:'Deje el número en blanco para quitarlo: la entrega vuelve a quedar pendiente de facturar.',fields:[{k:'tipo',l:'Comprobante',t:'select',o:['Factura','Recibo'],v:(OP.docVenta&&OP.docVenta.tipo)||'Factura'},{k:'numero',l:'N.º de factura o recibo',v:(OP.docVenta&&OP.docVenta.numero)||''}]});
     if(r){const n=r.numero.trim();OP.docVenta=n?{tipo:r.tipo,numero:n,fecha:(OP.docVenta&&OP.docVenta.fecha)||today()}:{tipo:'',numero:'',fecha:''};(OP.entregas||[]).forEach(x=>{x.numero=n;x.tipo=n?r.tipo:''});opCommit();actasBox();toast(n?'Comprobante corregido':'Comprobante quitado: pendiente de facturar')}}
   else if(a==='actadl'){const x=(OP.actas||[])[+b.dataset.i];if(x)GX.actaDescargar(x)}
+  else if(a==='actadel'){const x=(OP.actas||[])[+b.dataset.i];if(!x||x.anulada)return;
+    if(!(await pinOk('Para anular el acta '+x.numero+' ingrese la clave. Lo entregado volverá al inventario.')))return;
+    const r=await askForm({title:'Anular acta '+x.numero,msg:'El acta queda en el historial como ANULADA con su motivo, y las unidades vuelven a estar pendientes de entrega en el inventario.'+((OP.docVenta&&OP.docVenta.numero)?' Esta cotización tiene el comprobante '+OP.docVenta.numero+': corríjalo luego con "Corregir comprobante".':''),fields:[{k:'motivo',l:'Motivo de la anulación',req:1}]});
+    if(!r)return;
+    GX.actaAnular(OP,x,r.motivo.trim(),(typeof cloudUser!=='undefined'&&cloudUser&&cloudUser.email)||'');
+    const act=(OP.actas||[]).filter(z=>!z.anulada);
+    if(['entregada','entregap'].includes(OP.etapa)){const ne=act.length?'entregap':'disponible';if(ne!==OP.etapa){OP.etapa=ne;OP.hist.push({etapa:ne,ts:Date.now(),nota:'Acta '+x.numero+' anulada: '+r.motivo.trim()})}}
+    opCommit();renderOp();toast('Acta anulada')}
   else if(a==='actapdf'){const x=(OP.actas||[])[+b.dataset.i];if(x)GX.actaCompartir(x)}
   else if(a==='regdoc'){const r=await askForm({title:'Registrar factura o recibo',msg:'Número del comprobante emitido por esta entrega.',fields:[{k:'tipo',l:'Comprobante',t:'select',o:['Factura','Recibo'],v:(OP.docVenta&&OP.docVenta.tipo)||'Factura'},{k:'numero',l:'N.º de factura o recibo',req:1}]});
     if(r){OP.docVenta={tipo:r.tipo,numero:r.numero.trim(),fecha:today()};(OP.entregas||[]).forEach(x=>{if(!x.numero){x.numero=r.numero.trim();x.tipo=r.tipo}});opCommit();actasBox();toast('Comprobante registrado')}}
