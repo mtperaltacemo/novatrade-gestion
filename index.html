@@ -1357,13 +1357,13 @@ document.addEventListener('input',e=>{if(e.target.id==='flMsg')flMsgEdited=true}
 const CP='test_';
 try{if(CP){const b=document.getElementById('testBanner');if(b)b.hidden=false}}catch(_){}
 const FB_CFG={apiKey:"AIzaSyA2J3Z4gHQyYYvU8AzSVs9r_L_DG6Ax9AE",authDomain:"crm-novatrade.firebaseapp.com",projectId:"crm-novatrade",storageBucket:"crm-novatrade.firebasestorage.app",messagingSenderId:"944968945401",appId:"1:944968945401:web:c7af94f3b5e478442c9c28"};
-const COLS=['clients','quotes','catalog','ops','imports','purchases','purchaseLines','payments','settings','suppliers','localPurchases','invProducts','invMov','invAsig','stockSales','liabilities','accounts','accMov'];
-let cloudUser=null,cloudRemote={clients:{},quotes:{},catalog:{},ops:{},imports:{},purchases:{},purchaseLines:{},payments:{},settings:{},suppliers:{},localPurchases:{},invProducts:{},invMov:{},invAsig:{},stockSales:{},liabilities:{},accounts:{},accMov:{}},cloudUnsubs=[],cloudT,cloudSeen={},cloudMsg='';
+const COLS=['clients','quotes','catalog','ops','imports','purchases','purchaseLines','payments','settings','suppliers','localPurchases','invProducts','invMov','invAsig','stockSales','liabilities','accounts','accMov','planCuentas','asientos','empleados','planillas'];
+let cloudUser=null,cloudRemote={clients:{},quotes:{},catalog:{},ops:{},imports:{},purchases:{},purchaseLines:{},payments:{},settings:{},suppliers:{},localPurchases:{},invProducts:{},invMov:{},invAsig:{},stockSales:{},liabilities:{},accounts:{},accMov:{},planCuentas:{},asientos:{},empleados:{},planillas:{}},cloudUnsubs=[],cloudT,cloudSeen={},cloudMsg='';
 const strip=o=>JSON.parse(JSON.stringify(o));
 const gxd=c=>window.GX?GX.DB[c]:[];
-const cl_get={clients:()=>clients,quotes:()=>lsGet('nt_quotes',[]),catalog:()=>catalog,ops:()=>ops,imports:()=>gxd('imports'),purchases:()=>gxd('purchases'),purchaseLines:()=>gxd('purchaseLines'),payments:()=>gxd('payments'),settings:()=>gxd('settings'),suppliers:()=>gxd('suppliers'),localPurchases:()=>gxd('localPurchases'),invProducts:()=>gxd('invProducts'),invMov:()=>gxd('invMov'),invAsig:()=>gxd('invAsig'),stockSales:()=>gxd('stockSales'),liabilities:()=>gxd('liabilities'),accounts:()=>gxd('accounts'),accMov:()=>gxd('accMov')};
-const cl_upd={clients:c=>c.actualizado||c.creado||0,quotes:q=>q.ts||0,catalog:p=>p.upd||0,ops:o=>o.upd||0,imports:r=>r.upd||0,purchases:r=>r.upd||0,purchaseLines:r=>r.upd||0,payments:r=>r.upd||0,settings:r=>r.upd||0,suppliers:r=>r.upd||0,localPurchases:r=>r.upd||0,invProducts:r=>r.upd||0,invMov:r=>r.upd||0,invAsig:r=>r.upd||0,stockSales:r=>r.upd||0,liabilities:r=>r.upd||0,accounts:r=>r.upd||0,accMov:r=>r.upd||0};
-const GX_COLS=['imports','purchases','purchaseLines','payments','settings','suppliers','localPurchases','invProducts','invMov','invAsig','stockSales','liabilities','accounts','accMov'];
+const cl_get={clients:()=>clients,quotes:()=>lsGet('nt_quotes',[]),catalog:()=>catalog,ops:()=>ops,imports:()=>gxd('imports'),purchases:()=>gxd('purchases'),purchaseLines:()=>gxd('purchaseLines'),payments:()=>gxd('payments'),settings:()=>gxd('settings'),suppliers:()=>gxd('suppliers'),localPurchases:()=>gxd('localPurchases'),invProducts:()=>gxd('invProducts'),invMov:()=>gxd('invMov'),invAsig:()=>gxd('invAsig'),stockSales:()=>gxd('stockSales'),liabilities:()=>gxd('liabilities'),accounts:()=>gxd('accounts'),accMov:()=>gxd('accMov'),planCuentas:()=>gxd('planCuentas'),asientos:()=>gxd('asientos'),empleados:()=>gxd('empleados'),planillas:()=>gxd('planillas')};
+const cl_upd={clients:c=>c.actualizado||c.creado||0,quotes:q=>q.ts||0,catalog:p=>p.upd||0,ops:o=>o.upd||0,imports:r=>r.upd||0,purchases:r=>r.upd||0,purchaseLines:r=>r.upd||0,payments:r=>r.upd||0,settings:r=>r.upd||0,suppliers:r=>r.upd||0,localPurchases:r=>r.upd||0,invProducts:r=>r.upd||0,invMov:r=>r.upd||0,invAsig:r=>r.upd||0,stockSales:r=>r.upd||0,liabilities:r=>r.upd||0,accounts:r=>r.upd||0,accMov:r=>r.upd||0,planCuentas:r=>r.upd||0,asientos:r=>r.upd||0,empleados:r=>r.upd||0,planillas:r=>r.upd||0};
+const GX_COLS=['imports','purchases','purchaseLines','payments','settings','suppliers','localPurchases','invProducts','invMov','invAsig','stockSales','liabilities','accounts','accMov','planCuentas','asientos','empleados','planillas'];
 function cl_set(col,arr){
   if(col==='clients'){clients=arr;saveClients();updateDatalist()}
   else if(col==='quotes'){lsSet('nt_quotes',arr);loadList()}
@@ -1688,8 +1688,8 @@ document.addEventListener('change',e=>{
 <script>
 /* ===== Módulo Compras e importaciones (Pedidos, Importaciones, Pagos) · integrado al cotizador ===== */
 (function(){
-const COLS_GX=['imports','purchases','purchaseLines','payments','settings','suppliers','localPurchases','invProducts','invMov','invAsig','stockSales','liabilities','accounts','accMov'];
-const KEYS={imports:'nt_imports',purchases:'nt_purchases',purchaseLines:'nt_purchaseLines',payments:'nt_payments',settings:'nt_settings',suppliers:'nt_suppliers',localPurchases:'nt_localPurchases',invProducts:'nt_invProducts',invMov:'nt_invMov',invAsig:'nt_invAsig',stockSales:'nt_stockSales',liabilities:'nt_liabilities',accounts:'nt_accounts',accMov:'nt_accMov'};
+const COLS_GX=['imports','purchases','purchaseLines','payments','settings','suppliers','localPurchases','invProducts','invMov','invAsig','stockSales','liabilities','accounts','accMov','planCuentas','asientos','empleados','planillas'];
+const KEYS={imports:'nt_imports',purchases:'nt_purchases',purchaseLines:'nt_purchaseLines',payments:'nt_payments',settings:'nt_settings',suppliers:'nt_suppliers',localPurchases:'nt_localPurchases',invProducts:'nt_invProducts',invMov:'nt_invMov',invAsig:'nt_invAsig',stockSales:'nt_stockSales',liabilities:'nt_liabilities',accounts:'nt_accounts',accMov:'nt_accMov',planCuentas:'nt_planCuentas',asientos:'nt_asientos',empleados:'nt_empleados',planillas:'nt_planillas'};
 const DB={};
 for(const c of COLS_GX){const v=lsGet(KEYS[c],[]);DB[c]=Array.isArray(v)?v:[]}
 /* instantánea para detectar qué registros cambiaron (y ponerles marca de fecha 'upd' que usa la nube) */
@@ -2783,14 +2783,23 @@ const diasA=f=>Math.round((new Date(f+'T12:00:00')-new Date(TODAY()+'T12:00:00')
 const cuotaEst=c=>c.pagada?'pagada':(c.fecha<TODAY()?'vencida':(diasA(c.fecha)<=7?'proxima':'pendiente'));
 const cuotaTag={pagada:'<span class="tag">Pagada</span>',vencida:'<span class="tag warn">Vencida</span>',proxima:'<span class="tag warn">Vence pronto</span>',pendiente:'<span class="tag">Pendiente</span>'};
 function addMeses(iso,k){const d=new Date(iso+'T12:00:00'),dia=d.getDate();d.setMonth(d.getMonth()+k);if(d.getDate()!==dia)d.setDate(0);return ISO(d)}
-const pasSaldo=l=>(l.cuotas||[]).filter(c=>!c.pagada).reduce((x,c)=>x+num(c.monto),0);
+const capC=c=>c.capital!=null&&c.capital!==''?num(c.capital):num(c.monto);
+const pasSaldo=l=>(l.cuotas||[]).filter(c=>!c.pagada).reduce((x,c)=>x+capC(c),0);
+const pasIntPend=l=>(l.cuotas||[]).filter(c=>!c.pagada).reduce((x,c)=>x+num(c.interes)+num(c.seguro),0);
+const r2=x=>Math.round(x*100)/100;
+function pasPlan(P,tasa,n,paso,primera,cuotaTotal,seguro){
+  const r=num(tasa)/100/(12/paso);let saldo=P,out=[];
+  const base=cuotaTotal>0?Math.max(cuotaTotal-seguro,0):(r>0?P*r/(1-Math.pow(1+r,-n)):P/n);
+  for(let k=0;k<n;k++){const it=r>0?r2(saldo*r):0;let cap=k===n-1?saldo:r2(base-it);if(cap>saldo)cap=saldo;if(cap<0)cap=0;saldo=r2(saldo-cap);
+    out.push({id:uid(),n:k+1,fecha:addMeses(primera,k*paso),capital:cap,interes:it,seguro:seguro,monto:r2(cap+it+seguro),pagada:false})}
+  return out}
 function pasStats(){const o={Bs:{saldo:0,venc:0,nv:0},USD:{saldo:0,venc:0,nv:0}},prox=[];
-  DB.liabilities.forEach(l=>{const m=o[l.moneda]||o.Bs;(l.cuotas||[]).forEach(c=>{if(c.pagada)return;m.saldo+=num(c.monto);const e=cuotaEst(c);if(e==='vencida'){m.venc+=num(c.monto);m.nv++}if(e!=='pendiente')prox.push({l,c,e})})});
+  DB.liabilities.forEach(l=>{const m=o[l.moneda]||o.Bs;(l.cuotas||[]).forEach(c=>{if(c.pagada)return;m.saldo+=capC(c);const e=cuotaEst(c);if(e==='vencida'){m.venc+=capC(c);m.nv++}if(e!=='pendiente')prox.push({l,c,e})})});
   return{o,prox:prox.sort((a,b)=>a.c.fecha.localeCompare(b.c.fecha))}}
 function pasCard(){const st=pasStats(),t=(n,l,c)=>`<div><b class="${c}">${n}</b><span>${l}</span></div>`,f=x=>(+x||0).toLocaleString('es-BO',{maximumFractionDigits:0});
   const nV=st.o.Bs.nv+st.o.USD.nv,nP=st.prox.filter(x=>x.e==='proxima').length;
   return `<div class="hc"><div class="hrow"><h2>Pasivos bancarios</h2><button class="hlink" data-g2="pasv" type="button">Ver</button></div>
-   ${DB.liabilities.length?`<div class="hcnt" style="grid-template-columns:repeat(3,1fr)">${t(f(st.o.Bs.saldo),'Bs por pagar','c1')}${t(f(st.o.USD.saldo),'USD por pagar','c4')}${t(nV,'Cuotas vencidas',nV?'c3':'c2')}</div><p class="hint" style="margin:10px 0 0">Vencen en los próximos 7 días: ${nP}. Saldo total de ${DB.liabilities.length} préstamo(s) o línea(s).</p>`:'<p class="hint" style="margin:8px 0 0">Registre préstamos o líneas de crédito con sus cuotas para ver el total y recibir alertas de vencimiento.</p>'}</div>`}
+   ${DB.liabilities.length?`<div class="hcnt" style="grid-template-columns:repeat(3,1fr)">${t(f(st.o.Bs.saldo),'Bs capital adeudado','c1')}${t(f(st.o.USD.saldo),'USD capital adeudado','c4')}${t(nV,'Cuotas vencidas',nV?'c3':'c2')}</div><p class="hint" style="margin:10px 0 0">Vencen en los próximos 7 días: ${nP}. Solo capital (sin intereses ni seguros futuros) de ${DB.liabilities.length} préstamo(s) o línea(s).</p>`:'<p class="hint" style="margin:8px 0 0">Registre préstamos o líneas de crédito con sus cuotas para ver el total y recibir alertas de vencimiento.</p>'}</div>`}
 function renderPas(){
   const root=document.getElementById('view-pasivos');if(!root)return;const l=byId(DB.liabilities,PAS.id);
   if(PAS.mode==='det'&&l)root.innerHTML=pasDet(l);else{PAS.mode='list';root.innerHTML=pasLista()}}
@@ -2798,44 +2807,66 @@ function pasGo(m,id){PAS={mode:m,id:id||null};renderPas();window.scrollTo(0,0)}
 function pasLista(){
   const st=pasStats(),f=x=>N(x),L=[...DB.liabilities].sort((a,b)=>(pasSaldo(b)>0)-(pasSaldo(a)>0)||(a.entidad||'').localeCompare(b.entidad||''));
   return `<div class="row sp"><b style="font-size:17px">Bancos y pasivos</b><button class="btn pri sm" type="button" onclick="GX.fPas()">+ Nuevo</button></div>
-   <div class="card"><div class="kv"><div><span>Por pagar (Bs)</span><b>${f(st.o.Bs.saldo)}</b></div><div><span>Por pagar (USD)</span><b>${f(st.o.USD.saldo)}</b></div><div><span>Vencido (Bs)</span><b>${f(st.o.Bs.venc)}</b></div><div><span>Vencido (USD)</span><b>${f(st.o.USD.venc)}</b></div></div></div>
+   <div class="card"><div class="kv"><div><span>Capital adeudado (Bs)</span><b>${f(st.o.Bs.saldo)}</b></div><div><span>Capital adeudado (USD)</span><b>${f(st.o.USD.saldo)}</b></div><div><span>Vencido (Bs)</span><b>${f(st.o.Bs.venc)}</b></div><div><span>Vencido (USD)</span><b>${f(st.o.USD.venc)}</b></div></div></div>
    ${st.prox.length?`<div class="card"><h2>Cuotas por atender</h2>${st.prox.map(x=>`<button class="item" type="button" onclick="GX.pasGo('det','${x.l.id}')">${cuotaTag[x.e]}<b>${E(x.l.entidad)} · cuota ${x.c.n}</b><small>${FD(x.c.fecha)} · ${x.l.moneda} ${N(num(x.c.monto))}${x.e==='vencida'?' · '+Math.abs(diasA(x.c.fecha))+' día(s) de atraso':' · en '+diasA(x.c.fecha)+' día(s)'}</small></button>`).join('')}</div>`:''}`+
    (L.length?L.map(x=>{const pend=(x.cuotas||[]).filter(c=>!c.pagada),sig=pend.sort((a,b)=>a.fecha.localeCompare(b.fecha))[0];
-     return `<button class="item" type="button" onclick="GX.pasGo('det','${x.id}')"><span class="tag">${E(x.tipo)}</span><b>${E(x.entidad)}${x.descripcion?' · '+E(x.descripcion):''}</b><small>Saldo por pagar ${x.moneda} ${N(pasSaldo(x))} · ${(x.cuotas||[]).filter(c=>c.pagada).length}/${(x.cuotas||[]).length} cuotas pagadas${sig?' · próxima '+FD(sig.fecha):''}</small></button>`}).join(''):'<div class="card empty">Aún no hay préstamos ni líneas de crédito registrados.</div>')}
+     return `<button class="item" type="button" onclick="GX.pasGo('det','${x.id}')"><span class="tag">${E(x.tipo)}</span><b>${E(x.entidad)}${x.descripcion?' · '+E(x.descripcion):''}</b><small>Capital adeudado ${x.moneda} ${N(pasSaldo(x))} · ${(x.cuotas||[]).filter(c=>c.pagada).length}/${(x.cuotas||[]).length} cuotas pagadas${sig?' · próxima '+FD(sig.fecha):''}</small></button>`}).join(''):'<div class="card empty">Aún no hay préstamos ni líneas de crédito registrados.</div>')}
 function pasDet(l){
-  const cu=[...(l.cuotas||[])].sort((a,b)=>a.fecha.localeCompare(b.fecha)),kv=(a,b)=>`<div><span>${a}</span><b>${b}</b></div>`,pag=cu.filter(c=>c.pagada);
+  const cu=[...(l.cuotas||[])].sort((a,b)=>a.fecha.localeCompare(b.fecha)),kv=(a,b)=>`<div><span>${a}</span><b>${b}</b></div>`,pag=cu.filter(c=>c.pagada),M=l.moneda;
   return `<button class="back" type="button" onclick="GX.pasGo('list')">← Bancos y pasivos</button>
   <div class="card"><div class="row sp"><div><span class="tag">${E(l.tipo)}</span><b style="font-size:19px">${E(l.entidad)}</b></div><button class="btn sm" type="button" onclick="GX.fPas('${l.id}')">Editar</button></div>
-   <div class="kv" style="margin-top:12px">${kv('Descripción',E(l.descripcion||'—'))}${kv('Monto original',l.moneda+' '+N(num(l.monto)))}${kv('Tasa anual',l.tasa?N(num(l.tasa))+' %':'—')}${kv('Desembolso',l.fecha?FD(l.fecha):'—')}
-    ${kv('Saldo por pagar',l.moneda+' '+N(pasSaldo(l)))}${kv('Cuotas pagadas',pag.length+' de '+cu.length)}${kv('Total pagado',l.moneda+' '+N(pag.reduce((x,c)=>x+num(c.montoPagado||c.monto),0)))}</div></div>
-  <div class="card"><div class="row sp"><h2 style="margin:0">Cuotas</h2><button class="btn sm" type="button" onclick="GX.fCuota('${l.id}')">+ Cuota</button></div>
-   ${cu.length?`<table style="margin-top:10px"><tr><th>N.º</th><th>Vence</th><th class="n">Monto</th><th>Estado</th></tr>${cu.map(c=>`<tr onclick="GX.fCuota('${l.id}','${c.id}')" style="cursor:pointer"><td>${c.n}</td><td>${FD(c.fecha)}</td><td class="n">${N(num(c.monto))}</td><td>${cuotaTag[cuotaEst(c)]}${c.pagada&&c.fechaPago?'<br><small style="color:var(--muted)">'+FD(c.fechaPago)+'</small>':''}</td></tr>`).join('')}</table><p class="hint" style="margin:8px 0 0">Toca una cuota para registrar su pago o corregirla.</p>`:'<div class="empty">Sin cuotas. Agrégalas con «+ Cuota».</div>'}</div>`}
+   <div class="kv" style="margin-top:12px">${kv('Capital adeudado',M+' '+N(pasSaldo(l)))}${kv('Intereses y seguros por pagar',M+' '+N(pasIntPend(l)))}${kv('Monto desembolsado',M+' '+N(num(l.monto)))}${kv('Tasa anual',l.tasa?N(num(l.tasa))+' %':'—')}
+    ${kv('Seguro',l.seguro==='si'?'Sí'+(num(l.seguroMonto)?' · '+M+' '+N(num(l.seguroMonto))+' por cuota':''):'No')}${kv('Desembolso',l.fecha?FD(l.fecha):'—')}${kv('Cuotas pagadas',pag.length+' de '+cu.length)}${kv('Total pagado',M+' '+N(pag.reduce((x,c)=>x+num(c.montoPagado||c.monto),0)))}</div>
+   ${pasSaldo(l)>0?`<div class="row" style="margin-top:10px"><button class="btn sm" type="button" onclick="GX.fPrepago('${l.id}')">Amortización total (pagar todo)</button></div>`:''}</div>
+  <div class="card"><div class="row sp"><h2 style="margin:0">Plan de cuotas</h2><button class="btn sm" type="button" onclick="GX.fCuota('${l.id}')">+ Cuota</button></div>
+   ${cu.length?`<div style="overflow-x:auto"><table style="margin-top:10px"><tr><th>N.º</th><th>Vence</th><th class="n">Capital</th><th class="n">Interés</th><th class="n">Seguro</th><th class="n">Cuota</th><th>Estado</th></tr>${cu.map(c=>`<tr onclick="GX.fCuota('${l.id}','${c.id}')" style="cursor:pointer"><td>${c.tipo==='Amortización total'?'Total':c.n}</td><td>${FD(c.fecha)}</td><td class="n">${N(capC(c))}</td><td class="n">${N(num(c.interes))}</td><td class="n">${N(num(c.seguro))}</td><td class="n"><b>${N(num(c.monto))}</b></td><td>${cuotaTag[cuotaEst(c)]}${c.pagada&&c.fechaPago?'<br><small style="color:var(--muted)">'+FD(c.fechaPago)+'</small>':''}</td></tr>`).join('')}</table></div><p class="hint" style="margin:8px 0 0">Las cuotas generadas son un estimado: toque cada una para corregir capital, interés y seguro con los montos reales del plan del banco, o para registrar su pago.</p>`:'<div class="empty">Sin cuotas. Agréguelas con «+ Cuota».</div>'}</div>`}
 function fPas(id){
-  const l=id?byId(DB.liabilities,id):{tipo:'Préstamo',moneda:'Bs',fecha:TODAY()};
+  const l=id?byId(DB.liabilities,id):{tipo:'Préstamo',moneda:'Bs',fecha:TODAY(),seguro:'no'};
   const b=sheet(id?'Editar pasivo':'Nuevo préstamo o línea de crédito',
-   inp('entidad','Entidad bancaria',l.entidad,{full:1,txt:1,list:'gxBancoP'})+`<datalist id="gxBancoP">${BANCOS.map(x=>`<option value="${E(x)}">`).join('')}</datalist>`+
-   sel('tipo','Tipo',PAS_TIPOS,l.tipo)+sel('moneda','Moneda',['Bs','USD'],l.moneda)+inp('descripcion','Descripción (opcional)',l.descripcion,{full:1,txt:1})+
-   inp('monto','Monto desembolsado',l.monto,{mode:'decimal'})+inp('tasa','Tasa anual % (opcional)',l.tasa,{mode:'decimal'})+inp('fecha','Fecha de desembolso',l.fecha,{t:'date',full:1})+
-   (id?'':sec('Cuotas (según el plan de pagos del banco)')+inp('nCuotas','Número de cuotas','',{mode:'numeric'})+inp('montoCuota','Monto de cada cuota (capital + interés)','',{mode:'decimal'})+
-     inp('primera','Fecha de la primera cuota','',{t:'date'})+sel('period','Periodicidad',['Mensual','Trimestral','Semestral','Anual'],'Mensual')+hintDiv('','Si el plan tiene cuotas distintas, genera las más parecidas y corrige cada una después.')),
-   conPin(v=>{if(!v.entidad){toastX('Falta la entidad bancaria');return false}if(num(v.monto)<=0){toastX('Falta el monto');return false}
-     if(id){Object.assign(l,{entidad:v.entidad,tipo:v.tipo,moneda:v.moneda,descripcion:v.descripcion,monto:v.monto,tasa:v.tasa,fecha:v.fecha});save();renderPas();toastX('Guardado');return}
-     const n=Math.round(num(v.nCuotas)),paso={Mensual:1,Trimestral:3,Semestral:6,Anual:12}[v.period]||1,cuotas=[];
-     if(n>0){if(num(v.montoCuota)<=0||!v.primera){toastX('Falta el monto o la fecha de la primera cuota');return false}
-       for(let k=0;k<n;k++)cuotas.push({id:uid(),n:k+1,fecha:addMeses(v.primera,k*paso),monto:num(v.montoCuota),pagada:false})}
-     const nl={id:uid(),entidad:v.entidad,tipo:v.tipo,moneda:v.moneda,descripcion:v.descripcion,monto:v.monto,tasa:v.tasa,fecha:v.fecha,cuotas};DB.liabilities.push(nl);save();pasGo('det',nl.id);toastX('Pasivo guardado')},
+   inp('entidad','Entidad bancaria',l.entidad,{full:1,list:'gxBancoP'})+`<datalist id="gxBancoP">${BANCOS.map(x=>`<option value="${E(x)}">`).join('')}</datalist>`+
+   sel('tipo','Tipo',PAS_TIPOS,l.tipo)+sel('moneda','Moneda',['Bs','USD'],l.moneda)+inp('descripcion','Descripción (opcional)',l.descripcion,{full:1})+
+   inp('monto','Capital desembolsado',l.monto,{mode:'decimal'})+inp('tasa','Tasa de interés anual % (opcional)',l.tasa,{mode:'decimal'})+inp('fecha','Fecha de desembolso',l.fecha,{t:'date',full:1})+
+   sel('seguro','¿Lleva seguro (desgravamen u otro)?',[['no','No'],['si','Sí']],l.seguro||'no')+inp('seguroMonto','Seguro por cuota',l.seguroMonto,{mode:'decimal'})+inp('tc','T/C referencial (solo préstamos en USD)',l.tc||'6.96',{mode:'decimal',full:1})+
+   (id?'':sel('cuentaDes','Cuenta que recibió el desembolso (opcional)',[['','— No registrar en cuentas —'],...DB.accounts.map(a=>[a.id,a.nombre+' ('+a.moneda+')'])],'',{full:1})+hintDiv('','Si elige la cuenta, el desembolso queda como ingreso en Contabilidad y como préstamo recibido.'))+
+   (id?'':sec('Plan de cuotas (estimado, usted lo revisa y corrige)')+inp('nCuotas','Número de cuotas','',{mode:'numeric'})+inp('cuotaTotal','Cuota total del banco (opcional)','',{mode:'decimal'})+
+     inp('primera','Fecha de la primera cuota','',{t:'date'})+sel('period','Periodicidad',['Mensual','Trimestral','Semestral','Anual'],'Mensual')+
+     hintDiv('','Si conoce la cuota total del banco, escríbala: separo el seguro, calculo el interés sobre el saldo con la tasa y el resto es capital. Si no la conoce, calculo una cuota fija (sistema francés). Después puede corregir cada cuota.')),
+   conPin(v=>{if(!v.entidad){toastX('Falta la entidad bancaria');return false}if(num(v.monto)<=0){toastX('Falta el capital desembolsado');return false}
+     if(id){Object.assign(l,{entidad:v.entidad,tipo:v.tipo,moneda:v.moneda,descripcion:v.descripcion,monto:v.monto,tasa:v.tasa,fecha:v.fecha,seguro:v.seguro,seguroMonto:v.seguro==='si'?v.seguroMonto:'',tc:v.tc});save();renderPas();toastX('Guardado');return}
+     const n=Math.round(num(v.nCuotas)),paso={Mensual:1,Trimestral:3,Semestral:6,Anual:12}[v.period]||1;let cuotas=[];
+     if(n>0){if(!v.primera){toastX('Falta la fecha de la primera cuota');return false}
+       cuotas=pasPlan(num(v.monto),v.tasa,n,paso,v.primera,num(v.cuotaTotal),v.seguro==='si'?num(v.seguroMonto):0)}
+     const nl={id:uid(),entidad:v.entidad,tipo:v.tipo,moneda:v.moneda,descripcion:v.descripcion,monto:v.monto,tasa:v.tasa,fecha:v.fecha,seguro:v.seguro,seguroMonto:v.seguro==='si'?v.seguroMonto:'',tc:v.tc,cuotas};DB.liabilities.push(nl);
+     if(v.cuentaDes&&byId(DB.accounts,v.cuentaDes)){const ca=byId(DB.accounts,v.cuentaDes);if(ca.moneda!==v.moneda)toastX('La cuenta es en '+ca.moneda+' y el préstamo en '+v.moneda+': desembolso no registrado');else DB.accMov.push({id:uid(),cuentaId:ca.id,tipo:'Ingreso',fecha:v.fecha,monto:num(v.monto),categoria:'Préstamo recibido',descripcion:'Desembolso '+v.entidad,ref:'des:'+nl.id,ctaContra:'2.1.02',tc:v.tc})}
+     save();pasGo('det',nl.id);toastX(n>0?'Pasivo guardado: revise las cuotas estimadas':'Pasivo guardado')},
     v=>false,'',()=>b),
    id?()=>{gxPin('Para eliminar un préstamo con sus cuotas ingrese la clave.').then(ok=>{if(ok){del('liabilities',id);save();pasGo('list')}})}:null)}
+function ctCuentasMon(M){return DB.accounts.filter(a=>a.moneda===M)}
 function fCuota(pid,cid){
   const l=byId(DB.liabilities,pid);if(!l)return;l.cuotas=l.cuotas||[];
-  const c=cid?l.cuotas.find(x=>x.id===cid):{n:l.cuotas.reduce((m,x)=>Math.max(m,x.n),0)+1,fecha:TODAY(),monto:'',pagada:false};
-  const b=sheet(cid?'Cuota '+c.n:'Nueva cuota',inp('fecha','Fecha de vencimiento',c.fecha,{t:'date'})+inp('monto','Monto de la cuota ('+l.moneda+')',c.monto,{mode:'decimal'})+
-    sel('pagada','¿Ya se pagó?',[['no','No'],['si','Sí, pagada']],c.pagada?'si':'no',{full:1})+inp('fechaPago','Fecha de pago',c.fechaPago||(c.pagada?'':TODAY()),{t:'date'})+inp('montoPagado','Monto pagado',c.montoPagado||'',{mode:'decimal'})+inp('nota','Nota (opcional)',c.nota,{full:1})+(DB.accounts.some(a=>a.moneda===l.moneda)?sel('cuentaId','Pagada desde la cuenta (registra el egreso)',[['','— No registrar en cuentas —'],...DB.accounts.filter(a=>a.moneda===l.moneda).map(a=>[a.id,a.nombre])],c.cuentaId||'',{full:1}):''),
-   conPin(v=>{if(num(v.monto)<=0||!v.fecha){toastX('Falta la fecha o el monto');return false}
-     const reg={fecha:v.fecha,monto:num(v.monto),pagada:v.pagada==='si',fechaPago:v.pagada==='si'?(v.fechaPago||TODAY()):'',montoPagado:v.pagada==='si'?(num(v.montoPagado)||num(v.monto)):'',nota:v.nota,cuentaId:v.cuentaId||''};
+  const c=cid?l.cuotas.find(x=>x.id===cid):{n:l.cuotas.reduce((m,x)=>Math.max(m,x.n),0)+1,fecha:TODAY(),capital:'',interes:'',seguro:l.seguro==='si'?l.seguroMonto:'',pagada:false};
+  const b=sheet(cid?'Cuota '+c.n:'Nueva cuota',inp('fecha','Fecha de vencimiento',c.fecha,{t:'date',full:1})+
+    inp('capital','Capital ('+l.moneda+')',cid?capC(c):'',{mode:'decimal'})+inp('interes','Interés',c.interes,{mode:'decimal'})+inp('seguro','Seguro / otros cargos',c.seguro,{mode:'decimal'})+
+    hintDiv('','La cuota total es la suma de capital, interés y seguro.')+
+    sel('pagada','¿Ya se pagó?',[['no','No'],['si','Sí, pagada']],c.pagada?'si':'no',{full:1})+inp('fechaPago','Fecha de pago',c.fechaPago||(c.pagada?'':TODAY()),{t:'date'})+inp('montoPagado','Total pagado (vacío = la cuota)',c.montoPagado||'',{mode:'decimal'})+inp('nota','Nota (opcional)',c.nota,{full:1})+
+    (ctCuentasMon(l.moneda).length?sel('cuentaId','Pagada desde la cuenta (registra el egreso)',[['','— No registrar en cuentas —'],...ctCuentasMon(l.moneda).map(a=>[a.id,a.nombre])],c.cuentaId||'',{full:1}):''),
+   conPin(v=>{const cap=num(v.capital),it=num(v.interes),sg=num(v.seguro),tot=r2(cap+it+sg);if(tot<=0||!v.fecha){toastX('Falta la fecha o el capital');return false}
+     const reg={fecha:v.fecha,capital:cap,interes:it,seguro:sg,monto:tot,pagada:v.pagada==='si',fechaPago:v.pagada==='si'?(v.fechaPago||TODAY()):'',montoPagado:v.pagada==='si'?(num(v.montoPagado)||tot):'',nota:v.nota,cuentaId:v.cuentaId||''};
      let cc=c;if(cid)Object.assign(c,reg);else{cc={id:uid(),n:c.n,...reg};l.cuotas.push(cc)}ctSyncCuota(l,cc);save();renderPas();toastX('Cuota guardada')},
-    v=>cid&&c.pagada&&(v.pagada!=='si'||v.fecha!==c.fecha||num(v.monto)!==num(c.monto)),'Esta cuota ya figura como pagada. Ingrese la clave para modificarla.',()=>b),
+    v=>cid&&c.pagada&&(v.pagada!=='si'||v.fecha!==c.fecha||r2(num(v.capital)+num(v.interes)+num(v.seguro))!==num(c.monto)),'Esta cuota ya figura como pagada. Ingrese la clave para modificarla.',()=>b),
    cid?()=>{const run=()=>{c.pagada=false;ctSyncCuota(l,c);l.cuotas=l.cuotas.filter(x=>x.id!==cid);save();renderPas()};if(c.pagada)gxPin('Esta cuota ya figura como pagada. Ingrese la clave para borrarla.').then(ok=>{if(ok)run()});else run()}:null)}
+function fPrepago(id){
+  const l=byId(DB.liabilities,id);if(!l)return;const pend=(l.cuotas||[]).filter(c=>!c.pagada),M=l.moneda;
+  const b=sheet('Amortización total',hintDiv('','Se cancela todo el capital adeudado. Las '+pend.length+' cuota(s) pendientes se eliminan y queda registrado un único pago final.')+
+    inp('fecha','Fecha del pago',TODAY(),{t:'date',full:1})+inp('capital','Capital que se cancela ('+M+')',pasSaldo(l),{mode:'decimal',full:1})+
+    inp('interes','Intereses devengados a pagar',0,{mode:'decimal'})+inp('seguro','Seguro / comisiones / otros',0,{mode:'decimal'})+
+    (ctCuentasMon(M).length?sel('cuentaId','Pagado desde la cuenta (registra el egreso)',[['','— No registrar en cuentas —'],...ctCuentasMon(M).map(a=>[a.id,a.nombre])],'',{full:1}):''),
+   conPin(v=>{const cap=num(v.capital),it=num(v.interes),sg=num(v.seguro),tot=r2(cap+it+sg);if(cap<=0||!v.fecha){toastX('Falta la fecha o el capital');return false}
+     if(Math.abs(cap-pasSaldo(l))>0.009&&!confirm('El capital que cancela ('+N(cap)+') no coincide con el capital adeudado ('+N(pasSaldo(l))+'). ¿Continuar?'))return false;
+     l.cuotas=(l.cuotas||[]).filter(c=>c.pagada);
+     const cc={id:uid(),n:l.cuotas.reduce((m,x)=>Math.max(m,x.n),0)+1,tipo:'Amortización total',fecha:v.fecha,capital:cap,interes:it,seguro:sg,monto:tot,pagada:true,fechaPago:v.fecha,montoPagado:tot,nota:'Amortización total anticipada',cuentaId:v.cuentaId||''};
+     l.cuotas.push(cc);ctSyncCuota(l,cc);save();renderPas();toastX('Préstamo cancelado: cuotas posteriores eliminadas')},
+    v=>true,'Amortización total: ingrese la clave para confirmar.',()=>b))}
 
 /* ================= CONTABILIDAD (guía operativa) ================= */
 let CT={year:new Date().getFullYear()};
@@ -2861,6 +2892,7 @@ function contaCard(){const y=new Date().getFullYear(),k=new Date().getMonth(),c=
   return `<div class="hc"><div class="hrow"><h2>IVA e IT · ${MESES[k]}</h2><button class="hlink" data-g2="conta" type="button">Ver</button></div>
    <div class="hcnt" style="grid-template-columns:repeat(3,1fr)"><div><b class="c1">${f(m.pagar)}</b><span>IVA a pagar</span></div><div><b class="c2">${f(m.it)}</b><span>IT 3%</span></div><div><b class="c3">${f(m.favor)}</b><span>Saldo a favor IVA</span></div></div>
    ${DB.accounts.length?(()=>{const tt={Bs:0,USD:0};DB.accounts.forEach(a=>{tt[a.moneda]=(tt[a.moneda]||0)+accSaldo(a)});return `<p class="hint" style="margin:10px 0 0">Disponible en cuentas y caja: Bs ${f(tt.Bs)}${tt.USD?' · USD '+f(tt.USD):''}.</p>`})():''}
+   ${(()=>{try{const r=ctResPeriodo(y,k+1);return `<p class="hint" style="margin:10px 0 0">Resultado contable del mes: Bs ${f(r.neto)} (ingresos ${f(r.ing)} − costos y gastos ${f(r.cost+r.gas+r.fin)}).</p>`}catch(e){return ''}})()}
    <p class="hint" style="margin:10px 0 0">Cifras de referencia en Bs: valídelas con su contador.</p></div>`}
 function ctImp(){const y=CT.year,c=contaCalc(y),f=x=>N(x,0);
   const tot=c.M.reduce((a,m)=>{for(const k of ['vFac','vRec','deb','it','cDim','cLoc','cGas','cred','ret','pagar'])a[k]=(a[k]||0)+m[k];return a},{});
@@ -2889,9 +2921,10 @@ const ctCuentaNom=id=>{const a=byId(DB.accounts,id);return a?a.nombre:'(cuenta e
 function ctSyncCuota(l,c){DB.accMov.filter(m=>m.ref==='cuota:'+c.id).forEach(m=>del('accMov',m.id));
   if(c.pagada&&c.cuentaId&&byId(DB.accounts,c.cuentaId))DB.accMov.push({id:uid(),cuentaId:c.cuentaId,tipo:'Egreso',fecha:c.fechaPago||TODAY(),monto:num(c.montoPagado)||num(c.monto),categoria:'Pago de préstamo',descripcion:'Cuota '+c.n+' · '+l.entidad,ref:'cuota:'+c.id})}
 function renderConta(){
-  const root=document.getElementById('view-conta');if(!root)return;
-  const tabs=[['cuentas','Cuentas y caja'],['mov','Movimientos'],['imp','IVA e IT']];
-  root.innerHTML=`<div class="row" style="gap:6px;flex-wrap:wrap">${tabs.map(([k,l])=>`<button class="btn sm ${CTab===k?'pri':''}" type="button" onclick="GX.contaTab('${k}')">${l}</button>`).join('')}</div>`+(CTab==='cuentas'?ctCuentas():CTab==='mov'?ctMov():ctImp())}
+  const root=document.getElementById('view-conta');if(!root)return;ctAsegurarCods();
+  const tabs=[['cuentas','Cuentas y caja'],['mov','Movimientos'],['diario','Libro diario'],['mayor','Libro mayor'],['plan','Plan de cuentas'],['res','Estado de resultados'],['bal','Balances'],['rrhh','Sueldos (RRHH)'],['imp','IVA e IT']];
+  const V={cuentas:ctCuentas,mov:ctMov,diario:ctDiario,mayor:ctMayor,plan:ctPlan,res:ctRes,bal:ctBal,rrhh:ctRrhh,imp:ctImp};
+  root.innerHTML=`<div class="row" style="gap:6px;flex-wrap:wrap">${tabs.map(([k,l])=>`<button class="btn sm ${CTab===k?'pri':''}" type="button" onclick="GX.contaTab('${k}')">${l}</button>`).join('')}</div>`+(V[CTab]||ctCuentas)()}
 function contaTab(k){CTab=k;renderConta();window.scrollTo(0,0)}
 function ctAbrir(id){CT.cuenta=id;CT.mes='';CTab='mov';renderConta();window.scrollTo(0,0)}
 function ctFiltro(k,v){CT[k]=v;renderConta()}
@@ -2920,9 +2953,9 @@ function fCuenta(id){
   const b=sheet(id?'Editar cuenta':'Nueva cuenta',
    inp('nombre','Nombre (ej. Banco Unión cta. cte., Caja chica)',a.nombre,{full:1,list:'gxBancoC'})+`<datalist id="gxBancoC">${BANCOS.map(x=>`<option value="${E(x)}">`).join('')}<option value="Caja chica"></datalist>`+
    sel('tipo','Tipo',['Banco','Caja','Otro'],a.tipo)+sel('moneda','Moneda',['Bs','USD'],a.moneda)+
-   inp('saldoInicial','Saldo inicial',a.saldoInicial,{mode:'decimal'})+inp('fechaInicial','Saldo al',a.fechaInicial,{t:'date'})+inp('nota','Nota (opcional)',a.nota,{full:1}),
+   inp('saldoInicial','Saldo inicial',a.saldoInicial,{mode:'decimal'})+inp('fechaInicial','Saldo al',a.fechaInicial,{t:'date'})+inp('tcInicial','T/C del saldo inicial (solo USD)',a.tcInicial||'6.96',{mode:'decimal'})+inp('nota','Nota (opcional)',a.nota,{full:1}),
    conPin(v=>{if(!v.nombre){toastX('Falta el nombre de la cuenta');return false}
-     if(id)Object.assign(a,v);else DB.accounts.push({id:uid(),...v});save();renderConta();toastX('Cuenta guardada')},
+     if(id)Object.assign(a,v);else{const na={id:uid(),...v};na.cod=ctNuevoCod(na);DB.accounts.push(na)}save();renderConta();toastX('Cuenta guardada')},
     v=>!!id&&cambioDato(a,v),'Esta cuenta ya existe. Ingrese la clave para modificarla.',()=>b),
    id?()=>{if(DB.accMov.some(m=>m.cuentaId===id)){toastX('La cuenta tiene movimientos: no se puede eliminar');return}
      gxPin('Para eliminar la cuenta ingrese la clave.').then(ok=>{if(ok){del('accounts',id);save();CT.cuenta='';renderConta()}})}:null)}
@@ -2933,7 +2966,8 @@ function fMov(id,cuentaId,tipo){
   const b=sheet(id?'Editar movimiento':'Nuevo movimiento',
    sel('cuentaId','Cuenta',DB.accounts.map(a=>[a.id,a.nombre+' ('+a.moneda+')']),m.cuentaId,{full:1})+sel('tipo','Tipo',['Ingreso','Egreso'],m.tipo)+inp('fecha','Fecha',m.fecha,{t:'date'})+
    inp('monto','Monto',m.monto,{mode:'decimal'})+inp('categoria','Categoría',m.categoria,{list:'gxMovCat'})+`<datalist id="gxMovCat">${MOV_CATS.map(x=>`<option value="${E(x)}">`).join('')}</datalist>`+
-   inp('descripcion','Descripción',m.descripcion,{full:1}),
+   inp('descripcion','Descripción',m.descripcion,{full:1})+
+   sel('ctaContra','Cuenta contable de contrapartida',[['','— Automática según la categoría —'],...planOpts()],m.ctaContra||'',{full:1})+inp('tc','T/C (solo cuentas en USD)',m.tc||'6.96',{mode:'decimal'}),
    conPin(v=>{if(num(v.monto)<=0||!v.fecha){toastX('Falta la fecha o el monto');return false}
      if(id)Object.assign(m,v);else DB.accMov.push({id:uid(),...v});save();renderConta();toastX('Movimiento guardado')},
     v=>!!id&&cambioDato(m,v),'Este movimiento ya está registrado. Ingrese la clave para modificarlo.',()=>b),
@@ -2945,20 +2979,216 @@ function fTransf(){
   if(DB.accounts.length<2){toastX('Necesita al menos dos cuentas para transferir');return}
   const A=DB.accounts,op=A.map(a=>[a.id,a.nombre+' ('+a.moneda+')']);
   sheet('Transferencia entre cuentas',sel('origen','Sale de',op,A[0].id,{full:1})+sel('destino','Entra a',op,A[1].id,{full:1})+inp('fecha','Fecha',TODAY(),{t:'date'})+inp('monto','Monto que sale',"",{mode:'decimal'})+
-   inp('montoDestino','Monto que entra (solo si cambia la moneda)',"",{mode:'decimal',full:1})+inp('descripcion','Descripción (opcional)',"",{full:1}),
+   inp('montoDestino','Monto que entra (solo si cambia la moneda)',"",{mode:'decimal',full:1})+inp('tc','T/C (si alguna cuenta es USD)','6.96',{mode:'decimal'})+inp('descripcion','Descripción (opcional)',"",{full:1}),
    v=>{if(v.origen===v.destino){toastX('Elija dos cuentas distintas');return false}
      const ao=byId(A,v.origen),ad=byId(A,v.destino),sal=num(v.monto);if(sal<=0||!v.fecha){toastX('Falta la fecha o el monto');return false}
      if(ao.moneda!==ad.moneda&&num(v.montoDestino)<=0){toastX('Las monedas son distintas: escriba el monto que entra');return false}
      const ent=num(v.montoDestino)||sal,tid=uid();
-     DB.accMov.push({id:uid(),cuentaId:ao.id,tipo:'Egreso',fecha:v.fecha,monto:sal,categoria:'Transferencia',descripcion:v.descripcion||('A '+ad.nombre),transferId:tid},
-                    {id:uid(),cuentaId:ad.id,tipo:'Ingreso',fecha:v.fecha,monto:ent,categoria:'Transferencia',descripcion:v.descripcion||('De '+ao.nombre),transferId:tid});
+     DB.accMov.push({id:uid(),cuentaId:ao.id,tipo:'Egreso',fecha:v.fecha,monto:sal,categoria:'Transferencia',descripcion:v.descripcion||('A '+ad.nombre),transferId:tid,tc:v.tc},
+                    {id:uid(),cuentaId:ad.id,tipo:'Ingreso',fecha:v.fecha,monto:ent,categoria:'Transferencia',descripcion:v.descripcion||('De '+ao.nombre),transferId:tid,tc:v.tc});
      save();renderConta();toastX('Transferencia registrada')})}
 function ctExcel(){
   try{const rows=ctMovLista().map(m=>{const a=byId(DB.accounts,m.cuentaId);return{Fecha:m.fecha,Cuenta:ctCuentaNom(m.cuentaId),Moneda:a?a.moneda:'',Tipo:m.tipo,Categoría:m.categoria||'',Descripción:m.descripcion||'',Monto:Math.round(num(m.monto)*100)/100}});
     const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),'Movimientos');
     const out=XLSX.write(wb,{bookType:'xlsx',type:'array'});saveBlob(new Blob([out],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),'Movimientos-'+TODAY()+'.xlsx');toastX('Excel listo')}
   catch(e){console.error(e);toastX('No se pudo exportar: '+(e&&e.message||e))}}
-window.GX={render,go,fImp,fPed,fLin,fPag,fCotEnPed,quitarCot,syncOps,lockOp,setCol,save,fCierre,fProv,fLoc,migrarProv,renderInv,invGo,fJalar,fEntrada,fAjuste,fPegar,fProdInv,fSerie,fEntrega,ingresarBtn,recalcBtn,ingresarImp,recalcImp,invResumen,transito,renderPas,pasGo,contaTab,ctAbrir,ctFiltro,ctExcel,fCuenta,fMov,fTransf,pasStatsList:()=>pasStats().prox,fPas,fCuota,pasCard,renderConta,contaYear,contaExcel,contaCard,actaCompartir,actaDescargar,limpiarActas,vsFacturar,vsCorregir,vsActa,vsActaDl,renderInd,indNueva,indOpen,indGuardar,indCopiar,indPago,indQuitarPago,indSeg,indAdd,indDel,renderVs,vsGo,vsNueva,vsQuitar,vsAgregar,vsCancelar,vsGuardar,vsEditar,vsConfirmar,vsCaida,vsReabrir,vsEliminar,vsEntregar,vsAnular,vsCobro,vsQuitarCobro,vsFiltro,vsResumenAnio,vsTot,vsCob,saldoPedido,totalPedido,ESTADOS_PED,ESTADOS_IMP,
+
+/* ============ SISTEMA CONTABLE: plan de cuentas, diario, mayor, resultados, balances, RRHH ============ */
+const TC_DEF=6.96;
+const PLAN_BASE=[['1.1.01.00','Caja y bancos sin cuenta asignada','D'],['1.1.03','Cuentas por cobrar a clientes','D'],['1.1.04','Inventario de mercaderías','D'],['1.1.06','Crédito fiscal IVA','D'],['1.1.07','Anticipos a proveedores','D'],['1.1.08','Otras cuentas por cobrar','D'],['1.2.01','Activos fijos (muebles y equipos)','D'],['1.2.02','Depreciación acumulada','H'],
+ ['2.1.01','Proveedores por pagar','H'],['2.1.02','Préstamos bancarios (capital)','H'],['2.1.03','IVA débito fiscal por pagar','H'],['2.1.04','IT por pagar','H'],['2.1.05','Sueldos y salarios por pagar','H'],['2.1.06','Aportes laborales y patronales por pagar','H'],['2.1.07','Retenciones por pagar','H'],['2.1.08','Anticipos de clientes','H'],['2.1.09','Otras cuentas por pagar','H'],
+ ['3.1.01','Capital y aportes de socios','H'],['3.1.02','Resultados acumulados','H'],
+ ['4.1.01','Ventas de importación','H'],['4.1.02','Ventas de stock','H'],['4.1.03','Otros ingresos','H'],
+ ['5.1.01','Costo de ventas (stock)','D'],['5.1.02','Costo de importaciones','D'],['5.1.03','Compras locales','D'],
+ ['5.2.01','Sueldos y salarios','D'],['5.2.02','Cargas sociales patronales','D'],['5.2.03','Alquileres','D'],['5.2.04','Servicios básicos','D'],['5.2.05','Publicidad y comercialización','D'],['5.2.06','Transporte y movilidad','D'],['5.2.07','Impuesto a las transacciones (IT)','D'],['5.2.08','Gastos generales y administrativos','D'],['5.2.09','Ajustes de inventario','D'],
+ ['5.3.01','Intereses y comisiones financieras','D'],['5.3.02','Seguros','D'],['5.3.03','Retenciones asumidas (16%)','D'],['5.3.04','Diferencia de cambio','D']];
+const GRUPOS={1:'ACTIVO',2:'PASIVO',3:'PATRIMONIO',4:'INGRESOS',5:'COSTOS Y GASTOS'};
+const MAPCAT={'Cobro de venta':'1.1.03','Pago a proveedor':'5.1.02','Gasto de importación':'5.1.02','Compra local':'5.1.03','Sueldos y honorarios':'2.1.05','Impuestos':'2.1.04','Pago de préstamo':'2.1.02','Préstamo recibido':'2.1.02','Aporte de capital':'3.1.01','Retiro de socio':'3.1.01','Gastos generales':'5.2.08'};
+function planFull(){const L=PLAN_BASE.map(([c,n,nat])=>({cod:c,nombre:n,nat,base:1}));
+  DB.planCuentas.forEach(p=>L.push({cod:p.cod,nombre:p.nombre,nat:'DHHHD'[(+String(p.cod)[0]||1)-1],pid:p.id}));
+  DB.accounts.forEach(a=>{if(a.cod)L.push({cod:a.cod,nombre:(a.tipo==='Caja'?'Caja: ':'Banco: ')+a.nombre+(a.moneda==='USD'?' (USD)':''),nat:'D',tes:a.id})});
+  return L.sort((x,y)=>String(x.cod).localeCompare(String(y.cod),'es',{numeric:true}))}
+const planOpts=()=>planFull().map(p=>[p.cod,p.cod+' · '+p.nombre]);
+const ctNom=c=>{const p=planFull().find(x=>x.cod===c);return p?p.nombre:c};
+function ctNuevoCod(na){const pre=na.tipo==='Caja'?'1.1.01.':'1.1.02.';let n=0;DB.accounts.forEach(a=>{if(a.cod&&a.cod.startsWith(pre))n=Math.max(n,+a.cod.slice(pre.length)||0)});return pre+String(n+1).padStart(2,'0')}
+function ctAsegurarCods(){let ch=false;DB.accounts.forEach(a=>{if(!a.cod){a.cod=ctNuevoCod(a);ch=true}});if(ch)save()}
+const ctLastDay=(y,m)=>new Date(y,m,0).getDate();
+function ctAuto(){
+  const A=[],D=(c,v)=>v>=0?{cta:c,debe:r2(v),haber:0}:{cta:c,debe:0,haber:r2(-v)},H=(c,v)=>v>=0?{cta:c,debe:0,haber:r2(v)}:{cta:c,debe:r2(-v),haber:0};
+  const add=(fecha,glosa,origen,ref,ls)=>{ls=ls.filter(x=>x.debe||x.haber);if(!ls.length||!fecha)return;const sd=r2(ls.reduce((x,l)=>x+l.debe,0)),sh=r2(ls.reduce((x,l)=>x+l.haber,0)),df=r2(sd-sh);
+    if(df!==0&&Math.abs(df)<0.1){const l=ls[ls.length-1];if(l.haber)l.haber=r2(l.haber+df);else l.debe=r2(l.debe-df)}A.push({fecha,glosa,origen,ref,lineas:ls,auto:1})};
+  const cod=id=>{const a=byId(DB.accounts,id);return a&&a.cod?a.cod:'1.1.01.00'};
+  const bsm=m=>{const a=byId(DB.accounts,m.cuentaId);return a&&a.moneda==='USD'?num(m.monto)*(num(m.tc)||TC_DEF):num(m.monto)};
+  DB.accounts.forEach(a=>{const v=num(a.saldoInicial)*(a.moneda==='USD'?(num(a.tcInicial)||TC_DEF):1);if(v)add(a.fechaInicial||TODAY(),'Saldo inicial · '+a.nombre,'Saldos iniciales','ini:'+a.id,[D(a.cod||'1.1.01.00',v),H('3.1.01',v)])});
+  const trf={};
+  DB.accMov.forEach(m=>{if(m.ref&&/^(cuota|plan):/.test(m.ref))return;if(m.transferId){(trf[m.transferId]=trf[m.transferId]||[]).push(m);return}
+    const v=bsm(m),c=cod(m.cuentaId),k=m.ctaContra||MAPCAT[m.categoria]||(m.tipo==='Ingreso'?'4.1.03':'5.2.08'),g=(m.categoria||m.tipo)+(m.descripcion?' · '+m.descripcion:'');
+    add(m.fecha,g,'Tesorería','mov:'+m.id,m.tipo==='Ingreso'?[D(c,v),H(k,v)]:[D(k,v),H(c,v)])});
+  Object.keys(trf).forEach(t=>{const g=trf[t],o=g.find(x=>x.tipo==='Egreso'),d=g.find(x=>x.tipo==='Ingreso');if(!o||!d)return;const vo=bsm(o),vd=bsm(d);
+    add(o.fecha,'Transferencia: '+ctCuentaNom(o.cuentaId)+' → '+ctCuentaNom(d.cuentaId),'Tesorería','trf:'+t,[D(cod(d.cuentaId),vd),H(cod(o.cuentaId),vo),vd<vo?D('5.3.04',vo-vd):H('5.3.04',vd-vo)])});
+  DB.liabilities.forEach(l=>{const f=l.moneda==='USD'?(num(l.tc)||TC_DEF):1;(l.cuotas||[]).forEach(c=>{if(!c.pagada)return;const cap=capC(c)*f,it=num(c.interes)*f,sg=num(c.seguro)*f,tot=(num(c.montoPagado)||num(c.monto))*f;
+    add(c.fechaPago||c.fecha,(c.tipo==='Amortización total'?'Amortización total · ':'Cuota '+c.n+' · ')+l.entidad,'Préstamos','cuota:'+c.id,[D('2.1.02',cap),D('5.3.01',it+(tot-cap-it-sg)),D('5.3.02',sg),H(cod(c.cuentaId),tot)])})});
+  const venta=(fecha,glosa,ref,cta,T,iva,it)=>add(fecha,glosa,'Ventas',ref,[D('1.1.03',T),H(cta,T-iva),H('2.1.03',iva),D('5.2.07',it),H('2.1.04',it)]);
+  const cobs=(arr,pre,num_)=>(arr||[]).forEach((c,i)=>{const v=c.moneda==='USD'?num(c.monto)*num(c.tc):num(c.monto);add(c.fecha,'Cobro '+num_+(c.concepto?' · '+c.concepto:''),'Cobros','cob:'+pre+':'+i,[D('1.1.01.00',v),H('1.1.03',v)])});
+  (typeof ops!=='undefined'?ops:[]).forEach(o=>{const dv=o.docVenta||{};
+    if(o.etapa==='entregada'&&dv.numero){const T=num(o.total),fac=dv.tipo==='Factura';venta(dv.fecha||TODAY(),'Venta '+(o.numero||'')+' · '+(o.clienteNombre||'')+' · '+dv.tipo+' '+dv.numero,'op:'+o.id,'4.1.01',T,fac?T*0.13:0,T*0.03)}
+    cobs(o.cobros,o.id,o.numero||'')});
+  DB.stockSales.forEach(x=>{if(x.estado==='entregada'&&x.docNumero){const t=vsTot(x,false);venta(x.fechaEntrega||TODAY(),'Venta de stock '+x.numero+' · '+x.comprobante+' '+x.docNumero,'vs:'+x.id,'4.1.02',t.total,t.iva,t.it)}
+    cobs(x.cobros,x.id,x.numero||'')});
+  DB.payments.forEach(p=>{const t=bsMonto(p);if(!t)return;const fac=p.factura==='si'&&!SIN_FACTURA_NO_APLICA.includes(p.categoria),iva=fac?t*0.13:0,ret=num(p.retencion);
+    add(p.fecha,(p.categoria||'Pago')+(p.nota?' · '+p.nota:''),'Importaciones','pay:'+p.id,[D('5.1.02',t-iva),D('1.1.06',iva),H('1.1.01.00',t),D('5.3.03',ret),H('2.1.07',ret)])});
+  DB.localPurchases.forEach(x=>{const t=num(x.monto);if(!t)return;const iva=x.factura==='si'?t*0.13:0,ret=num(x.retencion);
+    add(x.fecha,'Compra local '+(x.numero||'')+' · '+(x.proveedor||''),'Compras locales','loc:'+x.id,[D('5.1.03',t-iva),D('1.1.06',iva),H('1.1.01.00',t),D('5.3.03',ret),H('2.1.07',ret)])});
+  DB.imports.forEach(i=>{const v=num(i.ivaDim);if(v>0&&i.dimFecha)add(i.dimFecha,'Crédito fiscal IVA del DIM '+(i.dim||'')+' · '+i.numero,'Importaciones','dim:'+i.id,[D('1.1.06',v),H('5.1.02',v)])});
+  DB.invMov.forEach(m=>{const q=num(m.qty),c=num(m.costo),pr=byId(DB.invProducts,m.productId),nom=pr?pr.nombre||pr.desc||'':'';
+    if(m.tipo==='entrada'){const v=q*c,doc=String(m.doc||'');add(m.fecha,'Entrada de inventario · '+nom+' · '+doc,'Inventario','inv:'+m.id,[D('1.1.04',v),H(/^Importaci/.test(doc)?'5.1.02':/^Carga inicial/.test(doc)?'3.1.01':'5.1.03',v)])}
+    else if(m.tipo==='salida'){const v=Math.abs(q)*c;add(m.fecha,'Costo de venta · '+nom+' · '+(m.doc||''),'Inventario','inv:'+m.id,[D('5.1.01',v),H('1.1.04',v)])}
+    else if(m.tipo==='ajuste'&&q>0){const v=q*c;add(m.fecha,'Ajuste de inventario · '+nom,'Inventario','inv:'+m.id,[D('1.1.04',v),H('5.2.09',v)])}});
+  DB.planillas.forEach(p=>{const t=planTot(p);
+    add(p.fecha,'Planilla de sueldos '+p.periodo,'Sueldos','plan:'+p.id,[D('5.2.01',t.bruto),H('2.1.06',t.lab+t.otros),H('2.1.05',t.liq),D('5.2.02',t.pat),H('2.1.06',t.pat)]);
+    if(p.pagada)add(p.fechaPago||p.fecha,'Pago de planilla '+p.periodo,'Sueldos','planp:'+p.id,[D('2.1.05',t.liq),H(cod(p.cuentaId),t.liq)])});
+  DB.asientos.forEach(a=>A.push({fecha:a.fecha,glosa:a.glosa,origen:'Manual',ref:'man:'+a.id,id:a.id,lineas:(a.lineas||[]).map(l=>({cta:l.cta,debe:num(l.debe),haber:num(l.haber)})),auto:0}));
+  A.sort((x,y)=>String(x.fecha).localeCompare(y.fecha)||String(x.ref).localeCompare(y.ref));
+  const seq={};A.forEach(a=>{const y=String(a.fecha).slice(0,4);seq[y]=(seq[y]||0)+1;a.numero='A-'+y+'-'+String(seq[y]).padStart(4,'0')});
+  return A}
+function ctSaldos(A,desde,hasta){const S={};A.forEach(a=>{if((desde&&a.fecha<desde)||(hasta&&a.fecha>hasta))return;a.lineas.forEach(l=>{const o=S[l.cta]=S[l.cta]||{d:0,h:0};o.d+=l.debe;o.h+=l.haber})});return S}
+const ctNat=c=>{const p=planFull().find(x=>x.cod===c);return p?p.nat:'DHHHD'[(+String(c)[0]||1)-1]};
+const ctSal=(S,c)=>{const o=S[c]||{d:0,h:0};return ctNat(c)==='D'?o.d-o.h:o.h-o.d};
+function ctRango(y,m){if(m)return[y+'-'+String(m).padStart(2,'0')+'-01',y+'-'+String(m).padStart(2,'0')+'-'+ctLastDay(y,m)];return[y+'-01-01',y+'-12-31']}
+function ctResPeriodo(y,m){const[d,h]=ctRango(y,m),S=ctSaldos(ctAuto(),d,h);const acc=(f)=>Object.keys(S).filter(f).reduce((x,c)=>x+ctSal(S,c),0);
+  const ing=acc(c=>c[0]==='4'),cost=acc(c=>c.startsWith('5.1')),gas=acc(c=>c.startsWith('5.2')),fin=acc(c=>c.startsWith('5.3'));return{S,ing,cost,gas,fin,bruta:ing-cost,oper:ing-cost-gas,neto:ing-cost-gas-fin}}
+const MESES_C=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+function ctPer(){const ys=[...new Set([new Date().getFullYear(),CT.year,...ctAuto().map(a=>+String(a.fecha).slice(0,4))])].sort().reverse();
+  return `<div class="grid"><label class="f"><span>Año</span><select class="plain" onchange="GX.ctSet('year',+this.value)">${ys.map(y=>`<option ${y===CT.year?'selected':''}>${y}</option>`).join('')}</select></label>
+   <label class="f"><span>Mes</span><select class="plain" onchange="GX.ctSet('pm',this.value)"><option value="">Año completo</option>${MESES_C.map((n,i)=>`<option value="${i+1}" ${String(CT.pm)===String(i+1)?'selected':''}>${n}</option>`).join('')}</select></label></div>`}
+function ctSet(k,v){CT[k]=v;renderConta()}
+CT.pm='';CT.mayor='1.1.03';CT.plan='';
+const FF=x=>N(x);
+function ctDiario(){
+  const[d,h]=ctRango(CT.year,CT.pm),A=ctAuto().filter(a=>a.fecha>=d&&a.fecha<=h);
+  const td=A.reduce((x,a)=>x+a.lineas.reduce((y,l)=>y+l.debe,0),0);
+  return `<div class="row sp"><b style="font-size:17px">Libro diario</b><button class="btn pri sm" type="button" onclick="GX.fAsiento()">+ Asiento manual</button></div>
+   <div class="card">${ctPer()}<p class="hint" style="margin:10px 0 0">${A.length} asiento(s) · total movido Bs ${FF(td)}. Los asientos automáticos se generan solos desde ventas, cobros, pagos de importación, compras locales, inventario, préstamos y sueldos; los manuales los registra usted.</p></div>
+   ${A.length?A.map(a=>`<div class="card" style="padding:10px 12px"><div class="row sp"><b>${a.numero} · ${FD(a.fecha)}</b><span class="tag">${E(a.origen)}</span></div><div style="font-size:13px;margin:4px 0 6px">${E(a.glosa)}</div>
+     <table><tr><th>Cuenta</th><th class="n">Debe</th><th class="n">Haber</th></tr>${a.lineas.map(l=>`<tr><td style="${l.haber&&!l.debe?'padding-left:18px':''}">${l.cta} · ${E(ctNom(l.cta))}</td><td class="n">${l.debe?FF(l.debe):''}</td><td class="n">${l.haber?FF(l.haber):''}</td></tr>`).join('')}</table>
+     ${a.auto?'':`<div class="row" style="margin-top:6px"><button class="btn sm" type="button" onclick="GX.fAsiento('${a.id}')">Editar</button></div>`}</div>`).join(''):'<div class="card empty">No hay asientos en este período.</div>'}
+   <div class="row"><button class="btn sm" type="button" onclick="GX.ctExcelInf()">Exportar informes a Excel</button></div>`}
+function fAsiento(id){
+  const a=id?byId(DB.asientos,id):{fecha:TODAY(),glosa:'',lineas:[]},opts=[['','— cuenta —'],...planOpts()];
+  const rows=Array.from({length:6},(_,i)=>{const l=(a.lineas||[])[i]||{};return `<div class="full" style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:6px"><select class="plain" data-k="c${i}">${opts.map(([v,t])=>`<option value="${E(v)}" ${v===l.cta?'selected':''}>${E(t)}</option>`).join('')}</select><input class="plain" data-k="d${i}" inputmode="decimal" placeholder="Debe" value="${l.debe||''}"><input class="plain" data-k="h${i}" inputmode="decimal" placeholder="Haber" value="${l.haber||''}"></div>`}).join('');
+  const b=sheet(id?'Editar asiento manual':'Asiento manual',inp('fecha','Fecha',a.fecha,{t:'date'})+inp('glosa','Glosa (descripción)',a.glosa,{full:1})+rows+hintDiv('','Debe y Haber deben sumar lo mismo. Use hasta 6 líneas.'),
+   conPin(v=>{const ls=[];for(let i=0;i<6;i++){if(v['c'+i]&&(num(v['d'+i])||num(v['h'+i])))ls.push({cta:v['c'+i],debe:r2(num(v['d'+i])),haber:r2(num(v['h'+i]))})}
+     const sd=r2(ls.reduce((x,l)=>x+l.debe,0)),sh=r2(ls.reduce((x,l)=>x+l.haber,0));
+     if(!v.fecha||!v.glosa||ls.length<2){toastX('Falta la fecha, la glosa o al menos dos líneas');return false}
+     if(sd!==sh){toastX('El asiento no cuadra: Debe '+FF(sd)+' ≠ Haber '+FF(sh));return false}
+     if(id){a.fecha=v.fecha;a.glosa=v.glosa;a.lineas=ls}else DB.asientos.push({id:uid(),fecha:v.fecha,glosa:v.glosa,lineas:ls});save();renderConta();toastX('Asiento guardado')},
+    v=>!!id,'Este asiento ya está registrado. Ingrese la clave para modificarlo.',()=>b),
+   id?()=>{gxPin('Para eliminar un asiento ingrese la clave.').then(ok=>{if(ok){del('asientos',id);save();renderConta()}})}:null)}
+function ctMayor(){
+  const[d,h]=ctRango(CT.year,CT.pm),A=ctAuto(),c=CT.mayor,nat=ctNat(c),sg=nat==='D'?1:-1;
+  let saldo=0;A.forEach(a=>{if(a.fecha<d)a.lineas.forEach(l=>{if(l.cta===c)saldo+=sg*(l.debe-l.haber)})});
+  const ini=saldo,rows=[];A.forEach(a=>{if(a.fecha<d||a.fecha>h)return;a.lineas.forEach(l=>{if(l.cta!==c)return;saldo+=sg*(l.debe-l.haber);rows.push({a,l,saldo})})});
+  return `<div class="row sp"><b style="font-size:17px">Libro mayor</b></div>
+   <div class="card"><label class="f"><span>Cuenta</span><select class="plain" onchange="GX.ctSet('mayor',this.value)">${planOpts().map(([v,t])=>`<option value="${E(v)}" ${v===c?'selected':''}>${E(t)}</option>`).join('')}</select></label><div style="height:8px"></div>${ctPer()}
+   <div class="kv" style="margin-top:10px"><div><span>Saldo anterior</span><b>${FF(ini)}</b></div><div><span>Saldo final</span><b>${FF(saldo)}</b></div><div><span>Naturaleza</span><b>${nat==='D'?'Deudora':'Acreedora'}</b></div></div></div>
+   <div class="card">${rows.length?`<div style="overflow-x:auto"><table><tr><th>Fecha</th><th>Asiento</th><th class="n">Debe</th><th class="n">Haber</th><th class="n">Saldo</th></tr>${rows.map(r=>`<tr><td>${FD(r.a.fecha)}</td><td>${r.a.numero}<br><small style="color:var(--muted)">${E(r.a.glosa).slice(0,48)}</small></td><td class="n">${r.l.debe?FF(r.l.debe):''}</td><td class="n">${r.l.haber?FF(r.l.haber):''}</td><td class="n"><b>${FF(r.saldo)}</b></td></tr>`).join('')}</table></div>`:'<div class="empty">Sin movimientos en el período.</div>'}</div>`}
+function ctAbrirMayor(c){CT.mayor=c;CTab='mayor';renderConta();window.scrollTo(0,0)}
+function ctPlan(){
+  const S=ctSaldos(ctAuto(),'','9999-12-31'),P=planFull();
+  return `<div class="row sp"><b style="font-size:17px">Plan de cuentas</b><button class="btn pri sm" type="button" onclick="GX.fPlanCta()">+ Cuenta</button></div>
+   <div class="card"><p class="hint" style="margin:0">Grupos: 1 Activo · 2 Pasivo · 3 Patrimonio · 4 Ingresos · 5 Costos y gastos. Las cuentas de caja y banco se crean solas desde «Cuentas y caja». Toque una cuenta para ver su libro mayor. Saldos acumulados a la fecha.</p></div>
+   ${[1,2,3,4,5].map(g=>`<div class="card"><h2>${g} · ${GRUPOS[g]}</h2><table>${P.filter(p=>String(p.cod)[0]==g).map(p=>`<tr onclick="GX.ctAbrirMayor('${p.cod}')" style="cursor:pointer"><td>${p.cod}</td><td>${E(p.nombre)}${p.pid?' <small style="color:var(--muted)">(suya)</small>':''}</td><td class="n">${FF(ctSal(S,p.cod))}</td></tr>`).join('')}</table></div>`).join('')}
+   ${DB.planCuentas.length?`<div class="card"><h2>Cuentas agregadas por usted</h2>${DB.planCuentas.map(p=>`<div class="row sp" style="padding:4px 0"><span>${p.cod} · ${E(p.nombre)}</span><button class="btn sm" type="button" onclick="GX.fPlanCta('${p.id}')">Editar</button></div>`).join('')}</div>`:''}`}
+function fPlanCta(id){
+  const p=id?byId(DB.planCuentas,id):{cod:'',nombre:''};
+  const b=sheet(id?'Editar cuenta contable':'Nueva cuenta contable',inp('cod','Código (empieza con 1, 2, 3, 4 o 5; ej. 5.2.10)',p.cod,{full:1})+inp('nombre','Nombre de la cuenta',p.nombre,{full:1})+hintDiv('','El primer dígito define el grupo: 1 Activo, 2 Pasivo, 3 Patrimonio, 4 Ingresos, 5 Costos y gastos.'),
+   conPin(v=>{if(!/^[1-5](\.\d+)*$/.test(v.cod)){toastX('El código debe empezar con 1 a 5 y usar puntos, ej. 5.2.10');return false}if(!v.nombre){toastX('Falta el nombre');return false}
+     if(planFull().some(x=>x.cod===v.cod&&x.pid!==id)){toastX('Ese código ya existe');return false}
+     if(id)Object.assign(p,v);else DB.planCuentas.push({id:uid(),...v});save();renderConta();toastX('Cuenta guardada')},
+    v=>!!id&&cambioDato(p,v),'Esta cuenta ya existe. Ingrese la clave para modificarla.',()=>b),
+   id?()=>{const c=p.cod;if(ctAuto().some(a=>a.lineas.some(l=>l.cta===c))){toastX('La cuenta tiene movimientos: no se puede eliminar');return}gxPin('Para eliminar la cuenta ingrese la clave.').then(ok=>{if(ok){del('planCuentas',id);save();renderConta()}})}:null)}
+function ctResBloque(S,tit,f){const L=Object.keys(S).filter(f).sort();const t=L.reduce((x,c)=>x+ctSal(S,c),0);
+  return `<tr><th colspan="2">${tit}</th></tr>${L.map(c=>`<tr onclick="GX.ctAbrirMayor('${c}')" style="cursor:pointer"><td>${c} · ${E(ctNom(c))}</td><td class="n">${FF(ctSal(S,c))}</td></tr>`).join('')}<tr><td><b>Total ${tit.toLowerCase()}</b></td><td class="n"><b>${FF(t)}</b></td></tr>`}
+function ctRes(){
+  const r=ctResPeriodo(CT.year,+CT.pm||0),S=r.S,ttl=CT.pm?MESES_C[CT.pm-1]+' '+CT.year:'Año '+CT.year;
+  const mens=Array.from({length:12},(_,i)=>ctResPeriodo(CT.year,i+1));
+  return `<div class="row sp"><b style="font-size:17px">Estado de resultados</b></div><div class="card">${ctPer()}</div>
+   <div class="card"><h2>${ttl} (Bs)</h2><table>${ctResBloque(S,'Ingresos',c=>c[0]==='4')}${ctResBloque(S,'Costos de ventas',c=>c.startsWith('5.1'))}
+    <tr><td><b>UTILIDAD BRUTA</b></td><td class="n"><b>${FF(r.bruta)}</b></td></tr>${ctResBloque(S,'Gastos operativos',c=>c.startsWith('5.2'))}
+    <tr><td><b>RESULTADO OPERATIVO</b></td><td class="n"><b>${FF(r.oper)}</b></td></tr>${ctResBloque(S,'Gastos financieros',c=>c.startsWith('5.3'))}
+    <tr><td><b>RESULTADO NETO</b></td><td class="n"><b style="color:${r.neto<0?'var(--bad)':'inherit'}">${FF(r.neto)}</b></td></tr></table>
+    <p class="hint" style="margin:8px 0 0">Costos de importación se reconocen al pagarse; lo que ingresa a inventario se capitaliza y pasa a costo al venderse. Cifras de referencia: valide con su contador.</p></div>
+   <div class="card"><h2>Mes a mes ${CT.year} (Bs)</h2><div style="overflow-x:auto"><table><tr><th>Mes</th><th class="n">Ingresos</th><th class="n">Costos y gastos</th><th class="n">Resultado</th></tr>${mens.map((m,i)=>`<tr><td>${MESES_C[i].slice(0,3)}</td><td class="n">${FF(m.ing)}</td><td class="n">${FF(m.cost+m.gas+m.fin)}</td><td class="n"><b>${FF(m.neto)}</b></td></tr>`).join('')}<tr><td><b>Total</b></td><td class="n"><b>${FF(mens.reduce((x,m)=>x+m.ing,0))}</b></td><td class="n"><b>${FF(mens.reduce((x,m)=>x+m.cost+m.gas+m.fin,0))}</b></td><td class="n"><b>${FF(mens.reduce((x,m)=>x+m.neto,0))}</b></td></tr></table></div>
+    <div class="row" style="margin-top:10px"><button class="btn sm" type="button" onclick="GX.ctExcelInf()">Exportar informes a Excel</button></div></div>`}
+function ctBalData(){const[,h]=ctRango(CT.year,+CT.pm||0),S=ctSaldos(ctAuto(),'',h),P=planFull();
+  const res=Object.keys(S).filter(c=>c[0]==='4').reduce((x,c)=>x+ctSal(S,c),0)-Object.keys(S).filter(c=>c[0]==='5').reduce((x,c)=>x+ctSal(S,c),0);
+  const grp=g=>P.filter(p=>String(p.cod)[0]==g&&(S[p.cod]||p.base)).map(p=>({...p,sal:ctSal(S,p.cod)})).filter(p=>Math.abs(p.sal)>0.004);
+  const tot=a=>a.reduce((x,p)=>x+p.sal,0),act=grp(1),pas=grp(2),pat=grp(3);
+  return{S,h,res,act,pas,pat,tA:tot(act),tP:tot(pas),tPt:tot(pat)+res}}
+function ctBal(){
+  const B=ctBalData(),S=B.S,P=planFull(),fila=p=>`<tr onclick="GX.ctAbrirMayor('${p.cod}')" style="cursor:pointer"><td>${p.cod} · ${E(p.nombre)}</td><td class="n">${FF(p.sal)}</td></tr>`;
+  const comp=P.filter(p=>S[p.cod]).map(p=>{const o=S[p.cod],n=o.d-o.h;return{p,d:o.d,h:o.h,sd:n>0?n:0,sh:n<0?-n:0}});
+  const t=comp.reduce((a,x)=>({d:a.d+x.d,h:a.h+x.h,sd:a.sd+x.sd,sh:a.sh+x.sh}),{d:0,h:0,sd:0,sh:0});
+  return `<div class="row sp"><b style="font-size:17px">Balances</b></div><div class="card">${ctPer()}<p class="hint" style="margin:10px 0 0">Saldos acumulados al ${FD(B.h)}.</p></div>
+   <div class="card"><h2>Balance general (Bs)</h2><table><tr><th colspan="2">ACTIVO</th></tr>${B.act.map(fila).join('')}<tr><td><b>Total activo</b></td><td class="n"><b>${FF(B.tA)}</b></td></tr>
+    <tr><th colspan="2">PASIVO</th></tr>${B.pas.map(fila).join('')}<tr><td><b>Total pasivo</b></td><td class="n"><b>${FF(B.tP)}</b></td></tr>
+    <tr><th colspan="2">PATRIMONIO</th></tr>${B.pat.map(fila).join('')}<tr><td>Resultado acumulado a la fecha (ingresos − costos y gastos)</td><td class="n">${FF(B.res)}</td></tr><tr><td><b>Total patrimonio</b></td><td class="n"><b>${FF(B.tPt)}</b></td></tr>
+    <tr><td><b>PASIVO + PATRIMONIO</b></td><td class="n"><b>${FF(B.tP+B.tPt)}</b></td></tr></table>
+    <p class="hint" style="margin:8px 0 0">${Math.abs(B.tA-B.tP-B.tPt)<0.5?'El balance cuadra.':'Diferencia de Bs '+FF(B.tA-B.tP-B.tPt)+': revise asientos.'}</p></div>
+   <div class="card"><h2>Balance de comprobación de sumas y saldos</h2><div style="overflow-x:auto"><table><tr><th>Cuenta</th><th class="n">Debe</th><th class="n">Haber</th><th class="n">Saldo D</th><th class="n">Saldo H</th></tr>${comp.map(x=>`<tr><td>${x.p.cod} · ${E(x.p.nombre)}</td><td class="n">${FF(x.d)}</td><td class="n">${FF(x.h)}</td><td class="n">${x.sd?FF(x.sd):''}</td><td class="n">${x.sh?FF(x.sh):''}</td></tr>`).join('')}<tr><td><b>Totales</b></td><td class="n"><b>${FF(t.d)}</b></td><td class="n"><b>${FF(t.h)}</b></td><td class="n"><b>${FF(t.sd)}</b></td><td class="n"><b>${FF(t.sh)}</b></td></tr></table></div>
+    <div class="row" style="margin-top:10px"><button class="btn sm" type="button" onclick="GX.ctExcelInf()">Exportar informes a Excel</button></div></div>`}
+function ctExcelInf(){
+  try{const A=ctAuto(),[d,h]=ctRango(CT.year,+CT.pm||0),dia=[];A.filter(a=>a.fecha>=d&&a.fecha<=h).forEach(a=>a.lineas.forEach(l=>dia.push({Asiento:a.numero,Fecha:a.fecha,Origen:a.origen,Glosa:a.glosa,Cuenta:l.cta,'Nombre de cuenta':ctNom(l.cta),Debe:l.debe,Haber:l.haber})));
+    const r=ctResPeriodo(CT.year,+CT.pm||0),er=Object.keys(r.S).filter(c=>c[0]==='4'||c[0]==='5').sort().map(c=>({Cuenta:c,Nombre:ctNom(c),Importe:ctSal(r.S,c)})).concat([{Cuenta:'',Nombre:'RESULTADO NETO',Importe:r.neto}]);
+    const B=ctBalData(),bg=[...B.act.map(p=>({Grupo:'Activo',Cuenta:p.cod,Nombre:p.nombre,Saldo:p.sal})),...B.pas.map(p=>({Grupo:'Pasivo',Cuenta:p.cod,Nombre:p.nombre,Saldo:p.sal})),...B.pat.map(p=>({Grupo:'Patrimonio',Cuenta:p.cod,Nombre:p.nombre,Saldo:p.sal})),{Grupo:'Patrimonio',Cuenta:'',Nombre:'Resultado acumulado',Saldo:B.res}];
+    const wb=XLSX.utils.book_new();[['Libro diario',dia],['Estado de resultados',er],['Balance general',bg]].forEach(([n,rows])=>XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),n));
+    const out=XLSX.write(wb,{bookType:'xlsx',type:'array'});saveBlob(new Blob([out],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),'Informes-contables-'+CT.year+(CT.pm?'-'+String(CT.pm).padStart(2,'0'):'')+'.xlsx');toastX('Excel listo')}
+  catch(e){console.error(e);toastX('No se pudo exportar: '+(e&&e.message||e))}}
+/* ---------- RRHH: empleados y planillas ---------- */
+function planTot(p){let bruto=0,lab=0,otros=0;(p.lineas||[]).forEach(l=>{const b=num(l.basico)+num(l.bonos);bruto+=b;lab+=l.descLab!==''&&l.descLab!=null?num(l.descLab):b*num(p.laboralPct)/100;otros+=num(l.otrosDesc)});
+  bruto=r2(bruto);lab=r2(lab);otros=r2(otros);return{bruto,lab,otros,liq:r2(bruto-lab-otros),pat:r2(bruto*num(p.patronalPct)/100)}}
+const lineaLiq=(l,p)=>{const b=num(l.basico)+num(l.bonos),lab=l.descLab!==''&&l.descLab!=null?num(l.descLab):b*num(p.laboralPct)/100;return{b,lab,liq:r2(b-lab-num(l.otrosDesc))}};
+function ctSyncPlanilla(p){DB.accMov.filter(m=>m.ref==='plan:'+p.id).forEach(m=>del('accMov',m.id));
+  if(p.pagada&&p.cuentaId&&byId(DB.accounts,p.cuentaId))DB.accMov.push({id:uid(),cuentaId:p.cuentaId,tipo:'Egreso',fecha:p.fechaPago||TODAY(),monto:planTot(p).liq,categoria:'Sueldos y honorarios',descripcion:'Planilla '+p.periodo,ref:'plan:'+p.id,ctaContra:'2.1.05'})}
+function ctRrhh(){
+  const p=byId(DB.planillas,CT.plan);if(p)return planDet(p);
+  const E_=[...DB.empleados].sort((a,b)=>(a.nombre||'').localeCompare(b.nombre||'')),P_=[...DB.planillas].sort((a,b)=>b.periodo.localeCompare(a.periodo));
+  return `<div class="row sp"><b style="font-size:17px">Sueldos (RRHH)</b><div class="row"><button class="btn sm" type="button" onclick="GX.fEmp()">+ Empleado</button><button class="btn pri sm" type="button" onclick="GX.fPlanilla()">+ Planilla</button></div></div>
+   <div class="card"><h2>Empleados</h2>${E_.length?E_.map(e=>`<button class="item" type="button" onclick="GX.fEmp('${e.id}')"><span class="tag">${e.activo==='no'?'Inactivo':'Activo'}</span><b>${E(e.nombre)}</b><small>${E(e.cargo||'')}${e.cargo?' · ':''}Sueldo básico Bs ${N(num(e.sueldo))}</small></button>`).join(''):'<div class="empty">Aún no hay empleados.</div>'}</div>
+   <div class="card"><h2>Planillas de sueldos</h2>${P_.length?P_.map(x=>{const t=planTot(x);return `<button class="item" type="button" onclick="GX.planAbrir('${x.id}')"><span class="tag ${x.pagada?'':'warn'}">${x.pagada?'Pagada':'Por pagar'}</span><b>${x.periodo}</b><small>Líquido Bs ${N(t.liq)} · aporte patronal Bs ${N(t.pat)}</small></button>`}).join(''):'<div class="empty">Cree la planilla de cada mes con «+ Planilla»: genera el asiento de sueldos, aportes y cargas sociales.</div>'}</div>`}
+function planAbrir(id){CT.plan=id||'';renderConta();window.scrollTo(0,0)}
+function fEmp(id){
+  const e=id?byId(DB.empleados,id):{activo:'si',fechaIngreso:TODAY()};
+  const b=sheet(id?'Editar empleado':'Nuevo empleado',inp('nombre','Nombre completo',e.nombre,{full:1})+inp('ci','C.I.',e.ci)+inp('cargo','Cargo',e.cargo)+inp('sueldo','Sueldo básico mensual (Bs)',e.sueldo,{mode:'decimal'})+inp('fechaIngreso','Fecha de ingreso',e.fechaIngreso,{t:'date'})+sel('activo','Estado',[['si','Activo'],['no','Inactivo']],e.activo||'si',{full:1}),
+   conPin(v=>{if(!v.nombre||num(v.sueldo)<=0){toastX('Falta el nombre o el sueldo');return false}if(id)Object.assign(e,v);else DB.empleados.push({id:uid(),...v});save();renderConta();toastX('Empleado guardado')},
+    v=>!!id&&cambioDato(e,v),'Este empleado ya existe. Ingrese la clave para modificar sus datos.',()=>b),
+   id?()=>{if(DB.planillas.some(p=>(p.lineas||[]).some(l=>l.empId===id))){toastX('Tiene planillas registradas: márquelo como inactivo');return}gxPin('Para eliminar al empleado ingrese la clave.').then(ok=>{if(ok){del('empleados',id);save();renderConta()}})}:null)}
+function fPlanilla(){
+  const act=DB.empleados.filter(e=>e.activo!=='no');if(!act.length){toastX('Primero registre empleados activos');return}
+  const d=new Date(),per=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+  sheet('Nueva planilla de sueldos',inp('periodo','Mes de la planilla',per,{t:'month',full:1})+inp('laboralPct','Aporte laboral que se descuenta % (referencial)','12.71',{mode:'decimal'})+inp('patronalPct','Aporte patronal y cargas sociales % (referencial)','16.71',{mode:'decimal'})+hintDiv('','Los porcentajes son referenciales (AFP, salud, vivienda, riesgo): confirme las tasas vigentes con su contador. No incluye aguinaldo ni RC-IVA.'),
+   v=>{if(!v.periodo){toastX('Elija el mes');return false}if(DB.planillas.some(p=>p.periodo===v.periodo)){toastX('Ya existe una planilla de '+v.periodo);return false}
+     const[y,m]=v.periodo.split('-').map(Number),np={id:uid(),periodo:v.periodo,fecha:v.periodo+'-'+ctLastDay(y,m),laboralPct:num(v.laboralPct),patronalPct:num(v.patronalPct),pagada:false,
+       lineas:act.map(e=>({empId:e.id,nombre:e.nombre,basico:num(e.sueldo),bonos:0,descLab:'',otrosDesc:0}))};
+     DB.planillas.push(np);save();CT.plan=np.id;renderConta();toastX('Planilla creada: revise cada empleado')})}
+function planDet(p){
+  const t=planTot(p);
+  return `<button class="back" type="button" onclick="GX.planAbrir('')">← Sueldos (RRHH)</button>
+   <div class="card"><div class="row sp"><b style="font-size:17px">Planilla ${p.periodo}</b><span class="tag ${p.pagada?'':'warn'}">${p.pagada?'Pagada '+FD(p.fechaPago):'Por pagar'}</span></div>
+    <div class="kv" style="margin-top:10px"><div><span>Haber básico + bonos</span><b>${FF(t.bruto)}</b></div><div><span>Aporte laboral (${p.laboralPct}%)</span><b>${FF(t.lab)}</b></div><div><span>Otros descuentos</span><b>${FF(t.otros)}</b></div><div><span>Líquido pagable</span><b>${FF(t.liq)}</b></div><div><span>Aporte patronal (${p.patronalPct}%)</span><b>${FF(t.pat)}</b></div><div><span>Costo total empresa</span><b>${FF(t.bruto+t.pat)}</b></div></div></div>
+   <div class="card"><div style="overflow-x:auto"><table><tr><th>Empleado</th><th class="n">Haber</th><th class="n">Desc.</th><th class="n">Líquido</th></tr>${(p.lineas||[]).map((l,i)=>{const x=lineaLiq(l,p);return `<tr onclick="GX.fLineaPlan('${p.id}',${i})" style="cursor:pointer"><td>${E(l.nombre)}</td><td class="n">${FF(x.b)}</td><td class="n">${FF(x.lab+num(l.otrosDesc))}</td><td class="n"><b>${FF(x.liq)}</b></td></tr>`}).join('')}</table></div><p class="hint" style="margin:8px 0 0">Toque un empleado para agregar bonos o descuentos.</p></div>
+   <div class="row">${p.pagada?`<button class="btn sm" type="button" onclick="GX.planDesPagar('${p.id}')">Deshacer pago (clave)</button>`:`<button class="btn pri sm" type="button" onclick="GX.fPagoPlan('${p.id}')">Registrar pago de sueldos</button>`}<button class="btn sm bad" type="button" onclick="GX.planEliminar('${p.id}')">Eliminar planilla</button></div>`}
+function fLineaPlan(pid,i){
+  const p=byId(DB.planillas,pid),l=p&&p.lineas[i];if(!l)return;
+  const b=sheet(l.nombre,inp('basico','Sueldo básico (Bs)',l.basico,{mode:'decimal'})+inp('bonos','Bonos y otros ingresos (Bs)',l.bonos,{mode:'decimal'})+inp('descLab','Aporte laboral (vacío = '+p.laboralPct+'% automático)',l.descLab,{mode:'decimal'})+inp('otrosDesc','Otros descuentos (anticipos, RC-IVA…)',l.otrosDesc,{mode:'decimal'}),
+   conPin(v=>{Object.assign(l,{basico:num(v.basico),bonos:num(v.bonos),descLab:v.descLab===''?'':num(v.descLab),otrosDesc:num(v.otrosDesc)});if(p.pagada)ctSyncPlanilla(p);save();renderConta()},v=>p.pagada,'Esta planilla ya está pagada. Ingrese la clave para modificarla.',()=>b))}
+function fPagoPlan(pid){
+  const p=byId(DB.planillas,pid);if(!p)return;const cu=DB.accounts.filter(a=>a.moneda==='Bs');
+  sheet('Pago de sueldos '+p.periodo,inp('fecha','Fecha de pago',TODAY(),{t:'date',full:1})+sel('cuentaId','Pagado desde la cuenta',[['','— No registrar en cuentas —'],...cu.map(a=>[a.id,a.nombre])],'',{full:1}),
+   v=>{if(!v.fecha){toastX('Falta la fecha');return false}p.pagada=true;p.fechaPago=v.fecha;p.cuentaId=v.cuentaId||'';ctSyncPlanilla(p);save();renderConta();toastX('Pago registrado')})}
+function planDesPagar(pid){const p=byId(DB.planillas,pid);if(!p)return;gxPin('Para deshacer el pago de la planilla ingrese la clave.').then(ok=>{if(ok){p.pagada=false;p.fechaPago='';p.cuentaId='';ctSyncPlanilla(p);save();renderConta()}})}
+function planEliminar(pid){const p=byId(DB.planillas,pid);if(!p)return;if(!confirm('¿Eliminar la planilla '+p.periodo+'?'))return;gxPin('Para eliminar la planilla ingrese la clave.').then(ok=>{if(ok){p.pagada=false;ctSyncPlanilla(p);del('planillas',pid);save();CT.plan='';renderConta()}})}
+window.GX={render,go,fImp,fPed,fLin,fPag,fCotEnPed,quitarCot,syncOps,lockOp,setCol,save,fCierre,fProv,fLoc,migrarProv,renderInv,invGo,fJalar,fEntrada,fAjuste,fPegar,fProdInv,fSerie,fEntrega,ingresarBtn,recalcBtn,ingresarImp,recalcImp,invResumen,transito,renderPas,pasGo,ctSet,ctAbrirMayor,fAsiento,fPlanCta,ctExcelInf,planAbrir,fEmp,fPlanilla,fLineaPlan,fPagoPlan,planDesPagar,planEliminar,fPrepago,contaTab,ctAbrir,ctFiltro,ctExcel,fCuenta,fMov,fTransf,pasStatsList:()=>pasStats().prox,fPas,fCuota,pasCard,renderConta,contaYear,contaExcel,contaCard,actaCompartir,actaDescargar,limpiarActas,vsFacturar,vsCorregir,vsActa,vsActaDl,renderInd,indNueva,indOpen,indGuardar,indCopiar,indPago,indQuitarPago,indSeg,indAdd,indDel,renderVs,vsGo,vsNueva,vsQuitar,vsAgregar,vsCancelar,vsGuardar,vsEditar,vsConfirmar,vsCaida,vsReabrir,vsEliminar,vsEntregar,vsAnular,vsCobro,vsQuitarCobro,vsFiltro,vsResumenAnio,vsTot,vsCob,saldoPedido,totalPedido,ESTADOS_PED,ESTADOS_IMP,
   get DB(){return DB},COLS:COLS_GX,KEYS};
 try{migrarProv()}catch(e){console.error(e)}
 try{limpiarActas()}catch(e){console.error(e)}
