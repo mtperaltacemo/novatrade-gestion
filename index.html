@@ -2378,7 +2378,16 @@ async function actaCompartir(a){
     saveBlob(blob,name);toastX('Este equipo no puede compartir directo: el PDF se descargó, adjúntelo en WhatsApp o correo')}
   catch(e){console.error(e);toastX('No se pudo generar el PDF: '+(e&&e.message||e))}}
 /* confirmación de entrega: descuenta lo entregado de lo asignado a la cotización */
-function fEntrega(op,parcial){
+async function fEntrega(op,parcial){
+  const ya=DB.invAsig.some(a=>a.quoteId===op.quoteId),lines=DB.purchaseLines.filter(l=>l.quoteId===op.quoteId);
+  const sin=lines.filter(l=>{const p=byId(DB.purchases,l.purchaseId);return p&&!p.invIngresado}).map(l=>l.producto).filter(Boolean);
+  const dim=(!lines.length?'Esta cotización no tiene pedido asociado, así que sus productos no están en el inventario.':'Los productos de esta cotización aún no ingresaron al inventario (la importación debe estar Liberada o En almacenes de Novatrade).');
+  if(!ya){toastX('No se puede entregar: '+dim);
+    if(!(await gxPin(dim+' Si es una entrega excepcional, ingrese la clave para autorizarla sin inventario.')))return null}
+  else if(sin.length&&!parcial){toastX('Aún no ingresaron al inventario: '+[...new Set(sin)].join(', ')+'. Use "Entregado parcial" o ingrese primero esa importación.');
+    if(!(await gxPin('Faltan productos por ingresar al inventario: '+[...new Set(sin)].join(', ')+'. Ingrese la clave para finalizar la entrega igualmente.')))return null}
+  return fEntregaSheet(op,parcial,sin)}
+function fEntregaSheet(op,parcial,sin){
   return new Promise(res=>{
     const as=DB.invAsig.filter(a=>a.quoteId===op.quoteId&&num(a.qty)-num(a.entregado)>1e-9);
     const rows=as.map(a=>{const rest=num(a.qty)-num(a.entregado);
@@ -2386,13 +2395,12 @@ function fEntrega(op,parcial){
        <div class="grid" style="padding:6px 0 0">${inp('q_'+a.id,'Unidades entregadas',parcial?'':rest,{mode:'decimal',full:1})}</div></div>`}).join('');
     let fot=[null,null];
     const bg=sheet(parcial?'Acta de entrega parcial':'Acta de entrega',
-     hintDiv('',as.length?'Confirme lo entregado (descuenta del inventario), quién recibió y adjunte la foto de constancia. La factura se registra después.':'Esta cotización no tiene productos en inventario: se registra solo el acta, sin descontar nada.')+rows+
+     hintDiv('',as.length?'Confirme lo entregado (descuenta del inventario), quién recibió y adjunte la foto de constancia. La factura se registra después.':'Entrega autorizada sin inventario: se registra solo el acta, sin descontar nada.')+((sin&&sin.length)?hintDiv('','<b>Aún sin ingresar al inventario (no se pueden entregar):</b> '+[...new Set(sin)].map(E).join(', ')):'')+rows+
      inp('receptor','Recibido por (nombre)',op.clienteNombre||'',{full:1,txt:1})+inp('ci','C.I. de quien recibe',"",{full:1})+
      fotoHtml()+inp('obs','Observaciones',"",{full:1})+(parcial?inp('detalle','Detalle de la entrega parcial (obligatorio)',"",{full:1}):'')+
      sec('Comprobante (déjelo en blanco si aún no factura)')+sel('tipoUnico','Comprobante',[['','— Aún sin comprobante —'],'Factura','Recibo'],'')+inp('numero','N.º de factura o recibo',"",{}),
      v=>{if(!v.receptor){toastX('Escriba quién recibió');return false}
        if(v.numero&&!v.tipoUnico){toastX('Elija si el comprobante es factura o recibo');return false}
-       if(!as.length&&!confirm('Esta cotización no tiene productos en el inventario, así que no se descontará nada. ¿Confirmar la entrega igualmente?'))return false;
        if(parcial&&!v.detalle){toastX('Escriba el detalle de la entrega parcial');return false}
        if(!fot.some(Boolean)&&!confirm('No adjuntó foto de constancia. ¿Guardar el acta sin foto?'))return false;
        const items=[];let restante=0;
@@ -2844,7 +2852,7 @@ function indEtapa(e){
   renderInd()}
 async function indPdfBlob(){
   if(!(await ensureJsPdf()))throw new Error('no se cargó la librería de PDF (falta jspdf.umd.min.js junto a index.html)');
-  const d=IND,c=indCalc(d),{jsPDF}=window.jspdf,doc=new jsPDF({unit:'mm',format:'a4'});if(!doc.autoTable)throw new Error('falta jspdf.plugin.autotable.min.js junto a index.html');
+  const d=IND,c=indCalc(d),{jsPDF}=window.jspdf,doc=new jsPDF({unit:'mm',format:'a4'});
   const W=210,M=16,NAVY=[28,53,86],BLUE=[43,127,196],GRAY=[95,108,124],urg=d.tipo==='urgente',o=d.id?opByQuote(d.id):null,cb=((o&&o.cobros)||[]);
   const lh=24,lw=lh*LOGO_W/LOGO_H;doc.addImage(LOGO,'PNG',M,12,lw,lh);
   doc.setFont('helvetica','bold');doc.setFontSize(18);doc.setTextColor(...NAVY);doc.text('COTIZACIÓN DE IMPORTACIÓN',W-M,20,{align:'right'});
@@ -2854,21 +2862,27 @@ async function indPdfBlob(){
   doc.setDrawColor(...BLUE);doc.setLineWidth(.7);doc.line(M,41,W-M,41);
   let y=48;doc.setFontSize(10);doc.setTextColor(...NAVY);doc.setFont('helvetica','bold');doc.text('Cliente',M,y);doc.setFont('helvetica','normal');doc.setTextColor(30,40,55);doc.text(d.cliente||'—',M+18,y);
   const pr=d.prods.filter(p=>p.desc&&num(p.qty)>0);
-  doc.autoTable({startY:y+6,margin:{left:M,right:M,bottom:24},theme:'plain',head:[['Ítem','Descripción','Cant.']],body:pr.map((p,i)=>[i+1,p.desc,N(num(p.qty),num(p.qty)%1?2:0)]),
-    styles:{font:'helvetica',fontSize:9.5,cellPadding:2.4,textColor:[30,40,55],lineColor:[222,229,237],lineWidth:{bottom:.2}},headStyles:{fillColor:NAVY,textColor:255,fontStyle:'bold',lineWidth:0},
-    columnStyles:{0:{cellWidth:12,halign:'center'},2:{cellWidth:24,halign:'right'}},didParseCell:x=>{if(x.section==='head'&&x.column.index===2)x.cell.styles.halign='right'}});
-  if(urg){y=doc.lastAutoTable.finalY+5;doc.setFontSize(9);doc.setTextColor(...GRAY);doc.text('Envío aéreo: '+N(c.fact)+' kg cobrables · '+N(c.bultos,0)+' bulto(s)',M,y);doc.lastAutoTable.finalY=y}
+  const tbl=(y0,head,rows,w,al,st)=>{ /* tabla simple propia: no depende del plugin autotable */
+    const fs=9.2,lh=4.6,pad=2.2;let y1=y0;
+    const hdr=()=>{doc.setFillColor(...NAVY);doc.rect(M,y1,W-2*M,7.5,'F');doc.setFont('helvetica','bold');doc.setFontSize(fs);doc.setTextColor(255,255,255);
+      let x=M;head.forEach((t,i)=>{const tx=al[i]==='r'?x+w[i]-pad:al[i]==='c'?x+w[i]/2:x+pad;doc.text(t,tx,y1+5,{align:al[i]==='r'?'right':al[i]==='c'?'center':'left'});x+=w[i]});y1+=7.5};
+    hdr();
+    rows.forEach((r,ri)=>{const sty=(st&&st(ri))||{};doc.setFont('helvetica',sty.b?'bold':sty.i?'italic':'normal');doc.setFontSize(fs);
+      const wr=r.map((t,i)=>doc.splitTextToSize(String(t==null?'':t),w[i]-2*pad)),n=Math.max(...wr.map(x=>x.length),1),h=n*lh+2*pad-1;
+      if(y1+h>272){doc.addPage();y1=18;hdr();doc.setFont('helvetica',sty.b?'bold':sty.i?'italic':'normal');doc.setFontSize(fs)}
+      doc.setTextColor(...(sty.c||[30,40,55]));let x=M;
+      wr.forEach((ln,i)=>{const tx=al[i]==='r'?x+w[i]-pad:al[i]==='c'?x+w[i]/2:x+pad;doc.text(ln,tx,y1+pad+3,{align:al[i]==='r'?'right':al[i]==='c'?'center':'left'});x+=w[i]});
+      y1+=h;doc.setDrawColor(222,229,237);doc.setLineWidth(.2);doc.line(M,y1,W-M,y1)});
+    return y1};
+  let fy=tbl(y+6,['Ítem','Descripción','Cant.'],pr.map((p,i)=>[i+1,p.desc,N(num(p.qty),num(p.qty)%1?2:0)]),[12,W-2*M-36,24],['c','l','r']);
+  if(urg){y=fy+5;doc.setFontSize(9);doc.setTextColor(...GRAY);doc.text('Envío aéreo: '+N(c.fact)+' kg cobrables · '+N(c.bultos,0)+' bulto(s)',M,y);fy=y}
   const body=[],pagUsd=k=>cb.filter(x=>x.concepto===k&&x.moneda==='USD').reduce((t,x)=>t+num(x.monto),0);let totPagUsd=0,totPagBs=0;
   c.rows.forEach(r=>{const ps=cb.filter(x=>x.concepto===r.k&&x.moneda==='USD');
     body.push({cells:[r.l,N(r.usd),'','',''],main:1});
     ps.forEach(x=>{const bsx=num(x.monto)*num(x.tc);totPagUsd+=num(x.monto);totPagBs+=bsx;body.push({cells:['    Pago recibido','USD '+N(num(x.monto)),FD(x.fecha),N(num(x.tc),2),N(bsx)],main:0})})});
   const gen=cb.filter(x=>!x.concepto).reduce((t,x)=>t+(x.moneda==='USD'?num(x.monto)*num(x.tc):num(x.monto)),0);
-  doc.autoTable({startY:doc.lastAutoTable.finalY+8,margin:{left:M,right:M,bottom:24},theme:'plain',head:[['Concepto','Valor (USD)','Fecha de pago','T/C del pago','Pagado en Bs']],body:body.map(b=>b.cells),
-    styles:{font:'helvetica',fontSize:9,cellPadding:2.2,textColor:[30,40,55],lineColor:[222,229,237],lineWidth:{bottom:.2}},headStyles:{fillColor:NAVY,textColor:255,fontStyle:'bold',lineWidth:0},
-    columnStyles:{0:{cellWidth:'auto'},1:{cellWidth:28,halign:'right'},2:{cellWidth:28,halign:'center'},3:{cellWidth:24,halign:'right'},4:{cellWidth:30,halign:'right'}},
-    didParseCell:x=>{if(x.section==='head'&&x.column.index>=1)x.cell.styles.halign=x.column.index===2?'center':'right';
-      if(x.section==='body'){const b=body[x.row.index];if(b&&!b.main){x.cell.styles.fontStyle='italic';x.cell.styles.textColor=[43,127,196]}else if(b){x.cell.styles.fontStyle='bold'}}}});
-  y=doc.lastAutoTable.finalY+7;const need=h=>{if(y+h>272){doc.addPage();y=20}};need(34);
+  fy=tbl(fy+8,['Concepto','Valor (USD)','Fecha de pago','T/C del pago','Pagado en Bs'],body.map(b=>b.cells),[W-2*M-110,28,28,24,30],['l','r','c','r','r'],i=>body[i].main?{b:1}:{i:1,c:[43,127,196]});
+  y=fy+7;const need=h=>{if(y+h>272){doc.addPage();y=20}};need(34);
   doc.setFont('helvetica','bold');doc.setFontSize(12);doc.setTextColor(...NAVY);doc.text('TOTAL',W-M-70,y);doc.text('USD '+N(c.total),W-M,y,{align:'right'});y+=6;
   doc.setFont('helvetica','normal');doc.setFontSize(9.5);doc.setTextColor(50,62,78);
   if(totPagUsd>0){doc.text('Pagado a la fecha',W-M-70,y);doc.text('USD '+N(totPagUsd)+'  =  Bs '+N(totPagBs),W-M,y,{align:'right'});y+=5.5;
