@@ -198,7 +198,7 @@ body.inhome{padding-block:0 calc(88px + env(safe-area-inset-bottom,0px))}
 .hfl i{width:9px;height:9px;border-radius:50%;background:var(--bad);flex:none}.hfl span{flex:1;min-width:0}.hfl b{display:block;font-size:14px;font-weight:800}.hfl small{display:block;font-size:12px;font-weight:700}
 .hfl svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
 .hnav{position:fixed;left:0;right:0;bottom:0;background:var(--h-nav);z-index:20;padding-bottom:env(safe-area-inset-bottom,0px)}
-.hnavin{max-width:760px;margin:0 auto;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));padding:8px 2px 10px}
+.hnavin{max-width:760px;margin:0 auto;display:grid;display:flex;overflow-x:auto;scrollbar-width:none;padding:8px 2px 10px}.hnavin::-webkit-scrollbar{display:none}.hnavin button{flex:0 0 13.3%}
 .hnavin button{background:none;border:0;display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 0;color:var(--h-navt);cursor:pointer;font-size:10.5px;font-weight:700}
 .hnavin button[aria-current]{color:#fff;font-weight:800}
 .hnavin svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
@@ -350,6 +350,8 @@ body.inhome{padding-block:0 calc(88px + env(safe-area-inset-bottom,0px))}
         <button type="button" data-go="compras"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg><span>Importaciones</span></button>
         <button type="button" data-go="inventario"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l8-4 8 4v8l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v8"/></svg><span>Inventario</span></button>
         <button type="button" data-go="track"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/></svg><span>Seguimiento</span></button>
+        <button type="button" data-go="pasivos"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10l9-6 9 6M5 10v8M9 10v8M15 10v8M19 10v8M3 20h18"/></svg><span>Pasivos</span></button>
+        <button type="button" data-go="conta"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18H6zM9 7h6M9 11h2M13 11h2M9 15h2M13 15h2"/></svg><span>Contabilidad</span></button>
       </div></nav>
     </section>
 
@@ -1034,7 +1036,7 @@ document.addEventListener('click',async e=>{
 
 /* ---------- pantalla principal, clientes (CRM) y navegación ---------- */
 const VIEWS=['pasivos','conta','ind','vstock','inventario','compras','home','quote','saved','clients','client','catalog','product','send','login','track','op','flyers','flyer'];
-const TITLES={pasivos:'Bancos y pasivos',conta:'Contabilidad (guía)',ind:'Cotización de importación',vstock:'Venta de stock',quote:'Hacer cotización',saved:'Cotizaciones guardadas',clients:'Clientes',client:'Ficha de cliente',catalog:'Catálogo',product:'Producto',send:'Enviar por WhatsApp',flyers:'Volantes',flyer:'Volante',track:'Seguimiento',op:'Operación',compras:'Importaciones',inventario:'Inventario'};
+const TITLES={pasivos:'Bancos y pasivos',conta:'Contabilidad',ind:'Cotización de importación',vstock:'Venta de stock',quote:'Hacer cotización',saved:'Cotizaciones guardadas',clients:'Clientes',client:'Ficha de cliente',catalog:'Catálogo',product:'Producto',send:'Enviar por WhatsApp',flyers:'Volantes',flyer:'Volante',track:'Seguimiento',op:'Operación',compras:'Importaciones',inventario:'Inventario'};
 const ESTADOS=[['nuevo','Nuevo'],['cotizado','Cotizado'],['ganado','Ganado'],['perdido','Perdido']];
 let clients=[],C=null,cNew=false,cPick=false,pickMode=false,cFilter='todos',cQuery='',qQuery='',confirmDelClient=false,newArm=false,cTimer;
 const loadClients=()=>{clients=lsGet('nt_clients',[])};
@@ -1164,7 +1166,7 @@ document.addEventListener('click',e=>{
   if(g==='back'){if(view==='client'){if(String(C.nombre||'').trim())commitClient();setView('clients')}else if(view==='product'||view==='send')setView('catalog');else if(view==='flyer')setView('flyers');else if(view==='op')setView('track');else if(view==='vstock'||view==='ind')setView('saved');else setView('home')}
   else if(g==='home')setView('home');
   else if(g==='startQuote'){if(S.dirty){show('datos');setView('quote')}else startQuoteFlow()}
-  else if(g==='saved'||g==='clients'||g==='compras'||g==='inventario')setView(g);
+  else if(g==='saved'||g==='clients'||g==='compras'||g==='inventario'||g==='pasivos'||g==='conta')setView(g);
   else if(g==='soon')toast('El catálogo llega en la próxima versión');
   else if(g==='newClient')openClient(null);
   else if(g==='openClient'){const id=b.dataset.id;if(clienteBloq(id)&&window.GX2)GX2.pinOk('Este cliente tiene una cotización confirmada. Ingrese la clave para modificar su ficha.').then(ok=>{if(ok)openClient(id)});else openClient(id)}
@@ -1355,13 +1357,13 @@ document.addEventListener('input',e=>{if(e.target.id==='flMsg')flMsgEdited=true}
 const CP='test_';
 try{if(CP){const b=document.getElementById('testBanner');if(b)b.hidden=false}}catch(_){}
 const FB_CFG={apiKey:"AIzaSyA2J3Z4gHQyYYvU8AzSVs9r_L_DG6Ax9AE",authDomain:"crm-novatrade.firebaseapp.com",projectId:"crm-novatrade",storageBucket:"crm-novatrade.firebasestorage.app",messagingSenderId:"944968945401",appId:"1:944968945401:web:c7af94f3b5e478442c9c28"};
-const COLS=['clients','quotes','catalog','ops','imports','purchases','purchaseLines','payments','settings','suppliers','localPurchases','invProducts','invMov','invAsig','stockSales','liabilities'];
-let cloudUser=null,cloudRemote={clients:{},quotes:{},catalog:{},ops:{},imports:{},purchases:{},purchaseLines:{},payments:{},settings:{},suppliers:{},localPurchases:{},invProducts:{},invMov:{},invAsig:{},stockSales:{},liabilities:{}},cloudUnsubs=[],cloudT,cloudSeen={},cloudMsg='';
+const COLS=['clients','quotes','catalog','ops','imports','purchases','purchaseLines','payments','settings','suppliers','localPurchases','invProducts','invMov','invAsig','stockSales','liabilities','accounts','accMov'];
+let cloudUser=null,cloudRemote={clients:{},quotes:{},catalog:{},ops:{},imports:{},purchases:{},purchaseLines:{},payments:{},settings:{},suppliers:{},localPurchases:{},invProducts:{},invMov:{},invAsig:{},stockSales:{},liabilities:{},accounts:{},accMov:{}},cloudUnsubs=[],cloudT,cloudSeen={},cloudMsg='';
 const strip=o=>JSON.parse(JSON.stringify(o));
 const gxd=c=>window.GX?GX.DB[c]:[];
-const cl_get={clients:()=>clients,quotes:()=>lsGet('nt_quotes',[]),catalog:()=>catalog,ops:()=>ops,imports:()=>gxd('imports'),purchases:()=>gxd('purchases'),purchaseLines:()=>gxd('purchaseLines'),payments:()=>gxd('payments'),settings:()=>gxd('settings'),suppliers:()=>gxd('suppliers'),localPurchases:()=>gxd('localPurchases'),invProducts:()=>gxd('invProducts'),invMov:()=>gxd('invMov'),invAsig:()=>gxd('invAsig'),stockSales:()=>gxd('stockSales'),liabilities:()=>gxd('liabilities')};
-const cl_upd={clients:c=>c.actualizado||c.creado||0,quotes:q=>q.ts||0,catalog:p=>p.upd||0,ops:o=>o.upd||0,imports:r=>r.upd||0,purchases:r=>r.upd||0,purchaseLines:r=>r.upd||0,payments:r=>r.upd||0,settings:r=>r.upd||0,suppliers:r=>r.upd||0,localPurchases:r=>r.upd||0,invProducts:r=>r.upd||0,invMov:r=>r.upd||0,invAsig:r=>r.upd||0,stockSales:r=>r.upd||0,liabilities:r=>r.upd||0};
-const GX_COLS=['imports','purchases','purchaseLines','payments','settings','suppliers','localPurchases','invProducts','invMov','invAsig','stockSales','liabilities'];
+const cl_get={clients:()=>clients,quotes:()=>lsGet('nt_quotes',[]),catalog:()=>catalog,ops:()=>ops,imports:()=>gxd('imports'),purchases:()=>gxd('purchases'),purchaseLines:()=>gxd('purchaseLines'),payments:()=>gxd('payments'),settings:()=>gxd('settings'),suppliers:()=>gxd('suppliers'),localPurchases:()=>gxd('localPurchases'),invProducts:()=>gxd('invProducts'),invMov:()=>gxd('invMov'),invAsig:()=>gxd('invAsig'),stockSales:()=>gxd('stockSales'),liabilities:()=>gxd('liabilities'),accounts:()=>gxd('accounts'),accMov:()=>gxd('accMov')};
+const cl_upd={clients:c=>c.actualizado||c.creado||0,quotes:q=>q.ts||0,catalog:p=>p.upd||0,ops:o=>o.upd||0,imports:r=>r.upd||0,purchases:r=>r.upd||0,purchaseLines:r=>r.upd||0,payments:r=>r.upd||0,settings:r=>r.upd||0,suppliers:r=>r.upd||0,localPurchases:r=>r.upd||0,invProducts:r=>r.upd||0,invMov:r=>r.upd||0,invAsig:r=>r.upd||0,stockSales:r=>r.upd||0,liabilities:r=>r.upd||0,accounts:r=>r.upd||0,accMov:r=>r.upd||0};
+const GX_COLS=['imports','purchases','purchaseLines','payments','settings','suppliers','localPurchases','invProducts','invMov','invAsig','stockSales','liabilities','accounts','accMov'];
 function cl_set(col,arr){
   if(col==='clients'){clients=arr;saveClients();updateDatalist()}
   else if(col==='quotes'){lsSet('nt_quotes',arr);loadList()}
@@ -1686,8 +1688,8 @@ document.addEventListener('change',e=>{
 <script>
 /* ===== Módulo Compras e importaciones (Pedidos, Importaciones, Pagos) · integrado al cotizador ===== */
 (function(){
-const COLS_GX=['imports','purchases','purchaseLines','payments','settings','suppliers','localPurchases','invProducts','invMov','invAsig','stockSales','liabilities'];
-const KEYS={imports:'nt_imports',purchases:'nt_purchases',purchaseLines:'nt_purchaseLines',payments:'nt_payments',settings:'nt_settings',suppliers:'nt_suppliers',localPurchases:'nt_localPurchases',invProducts:'nt_invProducts',invMov:'nt_invMov',invAsig:'nt_invAsig',stockSales:'nt_stockSales',liabilities:'nt_liabilities'};
+const COLS_GX=['imports','purchases','purchaseLines','payments','settings','suppliers','localPurchases','invProducts','invMov','invAsig','stockSales','liabilities','accounts','accMov'];
+const KEYS={imports:'nt_imports',purchases:'nt_purchases',purchaseLines:'nt_purchaseLines',payments:'nt_payments',settings:'nt_settings',suppliers:'nt_suppliers',localPurchases:'nt_localPurchases',invProducts:'nt_invProducts',invMov:'nt_invMov',invAsig:'nt_invAsig',stockSales:'nt_stockSales',liabilities:'nt_liabilities',accounts:'nt_accounts',accMov:'nt_accMov'};
 const DB={};
 for(const c of COLS_GX){const v=lsGet(KEYS[c],[]);DB[c]=Array.isArray(v)?v:[]}
 /* instantánea para detectar qué registros cambiaron (y ponerles marca de fecha 'upd' que usa la nube) */
@@ -2787,8 +2789,8 @@ function pasStats(){const o={Bs:{saldo:0,venc:0,nv:0},USD:{saldo:0,venc:0,nv:0}}
   return{o,prox:prox.sort((a,b)=>a.c.fecha.localeCompare(b.c.fecha))}}
 function pasCard(){const st=pasStats(),t=(n,l,c)=>`<div><b class="${c}">${n}</b><span>${l}</span></div>`,f=x=>(+x||0).toLocaleString('es-BO',{maximumFractionDigits:0});
   const nV=st.o.Bs.nv+st.o.USD.nv,nP=st.prox.filter(x=>x.e==='proxima').length;
-  return `<div class="hc"><div class="hrow"><h2>Bancos y pasivos</h2><button class="hlink" data-g2="pasv" type="button">Ver</button></div>
-   ${DB.liabilities.length?`<div class="hcnt" style="grid-template-columns:repeat(3,1fr)">${t(f(st.o.Bs.saldo),'Bs por pagar','c1')}${t(nV,'Cuotas vencidas',nV?'c3':'c2')}${t(nP,'Vencen en 7 días','c2')}</div>${st.o.USD.saldo>0?`<p class="hint" style="margin:10px 0 0">Además USD ${f(st.o.USD.saldo)} por pagar.</p>`:''}`:'<p class="hint" style="margin:8px 0 0">Registre préstamos o líneas de crédito con sus cuotas para recibir alertas de vencimiento.</p>'}</div>`}
+  return `<div class="hc"><div class="hrow"><h2>Pasivos bancarios</h2><button class="hlink" data-g2="pasv" type="button">Ver</button></div>
+   ${DB.liabilities.length?`<div class="hcnt" style="grid-template-columns:repeat(3,1fr)">${t(f(st.o.Bs.saldo),'Bs por pagar','c1')}${t(f(st.o.USD.saldo),'USD por pagar','c4')}${t(nV,'Cuotas vencidas',nV?'c3':'c2')}</div><p class="hint" style="margin:10px 0 0">Vencen en los próximos 7 días: ${nP}. Saldo total de ${DB.liabilities.length} préstamo(s) o línea(s).</p>`:'<p class="hint" style="margin:8px 0 0">Registre préstamos o líneas de crédito con sus cuotas para ver el total y recibir alertas de vencimiento.</p>'}</div>`}
 function renderPas(){
   const root=document.getElementById('view-pasivos');if(!root)return;const l=byId(DB.liabilities,PAS.id);
   if(PAS.mode==='det'&&l)root.innerHTML=pasDet(l);else{PAS.mode='list';root.innerHTML=pasLista()}}
@@ -2828,12 +2830,12 @@ function fCuota(pid,cid){
   const l=byId(DB.liabilities,pid);if(!l)return;l.cuotas=l.cuotas||[];
   const c=cid?l.cuotas.find(x=>x.id===cid):{n:l.cuotas.reduce((m,x)=>Math.max(m,x.n),0)+1,fecha:TODAY(),monto:'',pagada:false};
   const b=sheet(cid?'Cuota '+c.n:'Nueva cuota',inp('fecha','Fecha de vencimiento',c.fecha,{t:'date'})+inp('monto','Monto de la cuota ('+l.moneda+')',c.monto,{mode:'decimal'})+
-    sel('pagada','¿Ya se pagó?',[['no','No'],['si','Sí, pagada']],c.pagada?'si':'no',{full:1})+inp('fechaPago','Fecha de pago',c.fechaPago||(c.pagada?'':TODAY()),{t:'date'})+inp('montoPagado','Monto pagado',c.montoPagado||'',{mode:'decimal'})+inp('nota','Nota (opcional)',c.nota,{full:1}),
+    sel('pagada','¿Ya se pagó?',[['no','No'],['si','Sí, pagada']],c.pagada?'si':'no',{full:1})+inp('fechaPago','Fecha de pago',c.fechaPago||(c.pagada?'':TODAY()),{t:'date'})+inp('montoPagado','Monto pagado',c.montoPagado||'',{mode:'decimal'})+inp('nota','Nota (opcional)',c.nota,{full:1})+(DB.accounts.some(a=>a.moneda===l.moneda)?sel('cuentaId','Pagada desde la cuenta (registra el egreso)',[['','— No registrar en cuentas —'],...DB.accounts.filter(a=>a.moneda===l.moneda).map(a=>[a.id,a.nombre])],c.cuentaId||'',{full:1}):''),
    conPin(v=>{if(num(v.monto)<=0||!v.fecha){toastX('Falta la fecha o el monto');return false}
-     const reg={fecha:v.fecha,monto:num(v.monto),pagada:v.pagada==='si',fechaPago:v.pagada==='si'?(v.fechaPago||TODAY()):'',montoPagado:v.pagada==='si'?(num(v.montoPagado)||num(v.monto)):'',nota:v.nota};
-     if(cid)Object.assign(c,reg);else l.cuotas.push({id:uid(),n:c.n,...reg});save();renderPas();toastX('Cuota guardada')},
+     const reg={fecha:v.fecha,monto:num(v.monto),pagada:v.pagada==='si',fechaPago:v.pagada==='si'?(v.fechaPago||TODAY()):'',montoPagado:v.pagada==='si'?(num(v.montoPagado)||num(v.monto)):'',nota:v.nota,cuentaId:v.cuentaId||''};
+     let cc=c;if(cid)Object.assign(c,reg);else{cc={id:uid(),n:c.n,...reg};l.cuotas.push(cc)}ctSyncCuota(l,cc);save();renderPas();toastX('Cuota guardada')},
     v=>cid&&c.pagada&&(v.pagada!=='si'||v.fecha!==c.fecha||num(v.monto)!==num(c.monto)),'Esta cuota ya figura como pagada. Ingrese la clave para modificarla.',()=>b),
-   cid?()=>{const run=()=>{l.cuotas=l.cuotas.filter(x=>x.id!==cid);save();renderPas()};if(c.pagada)gxPin('Esta cuota ya figura como pagada. Ingrese la clave para borrarla.').then(ok=>{if(ok)run()});else run()}:null)}
+   cid?()=>{const run=()=>{c.pagada=false;ctSyncCuota(l,c);l.cuotas=l.cuotas.filter(x=>x.id!==cid);save();renderPas()};if(c.pagada)gxPin('Esta cuota ya figura como pagada. Ingrese la clave para borrarla.').then(ok=>{if(ok)run()});else run()}:null)}
 
 /* ================= CONTABILIDAD (guía operativa) ================= */
 let CT={year:new Date().getFullYear()};
@@ -2856,14 +2858,14 @@ function contaCalc(y){
   let favor=0;M.forEach(m=>{m.cred=m.cDim+m.cLoc+m.cGas;const x=m.deb-m.cred-favor;if(x>0){m.pagar=x;favor=0}else{m.pagar=0;favor=-x}m.favor=favor});
   return{M,pend}}
 function contaCard(){const y=new Date().getFullYear(),k=new Date().getMonth(),c=contaCalc(y),m=c.M[k],f=x=>N(x,0);
-  return `<div class="hc"><div class="hrow"><h2>Contabilidad (guía) · ${MESES[k]}</h2><button class="hlink" data-g2="conta" type="button">Ver</button></div>
+  return `<div class="hc"><div class="hrow"><h2>IVA e IT · ${MESES[k]}</h2><button class="hlink" data-g2="conta" type="button">Ver</button></div>
    <div class="hcnt" style="grid-template-columns:repeat(3,1fr)"><div><b class="c1">${f(m.pagar)}</b><span>IVA a pagar</span></div><div><b class="c2">${f(m.it)}</b><span>IT 3%</span></div><div><b class="c3">${f(m.favor)}</b><span>Saldo a favor IVA</span></div></div>
+   ${DB.accounts.length?(()=>{const tt={Bs:0,USD:0};DB.accounts.forEach(a=>{tt[a.moneda]=(tt[a.moneda]||0)+accSaldo(a)});return `<p class="hint" style="margin:10px 0 0">Disponible en cuentas y caja: Bs ${f(tt.Bs)}${tt.USD?' · USD '+f(tt.USD):''}.</p>`})():''}
    <p class="hint" style="margin:10px 0 0">Cifras de referencia en Bs: valídelas con su contador.</p></div>`}
-function renderConta(){
-  const root=document.getElementById('view-conta');if(!root)return;const y=CT.year,c=contaCalc(y),f=x=>N(x,0);
+function ctImp(){const y=CT.year,c=contaCalc(y),f=x=>N(x,0);
   const tot=c.M.reduce((a,m)=>{for(const k of ['vFac','vRec','deb','it','cDim','cLoc','cGas','cred','ret','pagar'])a[k]=(a[k]||0)+m[k];return a},{});
   const years=[...new Set([new Date().getFullYear(),y,y-1])].sort().reverse();
-  root.innerHTML=`<div class="row sp"><b style="font-size:17px">Contabilidad (guía)</b><select class="plain" style="width:auto;padding:4px 8px" onchange="GX.contaYear(this.value)">${years.map(a=>`<option ${a===y?'selected':''}>${a}</option>`).join('')}</select></div>
+  return `<div class="row sp"><b style="font-size:17px">IVA e IT (guía)</b><select class="plain" style="width:auto;padding:4px 8px" onchange="GX.contaYear(this.value)">${years.map(a=>`<option ${a===y?'selected':''}>${a}</option>`).join('')}</select></div>
    <div class="card"><p class="hint" style="margin:0">Guía operativa con lo que se registra en la app: IVA 13% e IT 3% sobre ventas entregadas y con comprobante registrado, y crédito fiscal del DIM, de compras locales con factura y de gastos con factura. Valide estas cifras con su contador antes de declarar.</p></div>
    <div class="card"><h2>Resumen ${y} (Bs)</h2><div class="kv"><div><span>Ventas con factura</span><b>${f(tot.vFac)}</b></div><div><span>Ventas con recibo</span><b>${f(tot.vRec)}</b></div><div><span>IVA débito fiscal</span><b>${f(tot.deb)}</b></div><div><span>Crédito fiscal total</span><b>${f(tot.cred)}</b></div>
     <div><span>IVA a pagar en el año</span><b>${f(tot.pagar)}</b></div><div><span>IT 3%</span><b>${f(tot.it)}</b></div><div><span>Retenciones asumidas</span><b>${f(tot.ret)}</b></div><div><span>Saldo a favor al cierre</span><b>${f(c.M[11].favor)}</b></div></div></div>
@@ -2878,7 +2880,85 @@ function contaExcel(){
     const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),'Contabilidad '+CT.year);
     const out=XLSX.write(wb,{bookType:'xlsx',type:'array'});saveBlob(new Blob([out],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),'Contabilidad-guia-'+CT.year+'.xlsx');toastX('Excel listo')}
   catch(e){console.error(e);toastX('No se pudo exportar: '+(e&&e.message||e))}}
-window.GX={render,go,fImp,fPed,fLin,fPag,fCotEnPed,quitarCot,syncOps,lockOp,setCol,save,fCierre,fProv,fLoc,migrarProv,renderInv,invGo,fJalar,fEntrada,fAjuste,fPegar,fProdInv,fSerie,fEntrega,ingresarBtn,recalcBtn,ingresarImp,recalcImp,invResumen,transito,renderPas,pasGo,pasStatsList:()=>pasStats().prox,fPas,fCuota,pasCard,renderConta,contaYear,contaExcel,contaCard,actaCompartir,actaDescargar,limpiarActas,vsFacturar,vsCorregir,vsActa,vsActaDl,renderInd,indNueva,indOpen,indGuardar,indCopiar,indPago,indQuitarPago,indSeg,indAdd,indDel,renderVs,vsGo,vsNueva,vsQuitar,vsAgregar,vsCancelar,vsGuardar,vsEditar,vsConfirmar,vsCaida,vsReabrir,vsEliminar,vsEntregar,vsAnular,vsCobro,vsQuitarCobro,vsFiltro,vsResumenAnio,vsTot,vsCob,saldoPedido,totalPedido,ESTADOS_PED,ESTADOS_IMP,
+
+/* ============ CONTABILIDAD: cuentas, caja y movimientos ============ */
+let CTab='cuentas';CT.cuenta='';CT.mes='';
+const MOV_CATS=['Cobro de venta','Pago a proveedor','Gasto de importación','Compra local','Sueldos y honorarios','Impuestos','Pago de préstamo','Préstamo recibido','Aporte de capital','Retiro de socio','Gastos generales','Otro'];
+const accSaldo=a=>num(a.saldoInicial)+DB.accMov.filter(m=>m.cuentaId===a.id).reduce((x,m)=>x+(m.tipo==='Ingreso'?1:-1)*num(m.monto),0);
+const ctCuentaNom=id=>{const a=byId(DB.accounts,id);return a?a.nombre:'(cuenta eliminada)'};
+function ctSyncCuota(l,c){DB.accMov.filter(m=>m.ref==='cuota:'+c.id).forEach(m=>del('accMov',m.id));
+  if(c.pagada&&c.cuentaId&&byId(DB.accounts,c.cuentaId))DB.accMov.push({id:uid(),cuentaId:c.cuentaId,tipo:'Egreso',fecha:c.fechaPago||TODAY(),monto:num(c.montoPagado)||num(c.monto),categoria:'Pago de préstamo',descripcion:'Cuota '+c.n+' · '+l.entidad,ref:'cuota:'+c.id})}
+function renderConta(){
+  const root=document.getElementById('view-conta');if(!root)return;
+  const tabs=[['cuentas','Cuentas y caja'],['mov','Movimientos'],['imp','IVA e IT']];
+  root.innerHTML=`<div class="row" style="gap:6px;flex-wrap:wrap">${tabs.map(([k,l])=>`<button class="btn sm ${CTab===k?'pri':''}" type="button" onclick="GX.contaTab('${k}')">${l}</button>`).join('')}</div>`+(CTab==='cuentas'?ctCuentas():CTab==='mov'?ctMov():ctImp())}
+function contaTab(k){CTab=k;renderConta();window.scrollTo(0,0)}
+function ctAbrir(id){CT.cuenta=id;CT.mes='';CTab='mov';renderConta();window.scrollTo(0,0)}
+function ctFiltro(k,v){CT[k]=v;renderConta()}
+function ctCuentas(){
+  const tot={Bs:0,USD:0};DB.accounts.forEach(a=>{tot[a.moneda]=(tot[a.moneda]||0)+accSaldo(a)});
+  const L=[...DB.accounts].sort((a,b)=>(a.tipo===b.tipo?(a.nombre||'').localeCompare(b.nombre||''):a.tipo==='Caja'?-1:1));
+  return `<div class="row sp"><b style="font-size:17px">Cuentas y caja</b><div class="row"><button class="btn sm" type="button" onclick="GX.fTransf()">Transferir</button><button class="btn pri sm" type="button" onclick="GX.fCuenta()">+ Cuenta</button></div></div>
+   <div class="card"><div class="kv"><div><span>Disponible (Bs)</span><b>${N(tot.Bs)}</b></div><div><span>Disponible (USD)</span><b>${N(tot.USD)}</b></div></div></div>
+   ${L.length?L.map(a=>{const ms=DB.accMov.filter(m=>m.cuentaId===a.id),sd=accSaldo(a);
+     return `<button class="item" type="button" onclick="GX.ctAbrir('${a.id}')"><span class="tag">${E(a.tipo)} · ${a.moneda}</span><b>${E(a.nombre)}</b><small>Saldo ${a.moneda} <b style="color:${sd<0?'var(--bad)':'inherit'}">${N(sd)}</b> · ${ms.length} movimiento(s)</small></button>`}).join(''):'<div class="card empty">Cree sus cuentas bancarias y su caja con el saldo inicial. Luego registre ingresos, egresos y transferencias.</div>'}
+   ${L.length?`<div class="row"><button class="btn pri sm" type="button" onclick="GX.fMov()">+ Movimiento</button></div>`:''}`}
+function ctMovLista(){return DB.accMov.filter(m=>(!CT.cuenta||m.cuentaId===CT.cuenta)&&(!CT.mes||(m.fecha||'').startsWith(CT.mes))).sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||'')||(b.upd||0)-(a.upd||0))}
+function ctMov(){
+  const L=ctMovLista(),meses=[...new Set(DB.accMov.map(m=>(m.fecha||'').slice(0,7)).filter(Boolean))].sort().reverse();
+  const tot={};L.forEach(m=>{const a=byId(DB.accounts,m.cuentaId),mo=a?a.moneda:'Bs';tot[mo]=tot[mo]||{i:0,e:0};tot[mo][m.tipo==='Ingreso'?'i':'e']+=num(m.monto)});
+  const cu=CT.cuenta?byId(DB.accounts,CT.cuenta):null;
+  return `<div class="row sp"><b style="font-size:17px">Movimientos</b><div class="row"><button class="btn sm" type="button" onclick="GX.fMov('','${CT.cuenta}','Ingreso')">+ Ingreso</button><button class="btn sm" type="button" onclick="GX.fMov('','${CT.cuenta}','Egreso')">+ Egreso</button></div></div>
+   <div class="card"><div class="grid"><label class="f"><span>Cuenta</span><select class="plain" onchange="GX.ctFiltro('cuenta',this.value)"><option value="">Todas</option>${DB.accounts.map(a=>`<option value="${a.id}" ${a.id===CT.cuenta?'selected':''}>${E(a.nombre)} (${a.moneda})</option>`).join('')}</select></label>
+    <label class="f"><span>Mes</span><select class="plain" onchange="GX.ctFiltro('mes',this.value)"><option value="">Todos</option>${meses.map(m=>`<option ${m===CT.mes?'selected':''}>${m}</option>`).join('')}</select></label></div>
+    ${cu?`<div class="kv" style="margin-top:10px"><div><span>Saldo actual</span><b>${cu.moneda} ${N(accSaldo(cu))}</b></div><div><span>Saldo inicial</span><b>${N(num(cu.saldoInicial))}</b></div></div><div class="row" style="margin-top:8px"><button class="btn sm" type="button" onclick="GX.fCuenta('${cu.id}')">Editar cuenta</button></div>`:''}
+    <div class="kv" style="margin-top:10px">${Object.keys(tot).map(mo=>`<div><span>Ingresos ${mo}</span><b>${N(tot[mo].i)}</b></div><div><span>Egresos ${mo}</span><b>${N(tot[mo].e)}</b></div>`).join('')||'<div><span>Sin movimientos</span><b>—</b></div>'}</div></div>
+   <div class="card">${L.length?`<table><tr><th>Fecha</th><th>Detalle</th><th class="n">Monto</th></tr>${L.map(m=>{const a=byId(DB.accounts,m.cuentaId),sg=m.tipo==='Ingreso'?1:-1;
+     return `<tr onclick="GX.fMov('${m.id}')" style="cursor:pointer"><td>${FD(m.fecha)}</td><td>${E(m.categoria||'')}${m.descripcion?' · '+E(m.descripcion):''}<br><small style="color:var(--muted)">${E(ctCuentaNom(m.cuentaId))}${m.transferId?' · transferencia':''}</small></td><td class="n" style="color:${sg>0?'var(--ok,#1a7f4b)':'var(--bad)'}">${sg>0?'+':'−'}${N(num(m.monto))}<br><small style="color:var(--muted)">${a?a.moneda:''}</small></td></tr>`}).join('')}</table><div class="row" style="margin-top:10px"><button class="btn sm" type="button" onclick="GX.ctExcel()">Exportar a Excel</button></div>`:'<div class="empty">No hay movimientos con este filtro.</div>'}</div>`}
+function fCuenta(id){
+  const a=id?byId(DB.accounts,id):{tipo:'Banco',moneda:'Bs',fechaInicial:TODAY()};
+  const b=sheet(id?'Editar cuenta':'Nueva cuenta',
+   inp('nombre','Nombre (ej. Banco Unión cta. cte., Caja chica)',a.nombre,{full:1,list:'gxBancoC'})+`<datalist id="gxBancoC">${BANCOS.map(x=>`<option value="${E(x)}">`).join('')}<option value="Caja chica"></datalist>`+
+   sel('tipo','Tipo',['Banco','Caja','Otro'],a.tipo)+sel('moneda','Moneda',['Bs','USD'],a.moneda)+
+   inp('saldoInicial','Saldo inicial',a.saldoInicial,{mode:'decimal'})+inp('fechaInicial','Saldo al',a.fechaInicial,{t:'date'})+inp('nota','Nota (opcional)',a.nota,{full:1}),
+   conPin(v=>{if(!v.nombre){toastX('Falta el nombre de la cuenta');return false}
+     if(id)Object.assign(a,v);else DB.accounts.push({id:uid(),...v});save();renderConta();toastX('Cuenta guardada')},
+    v=>!!id&&cambioDato(a,v),'Esta cuenta ya existe. Ingrese la clave para modificarla.',()=>b),
+   id?()=>{if(DB.accMov.some(m=>m.cuentaId===id)){toastX('La cuenta tiene movimientos: no se puede eliminar');return}
+     gxPin('Para eliminar la cuenta ingrese la clave.').then(ok=>{if(ok){del('accounts',id);save();CT.cuenta='';renderConta()}})}:null)}
+function fMov(id,cuentaId,tipo){
+  if(!DB.accounts.length){toastX('Primero cree una cuenta (banco o caja)');CTab='cuentas';renderConta();return}
+  const m=id?byId(DB.accMov,id):{cuentaId:cuentaId||DB.accounts[0].id,tipo:tipo||'Ingreso',fecha:TODAY()};
+  if(!m)return;if(m.transferId){ctDelTransf(m);return}
+  const b=sheet(id?'Editar movimiento':'Nuevo movimiento',
+   sel('cuentaId','Cuenta',DB.accounts.map(a=>[a.id,a.nombre+' ('+a.moneda+')']),m.cuentaId,{full:1})+sel('tipo','Tipo',['Ingreso','Egreso'],m.tipo)+inp('fecha','Fecha',m.fecha,{t:'date'})+
+   inp('monto','Monto',m.monto,{mode:'decimal'})+inp('categoria','Categoría',m.categoria,{list:'gxMovCat'})+`<datalist id="gxMovCat">${MOV_CATS.map(x=>`<option value="${E(x)}">`).join('')}</datalist>`+
+   inp('descripcion','Descripción',m.descripcion,{full:1}),
+   conPin(v=>{if(num(v.monto)<=0||!v.fecha){toastX('Falta la fecha o el monto');return false}
+     if(id)Object.assign(m,v);else DB.accMov.push({id:uid(),...v});save();renderConta();toastX('Movimiento guardado')},
+    v=>!!id&&cambioDato(m,v),'Este movimiento ya está registrado. Ingrese la clave para modificarlo.',()=>b),
+   id?()=>{gxPin('Para eliminar un movimiento ingrese la clave.').then(ok=>{if(ok){del('accMov',id);save();renderConta()}})}:null)}
+function ctDelTransf(m){
+  if(!confirm('Este movimiento es parte de una transferencia. ¿Eliminar la transferencia completa (ambos lados)?'))return;
+  gxPin('Para eliminar una transferencia ingrese la clave.').then(ok=>{if(!ok)return;DB.accMov.filter(x=>x.transferId===m.transferId).forEach(x=>del('accMov',x.id));save();renderConta();toastX('Transferencia eliminada')})}
+function fTransf(){
+  if(DB.accounts.length<2){toastX('Necesita al menos dos cuentas para transferir');return}
+  const A=DB.accounts,op=A.map(a=>[a.id,a.nombre+' ('+a.moneda+')']);
+  sheet('Transferencia entre cuentas',sel('origen','Sale de',op,A[0].id,{full:1})+sel('destino','Entra a',op,A[1].id,{full:1})+inp('fecha','Fecha',TODAY(),{t:'date'})+inp('monto','Monto que sale',"",{mode:'decimal'})+
+   inp('montoDestino','Monto que entra (solo si cambia la moneda)',"",{mode:'decimal',full:1})+inp('descripcion','Descripción (opcional)',"",{full:1}),
+   v=>{if(v.origen===v.destino){toastX('Elija dos cuentas distintas');return false}
+     const ao=byId(A,v.origen),ad=byId(A,v.destino),sal=num(v.monto);if(sal<=0||!v.fecha){toastX('Falta la fecha o el monto');return false}
+     if(ao.moneda!==ad.moneda&&num(v.montoDestino)<=0){toastX('Las monedas son distintas: escriba el monto que entra');return false}
+     const ent=num(v.montoDestino)||sal,tid=uid();
+     DB.accMov.push({id:uid(),cuentaId:ao.id,tipo:'Egreso',fecha:v.fecha,monto:sal,categoria:'Transferencia',descripcion:v.descripcion||('A '+ad.nombre),transferId:tid},
+                    {id:uid(),cuentaId:ad.id,tipo:'Ingreso',fecha:v.fecha,monto:ent,categoria:'Transferencia',descripcion:v.descripcion||('De '+ao.nombre),transferId:tid});
+     save();renderConta();toastX('Transferencia registrada')})}
+function ctExcel(){
+  try{const rows=ctMovLista().map(m=>{const a=byId(DB.accounts,m.cuentaId);return{Fecha:m.fecha,Cuenta:ctCuentaNom(m.cuentaId),Moneda:a?a.moneda:'',Tipo:m.tipo,Categoría:m.categoria||'',Descripción:m.descripcion||'',Monto:Math.round(num(m.monto)*100)/100}});
+    const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),'Movimientos');
+    const out=XLSX.write(wb,{bookType:'xlsx',type:'array'});saveBlob(new Blob([out],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),'Movimientos-'+TODAY()+'.xlsx');toastX('Excel listo')}
+  catch(e){console.error(e);toastX('No se pudo exportar: '+(e&&e.message||e))}}
+window.GX={render,go,fImp,fPed,fLin,fPag,fCotEnPed,quitarCot,syncOps,lockOp,setCol,save,fCierre,fProv,fLoc,migrarProv,renderInv,invGo,fJalar,fEntrada,fAjuste,fPegar,fProdInv,fSerie,fEntrega,ingresarBtn,recalcBtn,ingresarImp,recalcImp,invResumen,transito,renderPas,pasGo,contaTab,ctAbrir,ctFiltro,ctExcel,fCuenta,fMov,fTransf,pasStatsList:()=>pasStats().prox,fPas,fCuota,pasCard,renderConta,contaYear,contaExcel,contaCard,actaCompartir,actaDescargar,limpiarActas,vsFacturar,vsCorregir,vsActa,vsActaDl,renderInd,indNueva,indOpen,indGuardar,indCopiar,indPago,indQuitarPago,indSeg,indAdd,indDel,renderVs,vsGo,vsNueva,vsQuitar,vsAgregar,vsCancelar,vsGuardar,vsEditar,vsConfirmar,vsCaida,vsReabrir,vsEliminar,vsEntregar,vsAnular,vsCobro,vsQuitarCobro,vsFiltro,vsResumenAnio,vsTot,vsCob,saldoPedido,totalPedido,ESTADOS_PED,ESTADOS_IMP,
   get DB(){return DB},COLS:COLS_GX,KEYS};
 try{migrarProv()}catch(e){console.error(e)}
 try{limpiarActas()}catch(e){console.error(e)}
