@@ -215,6 +215,7 @@ body.inhome{padding-block:0 calc(88px + env(safe-area-inset-bottom,0px))}
 .st-nuevo{color:var(--muted)}.st-cotizado{color:var(--accent)}.st-ganado{color:var(--good)}.st-perdido{color:var(--bad)}
 .seg.s4{grid-template-columns:repeat(4,1fr)}
 .seg.s4 button{padding:9px 2px;font-size:13px}
+.itab{display:none}.itab.on{display:block}.itabs{position:sticky;top:0;z-index:6;background:var(--bg);padding:6px 0;margin:0 0 6px;overflow-x:auto;flex-wrap:nowrap}.itabs .chip{white-space:nowrap}.pcard>summary{cursor:pointer;display:flex;justify-content:space-between;gap:8px;align-items:center;list-style:none}.pcard>summary::-webkit-details-marker{display:none}.pcard>summary:after{content:'▾';color:var(--muted)}.pcard[open]>summary:after{content:'▴'}
 .sticky{position:sticky;bottom:0;background:var(--bg);padding:10px 0 4px;z-index:5}
 .back{white-space:nowrap}
 
@@ -31114,9 +31115,10 @@ function rendimientoImp(i,cm){
     const q=quoteOf(g.key),o=(typeof ops!=='undefined'?ops:[]).find(x=>x.quoteId===g.key);
     const all=DB.purchaseLines.filter(l=>l.quoteId===g.key).reduce((x,l)=>x+fobL(l),0),ratio=all>0?Math.min(g.fob/all,1):1;
     const tot=o?num(o.total):(q?num(q.total):0),cob=o?(o.cobros||[]).reduce((x,y)=>x+(y.moneda==='USD'?num(y.monto)*num(y.tc):num(y.monto)),0):0;
-    rows.push({q,numero:q?q.numero:'(cotización borrada)',cliente:q?q.cliente:'',ratio,venta:tot*ratio,cobrado:cob*ratio,costo:g.costo})});
+    let F=null;try{if(q&&q.ind)F=indCalc(q.ind).fac}catch(_){}
+    rows.push({q,numero:q?q.numero:'(cotización borrada)',cliente:q?q.cliente:'',ratio,venta:tot*ratio,cobrado:cob*ratio,costo:g.costo,impV:F?(F.deb+F.itx)*ratio:0,utilCot:F?F.util*ratio:null,recibo:!!(F&&!F.fac_)})});
   const venta=rows.reduce((x,r)=>x+r.venta,0),costo=rows.reduce((x,r)=>x+r.costo,0),cobrado=rows.reduce((x,r)=>x+r.cobrado,0);
-  return{rows,venta,costo,cobrado,util:venta-costo,margen:venta>0?(venta-costo)/venta*100:0,stock}}
+  const impV=rows.reduce((x,r)=>x+r.impV,0);return{rows,venta,costo,cobrado,util:venta-costo,impV,utilNeta:venta-costo-impV,margen:venta>0?(venta-costo)/venta*100:0,stock}}
 function costosCard(i){
   const cm=costosPorLinea(i),c=cm.c,rp=cm.rp,peds=c.peds,pays=c.pays;
   const kv=(l,v)=>`<div><span>${l}</span><b>${v}</b></div>`,cat=k=>pays.filter(p=>p.categoria===k).reduce((x,p)=>x+costoBs(p),0);
@@ -31149,8 +31151,9 @@ function costosCard(i){
    ${peds.length?`<h4 class="sec">Reparto por pedido ${rp.porCbm?'(logística por CBM)':'(logística por valor FOB: falta el CBM de algún pedido)'}</h4>
    <table><tr><th>Pedido</th><th class="n">%</th><th class="n">Merc.</th><th class="n">Logíst.</th><th class="n">Impu.</th><th class="n">Total</th></tr>${peds.map(p=>{const t=pedTot(p);return `<tr><td>${E(p.numero)}</td><td class="n">${N(rp.sh[p.id]*100,1)}</td><td class="n">${N(t.prov,0)}</td><td class="n">${N(t.logis,0)}</td><td class="n">${N(t.imp,0)}</td><td class="n">${N(t.tot,0)}</td></tr>`}).join('')}</table>`:''}
    <h4 class="sec">Rendimiento de la importación</h4>
-   ${r.rows.length?`<table><tr><th>Cotización</th><th class="n">Venta</th><th class="n">Costo</th><th class="n">Utilidad</th></tr>${r.rows.map(x=>`<tr><td>${E(x.numero)}<br><small style="color:var(--muted)">${E(x.cliente||'')}${x.ratio<0.999?' · '+N(x.ratio*100,0)+'% de la cotización':''} · cobrado ${N(x.cobrado,0)}</small></td><td class="n">${N(x.venta,0)}</td><td class="n">${N(x.costo,0)}</td><td class="n">${N(x.venta-x.costo,0)}</td></tr>`).join('')}
-    <tr><td><b>Total</b></td><td class="n"><b>${N(r.venta,0)}</b></td><td class="n"><b>${N(r.costo,0)}</b></td><td class="n"><b>${N(r.util,0)}</b></td></tr></table>
+   ${r.rows.length?`<table><tr><th>Cotización</th><th class="n">Venta</th><th class="n">Costo</th><th class="n">Utilidad</th></tr>${r.rows.map(x=>`<tr><td>${E(x.numero)}<br><small style="color:var(--muted)">${E(x.cliente||'')}${x.ratio<0.999?' · '+N(x.ratio*100,0)+'% de la cotización':''} · cobrado ${N(x.cobrado,0)}</small></td><td class="n">${N(x.venta,0)}</td><td class="n">${N(x.costo,0)}</td><td class="n">${N(x.venta-x.costo,0)}${x.impV>0?`<br><small style="color:var(--muted)">− IVA/IT venta ${N(x.impV,0)} = <b>${N(x.venta-x.costo-x.impV,0)}</b></small>`:''}${x.utilCot!=null?`<br><small style="color:var(--muted)">cotización: ${N(x.utilCot,0)}</small>`:''}</td></tr>`).join('')}
+    <tr><td><b>Total</b></td><td class="n"><b>${N(r.venta,0)}</b></td><td class="n"><b>${N(r.costo,0)}</b></td><td class="n"><b>${N(r.util,0)}</b></td></tr>${r.impV>0?`<tr><td>(−) IVA débito e IT de la venta</td><td></td><td></td><td class="n">− ${N(r.impV,0)}</td></tr><tr><td><b>Utilidad después de impuestos de la venta</b></td><td></td><td></td><td class="n"><b>${N(r.utilNeta,0)}</b></td></tr>`:''}</table>
+    <p class="hint" style="margin:6px 0 0">«Utilidad» = venta − costo real (mercadería + logística + impuestos netos). Aún no descuenta el IVA débito ni el IT de la venta; esa línea los resta tal como los calcula la cotización. Si sigue habiendo diferencia con la utilidad de la cotización (la cifra «cotización» debajo de cada utilidad), es porque los costos reales pagados difieren de los estimados, o porque en «Datos de costeo» hay un crédito fiscal de IVA del DIM y la cotización es con recibo (sin crédito).</p>
     <div class="kv" style="margin-top:10px">${kv('Margen sobre la venta',N(r.margen,1)+' %')}${kv('Cobrado a la fecha (Bs)',N(r.cobrado,0))}</div>`:'<div class="empty">Ninguna línea de los pedidos viene de una cotización.</div>'}
    ${r.stock>0?`<p class="hint" style="margin:8px 0 0">Mercadería para stock propio (no entra en el rendimiento): costo Bs ${N(r.stock,0)}.</p>`:''}
    <p class="hint">Lo que falte por registrar (pagos, CBM, CIF, impuestos) cambia estas cifras. Las cifras de IVA y crédito fiscal son una guía operativa: valídalas con tu contador. Al cerrar la importación se recalculan los costos del inventario.</p></div>`}
@@ -31791,8 +31794,9 @@ function renderInd(){
   const sk=(k,l,opts,o={})=>`<label class="f ${o.full?'full':''}"><span>${l}</span><select class="plain" data-ind="${k}">${opts.map(([v,t])=>`<option value="${v}" ${v===d[k]?'selected':''}>${t}</option>`).join('')}</select></label>`;
   const lock=(k,l)=>String(d[k]==null?'':d[k]).trim()!==''?f(k,l+' · editada a mano',{full:1})+`<div class="full row"><button class="btn sm" type="button" onclick="GX.indVolver('${k}')">Volver al cálculo</button></div>`:`<label class="f full"><span>${l}</span><input class="plain" id="indIn_${k}" readonly value=""></label><div class="full row"><button class="btn sm" type="button" onclick="GX.indDesbloq('${k}')">Modificar (pide clave)</button></div>`;
   const pg=[['novatrade','Lo paga Novatrade (se cobra al cliente)'],['cliente','Lo paga el cliente (solo para CIF e impuestos)']];
+  IND_TAB=IND_TAB||'datos';const T_=(k)=>`itab ${IND_TAB===k?'on':''}`;
   const q=d.id?lsGet('nt_quotes',[]).find(x=>x.id===d.id):null,exw=d.precioModo==='exw',ci=d.cbmModo==='item'&&!urg;
-  const prod=(p,k)=>`<div style="border:1px solid var(--line);border-radius:10px;padding:8px;margin-top:8px"><div class="row sp"><b>${k+1}</b>${d.prods.length>1?`<button class="btn sm bad" type="button" onclick="GX.indDel('prods',${k})">Quitar</button>`:''}</div><div class="grid" style="padding-top:6px">
+  const prod=(p,k)=>`<details class="pcard" ${IND_OPEN.has(k)?'open':''} ontoggle="GX.indTg(${k},this.open)" style="border:1px solid var(--line);border-radius:10px;padding:8px;margin-top:8px"><summary><b>${k+1}. ${E(p.desc||'Producto nuevo')}</b><span class="hint" style="margin-left:auto">${num(p.qty)>0?N(num(p.qty),num(p.qty)%1?2:0):'—'} × USD ${N(num(p.fob))}</span></summary><div class="grid" style="padding-top:6px">
     <label class="f full"><span>Descripción</span><input class="plain" data-ip="${k}" data-f="desc" value="${E(p.desc)}" autocomplete="off"></label>
     <label class="f"><span>Cantidad</span><input class="plain" inputmode="decimal" data-ip="${k}" data-f="qty" value="${E(p.qty)}"></label>
     <label class="f"><span>${exw?'EXW':'FOB'} unitario (USD)</span><input class="plain" inputmode="decimal" data-ip="${k}" data-f="fob" value="${E(p.fob)}"></label>
@@ -31803,7 +31807,7 @@ function renderInd(){
     <label class="f"><span>Factor de facturación (vacío = automático)</span><input class="plain" inputmode="decimal" data-ip="${k}" data-f="fact" value="${E(p.fact)}" placeholder="${p.ivaV==='0'?'0,97':'0,84'}"></label>
     ${ci?`<label class="f full"><span>CBM de este producto (total de la línea)</span><input class="plain" inputmode="decimal" data-ip="${k}" data-f="cbm" value="${E(p.cbm)}"></label>`:''}
     <label class="chk full"><input type="checkbox" data-ip="${k}" data-f="ice" ${p.ice?'checked':''}> ¿Paga ICE?</label>
-    ${p.ice?`<label class="f"><span>ICE: tipo</span><select class="plain" data-ip="${k}" data-f="iceModo"><option value="pct" ${p.iceModo!=='fijo'?'selected':''}>Porcentaje (sobre CIF + GA)</option><option value="fijo" ${p.iceModo==='fijo'?'selected':''}>Valor fijo (USD)</option></select></label><label class="f"><span>${p.iceModo==='fijo'?'ICE (USD)':'ICE %'}</span><input class="plain" inputmode="decimal" data-ip="${k}" data-f="iceVal" value="${E(p.iceVal)}"></label>`:''}</div></div>`;
+    ${p.ice?`<label class="f"><span>ICE: tipo</span><select class="plain" data-ip="${k}" data-f="iceModo"><option value="pct" ${p.iceModo!=='fijo'?'selected':''}>Porcentaje (sobre CIF + GA)</option><option value="fijo" ${p.iceModo==='fijo'?'selected':''}>Valor fijo (USD)</option></select></label><label class="f"><span>${p.iceModo==='fijo'?'ICE (USD)':'ICE %'}</span><input class="plain" inputmode="decimal" data-ip="${k}" data-f="iceVal" value="${E(p.iceVal)}"></label>`:''}</div><div class="row" style="margin-top:10px;gap:8px"><button class="btn sm pri" type="button" onclick="GX.indSaveProd(${k})">Guardar</button>${d.prods.length>1?`<button class="btn sm bad" type="button" onclick="GX.indDel('prods',${k})">Eliminar producto</button>`:''}</div></details>`;
   const fleteBlk=urg?`<div class="full hint" id="indFl" style="margin:0"></div>`:f('fleteUsd',d.fletePaga==='cliente'?'Valor del flete (USD, para CIF)':'Flete internacional (USD)',{full:1});
   const segBlk=d.seguroPaga==='cliente'?f('seguroUsd','Valor del seguro (USD, para CIF)')+f('seguroPond','% del seguro que entra al CIF')
     :sk('seguroModo','Seguro contratado por Novatrade',[['con','Con seguro'],['sin','Sin seguro']],{full:1})+(d.seguroModo==='sin'?hintDiv('','Sin costo en el detalle. Para el CIF y los impuestos se toma el 2% del FOB total, completo.')
@@ -31811,19 +31815,21 @@ function renderInd(){
   const oo=d.id?opByQuote(d.id):null,cur=oo?oo.etapa:null;
   const est=d.id?`<div class="card"><h2>Estado de la cotización</h2><div class="chips">${ETAPAS.map(([k,l])=>`<button class="chip" type="button" onclick="GX.indEtapa('${k}')" aria-pressed="${cur===k}">${l}</button>`).join('')}</div><p class="hint" style="margin:10px 0 0">${oo?(cur==='cancelada'?'Operación cancelada.':'Estado actual: <b>'+E(ETL[cur]||cur)+'</b>. Se actualiza igual desde el módulo de Seguimiento.'):'Sin seguimiento todavía. Toque una etapa para iniciarlo.'}</p><div class="row" style="margin-top:10px"><button class="btn sm" type="button" onclick="GX.indSeg()">Abrir seguimiento completo</button>${oo?`<button class="btn sm" type="button" onclick="GX.indLink(0)">Copiar enlace de rastreo</button><button class="btn sm" type="button" onclick="GX.indLink(1)">Enviar rastreo por WhatsApp</button>`:''}</div></div>`
     :`<div class="card"><p class="hint" style="margin:0">Guarde la cotización para darle seguimiento y poder agregarla a un pedido de Importaciones.</p></div>`;
-  root.innerHTML=`<button class="back" type="button" onclick="setView('saved')">← Cotizaciones</button>${est}
+  root.innerHTML=`<button class="back" type="button" onclick="setView('saved')">← Cotizaciones</button>
+  <div class="chips itabs">${[['datos','Datos'],['prod','Productos'],['trans','Transporte'],['gastos','Gastos'],['res','Resumen']].map(([k,l])=>`<button class="chip" type="button" aria-pressed="${IND_TAB===k}" onclick="GX.indTab('${k}')">${l}</button>`).join('')}</div>
+  <div class="${T_('datos')}">${est}
   <div class="card"><h2>${urg?'Importación urgente (aérea)':'Importación individual'} ${d.numero?'· '+E(d.numero):'· nueva'}</h2><div class="grid">
-   ${f('cliente','Cliente',{full:1,txt:1,list:'indCl'})}<datalist id="indCl">${cl.map(x=>`<option value="${E(x)}">`).join('')}</datalist>
+   ${indCliSel(d)}
    ${f('fecha','Fecha',{t:'date'})}${f('tc','T/C de la cotización (Bs por USD)',{ph:'12,08'})}
    ${f('tcOf','T/C oficial para la aduana (vacío = el mismo)',{full:1,ph:'6,96'})}
    ${f('proveedor','Proveedor',{full:1,txt:1})}
    ${sk('comprobante','Voy a emitir',[['Factura','Factura'],['Recibo','Recibo']],{full:1})}
-   ${urg?'':f('peso','Peso total (kg)')+f('bultos','Bultos')+sk('cbmModo','CBM',[['total','CBM total de la carga'],['item','CBM por producto']],{full:1})+(d.cbmModo==='item'?hintDiv('','Escribe el CBM en cada producto: el flete y el seguro se reparten entre ellos según su CBM.'):f('cbm','CBM total',{full:1}))}</div></div>
-  <div class="card"><h2>Productos</h2>
+   ${urg?'':f('peso','Peso total (kg)')+f('bultos','Bultos')+sk('cbmModo','CBM',[['total','CBM total de la carga'],['item','CBM por producto']],{full:1})+(d.cbmModo==='item'?hintDiv('','Escribe el CBM en cada producto: el flete y el seguro se reparten entre ellos según su CBM.'):f('cbm','CBM total',{full:1}))}</div></div></div>
+  <div class="${T_('prod')}"><div class="card"><h2>Productos</h2>
    <div class="grid">${sk('precioModo','El precio del proveedor es',[['fob','FOB (ya llega hasta el puerto de origen)'],['exw','EXW (en fábrica: sumo el envío interno)']],{full:1})}${exw?f('gastosOrigen','Envío interno y gastos en origen para llegar al FOB (USD, total)',{full:1}):''}</div>
    ${d.prods.map(prod).join('')}
-   <button class="btn sm" style="margin-top:8px" type="button" onclick="GX.indAdd('prods')">+ Producto</button></div>
-  ${urg?`<div class="card"><h2>Bultos y flete aéreo</h2>${d.paq.map((p,k)=>`<div style="border:1px solid var(--line);border-radius:10px;padding:8px;margin-top:8px"><div class="row sp"><b>Bulto ${k+1}</b>${d.paq.length>1?`<button class="btn sm bad" type="button" onclick="GX.indDel('paq',${k})">Quitar</button>`:''}</div><div class="grid" style="padding-top:6px">
+   <button class="btn sm" style="margin-top:8px" type="button" onclick="GX.indAdd('prods')">+ Producto</button></div></div>
+  <div class="${T_('trans')}">${urg?`<div class="card"><h2>Bultos y flete aéreo</h2>${d.paq.map((p,k)=>`<div style="border:1px solid var(--line);border-radius:10px;padding:8px;margin-top:8px"><div class="row sp"><b>Bulto ${k+1}</b>${d.paq.length>1?`<button class="btn sm bad" type="button" onclick="GX.indDel('paq',${k})">Quitar</button>`:''}</div><div class="grid" style="padding-top:6px">
     ${['qty:Cantidad de bultos iguales','kg:Peso real por bulto (kg)','L:Largo (cm)','A:Ancho (cm)','H:Alto (cm)'].map(x=>{const [kk,l]=x.split(':');return `<label class="f ${kk==='qty'?'full':''}"><span>${l}</span><input class="plain" inputmode="decimal" data-ia="${k}" data-f="${kk}" value="${E(p[kk])}"></label>`}).join('')}</div></div>`).join('')}
    <button class="btn sm" style="margin-top:8px" type="button" onclick="GX.indAdd('paq')">+ Bulto</button><div class="hint" id="indAir" style="margin:10px 0"></div>
    <div class="grid">${f('tarifaKg','Tarifa del flete (USD por kg cobrable)',{full:1})}</div></div>`:''}
@@ -31835,24 +31841,43 @@ function renderInd(){
    <h4 class="sec">Seguro</h4>${sk('seguroPaga','Seguro',pg,{full:1})}${segBlk}
    <h4 class="sec">Gastos logísticos</h4>${sk('logPaga','Gastos logísticos',pg,{full:1})}${f('manejoUsd','Gastos logísticos (USD)',{full:1})}
    ${urg?`<label class="chk full"><input type="checkbox" data-ind="recojo" ${d.recojo?'checked':''}> Incluir recojo en origen (EXW)</label>${d.recojo?f('recojoUsd','Costo del recojo (USD)',{full:1}):''}`:''}${f('logPond','% de los gastos logísticos que entra al CIF',{full:1})}</div></div>
-  <div class="card"><h2>Comisión, impuestos y gastos</h2>
+  </div><div class="${T_('gastos')}"><div class="card"><h2>Comisión, impuestos y gastos</h2>
    <div class="grid">${f('giroPct','Comisión por giro al exterior (%)',{full:1})}
    <h4 class="sec">Impuestos aduaneros</h4><div class="full hint" id="indImp" style="margin:0"></div>${f('sistAd','Uso sistema aduana (Bs)',{full:1})}
    <h4 class="sec">Agencia despachante (Bs)</h4>${lock('agencia','Comisión de agencia (calculada con la tabla)')}${f('carpeta','Costo carpeta (Bs)')}${f('despacho','Gastos de despacho (Bs)')}${f('otrosAg','Otros gastos de agencia (Bs)',{full:1})}
    <h4 class="sec">Otros gastos (Bs)</h4>${f('transpLocal','Transporte de entrega a domicilio (Bs)',{full:1})}${lock('almacen','Almacenaje (0,67% del CIF)')}${f('otros','Otros gastos (Bs)',{full:1})}
    <h4 class="sec">Comisión de Novatrade</h4>${sk('comModo','Se calcula como',[['pct','Porcentaje del valor FOB'],['usd','Monto fijo en USD']],{full:1})}${f('comVal',d.comModo==='usd'?'Comisión Novatrade (USD)':'Comisión Novatrade (% del FOB)',{full:1})}</div></div>
-  <div class="card"><h2>Condiciones que salen en el PDF</h2><textarea class="ta" id="indCond" data-ind="cond" ${d.condAuto===false?'':'readonly'} style="min-height:260px">${E(d.condAuto===false?d.cond:indCondTxt(d))}</textarea><div class="row" style="margin-top:8px"><button class="btn sm" type="button" onclick="GX.indCondEdit()">${d.condAuto===false?'Volver al texto automático':'Editar texto (clave)'}</button></div><p class="hint" style="margin:6px 0 0">El texto se genera solo (incluye el descuento si lo activas). Para cambiarlo hace falta la clave.</p></div>
+  </div><div class="${T_('res')}"><div class="card"><h2>Condiciones que salen en el PDF</h2><textarea class="ta" id="indCond" data-ind="cond" ${d.condAuto===false?'':'readonly'} style="min-height:260px">${E(d.condAuto===false?d.cond:indCondTxt(d))}</textarea><div class="row" style="margin-top:8px"><button class="btn sm" type="button" onclick="GX.indCondEdit()">${d.condAuto===false?'Volver al texto automático':'Editar texto (clave)'}</button></div><p class="hint" style="margin:6px 0 0">El texto se genera solo (incluye el descuento si lo activas). Para cambiarlo hace falta la clave.</p></div>
   <div class="card"><div class="row sp"><h2 style="margin:0">Resumen para el cliente</h2><select class="plain" data-ind="vista" style="width:auto;padding:4px 8px"><option value="ambas" ${d.vista==='ambas'||!d.vista?'selected':''}>USD y Bs</option><option value="USD" ${d.vista==='USD'?'selected':''}>Solo USD</option><option value="Bs" ${d.vista==='Bs'?'selected':''}>Solo Bs</option></select></div>
    <p class="hint" style="margin:6px 0 8px">Cada línea usa el T/C de la cotización. Puede poner otro T/C en una línea (por ejemplo el del pago al proveedor o del flete) o escribir directamente el monto en Bs si agrupa varios T/C. Con ↺ vuelve al cálculo.</p><div id="indRes"></div></div>
   <div class="card"><h2>Rentabilidad interna (después de facturar)</h2><p class="hint" style="margin:0 0 8px">Solo para ti: no se muestra al cliente. Descuenta el IVA débito y el IT, y el IVA de importación se recupera como crédito fiscal.</p>
    <div class="grid">${f('tcCosto','T/C real con el que compro los dólares (vacío = el de la cotización)',{full:1})}${sk('margenModo','Margen mínimo que quiero ganar',[['pct','Porcentaje del precio facturado'],['bs','Monto fijo en Bs'],['usd','Monto fijo en USD']],{full:1})}${f('margenVal','Margen mínimo',{full:1})}${sk('itOn','¿Calcular el IT (3%) y descontarlo de mi ganancia?',[['1','Sí, calcular el IT'],['0','No: no se calcula ni se descuenta']],{full:1})}${sk('descModo','Descuento por pago 100% anticipado',[['no','No aplicar'],['pct','Porcentaje del total'],['usd','Monto fijo (USD)']],{full:1})}${d.descModo!=='no'?f('descVal',d.descModo==='usd'?'Descuento (USD)':'Descuento (% del total)',{full:1}):''}</div><div id="indFac" style="margin-top:10px"></div></div>
   <div class="row" style="flex-wrap:wrap"><button class="btn pri" type="button" onclick="GX.indGuardar()">Guardar cotización</button><button class="btn" type="button" onclick="GX.indCopiar()">Copiar texto para el cliente</button><button class="btn" type="button" onclick="GX.indPdf(false)">Descargar PDF</button><button class="btn" type="button" onclick="GX.indPdf(true)">Compartir PDF</button>${q?'<button class="btn" type="button" onclick="GX.indSeg()">Ver seguimiento</button>':''}</div>
-  ${q?`<div class="card"><h2>Cobros por concepto</h2><div id="indCob"></div></div>`:''}`;
+  ${q?`<div class="card"><h2>Cobros por concepto</h2><div id="indCob"></div></div>`:''}</div>
+  <div class="sticky"><div class="row" style="gap:8px;align-items:center"><div id="indBarTxt" class="hint" style="flex:1;margin:0"></div><button class="btn pri" type="button" onclick="GX.indGuardar()">Guardar</button></div></div>`;
   indRecalc();indCobros()}
+let IND_TAB='datos',IND_OPEN=new Set();
+function indTab(k){IND_TAB=k;renderInd();window.scrollTo(0,0)}
+function indTg(k,o){if(o)IND_OPEN.add(k);else IND_OPEN.delete(k)}
+function indSaveProd(k){IND_OPEN.delete(k);indGuardar().then(()=>{})}
+function indCliSel(d){
+  const cs=(typeof clients!=='undefined'?clients:[]).slice().sort((a,b)=>String(a.nombre).localeCompare(String(b.nombre),'es'));
+  const cur=d.clienteId&&cs.find(c=>c.id===d.clienteId)||cs.find(c=>sameName(c.nombre,d.cliente||''));
+  return `<label class="f full"><span>Cliente (del módulo Clientes)</span><select class="plain" onchange="GX.indCli(this.value)"><option value="">— Elegir cliente —</option>${cur||!String(d.cliente||'').trim()?'':`<option value="__cur" selected>${E(d.cliente)} (no está en Clientes)</option>`}${cs.map(c=>`<option value="${E(c.id)}" ${cur&&cur.id===c.id?'selected':''}>${E(c.nombre)}</option>`).join('')}<option value="__new">+ Nuevo cliente…</option></select></label>`}
+function indCli(v){
+  if(v==='__cur')return;
+  if(v==='__new'){const b=sheet('Nuevo cliente',inp('nombre','Nombre o razón social','',{full:1})+inp('telefono','Teléfono','',{})+inp('direccion','Dirección','',{full:1}),
+    x=>{if(!x.nombre){toastX('Falta el nombre');return false}
+      let c=clients.find(y=>sameName(y.nombre,x.nombre));
+      if(!c){c={id:'c'+Date.now(),codigo:nextClientCode(),nombre:x.nombre,contacto:'',telefono:x.telefono||'',ci:'',direccion:x.direccion||'',correo:'',notas:'',estado:'nuevo',proximo:'',creado:Date.now(),actualizado:Date.now()};clients.unshift(c);saveClients();updateDatalist();syncSoon();cloudPushSoon()}
+      IND.cliente=c.nombre;IND.clienteId=c.id;renderInd()},null,()=>renderInd());return}
+  const c=clients.find(x=>x.id===v);if(c){IND.cliente=c.nombre;IND.clienteId=c.id}else{IND.cliente='';IND.clienteId=''}
+  renderInd()}
 function indRecalc(){
   const d=IND;if(!d)return;const c=indCalc(d),r=document.getElementById('indRes');if(!r)return;
   const air=document.getElementById('indAir');if(air)air.innerHTML=`Peso real <b>${N(c.real)} kg</b> · peso volumétrico (L×A×H÷5000) <b>${N(c.pv)} kg</b> · se cobra <b>${N(c.fact)} kg</b> (${c.pv>c.real?'volumétrico':'real'}) · ${N(c.bultos,0)} bulto(s)`;
   const fl=document.getElementById('indFl');if(fl)fl.innerHTML=`Flete aéreo calculado: <b>USD ${N(c.fact*num(d.tarifaKg))}</b> (${N(c.fact)} kg × tarifa)`;
+  {const bt=document.getElementById('indBarTxt');if(bt){const F0=c.fac;bt.innerHTML='Total <b>Bs '+N(c.totalBs,0)+'</b> · USD '+N(c.total)+(c.tc>0?' · Utilidad <b'+(F0.util<0?' style="color:var(--bad,#c0392b)"':'')+'>Bs '+N(F0.util,0)+'</b>':'')}}
   const tc=c.tc,ia=document.getElementById('indIn_agencia');if(ia)ia.value=N(c.agAuto,0);const il=document.getElementById('indIn_almacen');if(il)il.value=N(c.almAuto,0);
   const ip=document.getElementById('indImp');if(ip){const gB=(c.R.ga+c.R.ice+c.R.iva)*tc;ip.innerHTML=`<b>CIF: USD ${N(c.CIF)}</b> (FOB ${N(c.FOB)})<br>Gravamen: Bs ${N(c.R.ga*tc)}${c.R.ice>0?' · ICE: Bs '+N(c.R.ice*tc):''} · IVA: Bs ${N(c.R.iva*tc)}<br><b>Total impuestos: Bs ${N(gB)}</b> (sin el uso del sistema aduana)`}
   {const ct=document.getElementById('indCond');if(ct&&d.condAuto!==false)ct.value=indCondTxt(d)}
@@ -31911,7 +31936,7 @@ async function indPdfBlob(){
       wr.forEach((ln,i)=>{const tx=al[i]==='r'?x+w[i]-pad:al[i]==='c'?x+w[i]/2:x+pad;doc.text(ln,tx,y1+pad+3,{align:al[i]==='r'?'right':al[i]==='c'?'center':'left'});x+=w[i]});
       y1+=h;doc.setDrawColor(222,229,237);doc.setLineWidth(.2);doc.line(M,y1,W-M,y1)});
     return y1};
-  let fy=tbl(y+6,['Ítem','Descripción','Cant.'],pr.map((p,i)=>[i+1,p.desc,N(num(p.qty),num(p.qty)%1?2:0)]),[12,W-2*M-36,24],['c','l','r']);
+  let fy=y-2;
 
   const body=[],pagUsd=k=>cb.filter(x=>x.concepto===k&&x.moneda==='USD').reduce((t,x)=>t+num(x.monto),0);let totPagUsd=0,totPagBs=0;
   c.rows.forEach(r=>{const ps=cb.filter(x=>x.concepto===r.k&&x.moneda==='USD');
@@ -31927,6 +31952,8 @@ async function indPdfBlob(){
   if(gen>0){doc.text('Otros pagos recibidos sin concepto: Bs '+N(gen),M,y);y+=5.5}
   if(c.fac&&c.fac.dsc>0){need(8);doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(...BLUE);doc.text('Pagando el 100% por anticipado',W-M-100,y);doc.text('USD '+N(c.total-c.fac.dscU),W-M,y,{align:'right'});y+=7}
   doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(...GRAY);const nt=doc.splitTextToSize('Los pagos se registran en Bs al tipo de cambio de la fecha en que se recibe cada pago, para que usted controle cuánto le cuesta su mercadería. Los conceptos sin pago muestran solo el valor en USD.',W-2*M);need(nt.length*4+6);doc.text(nt,M,y+2);y+=nt.length*4+8;
+  if(pr.length){need(30);doc.setFont('helvetica','bold');doc.setFontSize(10.5);doc.setTextColor(...NAVY);doc.text('DETALLE DE PRODUCTOS',M,y+2);
+    y=tbl(y+5,['Ítem','Descripción','Cant.'],pr.map((p,i)=>[i+1,p.desc,N(num(p.qty),num(p.qty)%1?2:0)]),[12,W-2*M-36,24],['c','l','r'])+6}
   y=pdfCond(doc,d.condAuto===false?d.cond:indCondTxt(d),M,W,y);
   const n=doc.getNumberOfPages(),contact=[cfg.tel,cfg.mail,cfg.dir].filter(Boolean).join('  ·  ');
   for(let i=1;i<=n;i++){doc.setPage(i);doc.setDrawColor(215,224,234);doc.setLineWidth(.3);doc.line(M,282,W-M,282);doc.setFontSize(8.5);doc.setTextColor(...GRAY);
@@ -31967,8 +31994,8 @@ function indPago(){
   const h=()=>{const v=vals(b);b.querySelector('#indPgH').textContent='Equivale a Bs '+N(num(v.monto)*num(v.tc))};b.addEventListener('input',h);h()}
 async function indQuitarPago(k){const o=IND&&IND.id?opByQuote(IND.id):null;if(!o)return;if(!await gxPin('Para borrar un cobro registrado ingrese la clave.'))return;o.cobros.splice(k,1);o.upd=Date.now();saveOps();cloudPushSoon();renderInd()}
 function indSeg(){if(IND&&IND.id)openOpFromQuote(IND.id)}
-function indAdd(w){IND[w].push(w==='prods'?indProd():{qty:'1',L:'',A:'',H:'',kg:''});renderInd()}
-function indDel(w,k){IND[w].splice(k,1);renderInd()}
+function indAdd(w){IND[w].push(w==='prods'?indProd():{qty:'1',L:'',A:'',H:'',kg:''});if(w==='prods')IND_OPEN.add(IND.prods.length-1);renderInd()}
+function indDel(w,k){const p=IND[w][k];const nom=w==='prods'?('el producto '+(k+1)+(p&&p.desc?' «'+p.desc+'»':'')):('el bulto '+(k+1));if(!confirm('¿Eliminar '+nom+'? Esta acción no se puede deshacer.'))return;IND[w].splice(k,1);IND_OPEN=new Set();renderInd()}
 function indTexto(d,c){
   const L=['*Cotización '+(d.numero||'')+'* · '+d.cliente,'',...d.prods.filter(p=>p.desc).map(p=>'• '+p.desc+' – '+N(num(p.qty),num(p.qty)%1?2:0)+' u.'),''];
   if(d.tipo==='urgente')L.push('Envío aéreo: '+N(c.fact)+' kg cobrables ('+N(c.bultos,0)+' bulto(s))','');
@@ -31989,12 +32016,12 @@ async function indGuardar(){
   const R=c.R,bs=x=>x*tc;
   const rb=c.rb,indRes={prod:rb('merc')+rb('origen'),flete:rb('flete')+rb('tint')+rb('tnac')+rb('manejo')+rb('recojo')+rb('seguro'),ga:rb('ga')+rb('ice')+rb('sistAd'),otros:rb('giro')+rb('agencia')+rb('carpeta')+rb('despacho')+rb('otrosAg')+rb('transp')+rb('almac')+rb('otros'),iva:rb('iva'),neto:c.totalBs-rb('com'),fob:c.FOB,total:c.totalBs};
   const ind={...JSON.parse(JSON.stringify(d)),prods:pr};delete ind.id;
-  const q={id,numero,cliente:d.cliente.trim(),ts:Date.now(),total:c.totalBs,tipoCot:d.tipo,meta:{...newMeta(),numero,cliente:d.cliente.trim(),fecha:d.fecha},params:{...DEF},
+  const q={id,numero,cliente:d.cliente.trim(),ts:Date.now(),total:c.totalBs,tipoCot:d.tipo,meta:{...newMeta(),numero,cliente:d.cliente.trim(),fecha:d.fecha,clienteId:d.clienteId||''},params:{...DEF},
     prods:pr.map(p=>({...blankProd(),desc:p.desc,qty:num(p.qty),exw:num(p.fob)})),ind,indRes,indFac:c.fac};
   const l=lsGet('nt_quotes',[]).filter(x=>x.id!==id);l.unshift(q);
   if(!lsSet('nt_quotes',l.slice(0,300))){toastX('No se pudo guardar: sin espacio en el teléfono');return}
   const o=opByQuote(id);if(o){o.numero=numero;o.total=q.total;o.clienteNombre=q.cliente;o.cot=indRes;o.upd=Date.now();saveOps()}
-  try{const old=S;S={...old,meta:{...newMeta(),cliente:q.cliente}};try{syncClientFromQuote()}finally{S=old}}catch(_){}
+  try{const old=S;S={...old,meta:{...newMeta(),cliente:q.cliente,clienteId:d.clienteId||''}};try{syncClientFromQuote()}finally{S=old}}catch(_){}
   IND.id=id;IND.numero=numero;loadList();renderHome();syncSoon();cloudPushSoon();renderInd();toastX('Cotización '+numero+' guardada')}
 document.addEventListener('input',e=>{const t=e.target;if(!IND||!t.closest||!t.closest('#view-ind'))return;
   if(t.dataset.ind&&t.type!=='checkbox'&&(t.tagName==='INPUT'||t.tagName==='TEXTAREA'))IND[t.dataset.ind]=t.value;
@@ -32427,7 +32454,7 @@ function fPagoPlan(pid){
    v=>{if(!v.fecha){toastX('Falta la fecha');return false}p.pagada=true;p.fechaPago=v.fecha;p.cuentaId=v.cuentaId||'';ctSyncPlanilla(p);save();renderConta();toastX('Pago registrado')})}
 function planDesPagar(pid){const p=byId(DB.planillas,pid);if(!p)return;gxPin('Para deshacer el pago de la planilla ingrese la clave.').then(ok=>{if(ok){p.pagada=false;p.fechaPago='';p.cuentaId='';ctSyncPlanilla(p);save();renderConta()}})}
 function planEliminar(pid){const p=byId(DB.planillas,pid);if(!p)return;if(!confirm('¿Eliminar la planilla '+p.periodo+'?'))return;gxPin('Para eliminar la planilla ingrese la clave.').then(ok=>{if(ok){p.pagada=false;ctSyncPlanilla(p);del('planillas',pid);save();CT.plan='';renderConta()}})}
-window.GX={fCxpPagar,indCondEdit,actaAnular,embarques,render,go,fImp,fPed,fLin,fPag,fCotEnPed,quitarCot,syncOps,lockOp,setCol,save,fCierre,fProv,fLoc,migrarProv,renderInv,invGo,fJalar,fEntrada,fAjuste,fPegar,fProdInv,fSerie,fEntrega,ingresarBtn,recalcBtn,ingresarImp,recalcImp,invResumen,transito,renderPas,pasGo,indEtapa,indPdf,indLink,indDesbloq,indVolver,indRowReset,indTcPagos,ctSet,ctAbrirMayor,fAsiento,fPlanCta,ctExcelInf,planAbrir,fEmp,fPlanilla,fLineaPlan,fPagoPlan,planDesPagar,planEliminar,fPrepago,contaTab,ctAbrir,ctFiltro,ctExcel,fCuenta,fMov,fTransf,pasStatsList:()=>pasStats().prox,fPas,fCuota,pasCard,renderConta,contaYear,contaExcel,contaCard,actaCompartir,actaDescargar,limpiarActas,vsFacturar,vsCorregir,vsActa,vsActaDl,renderInd,indNueva,indOpen,indGuardar,indCopiar,indPago,indQuitarPago,indSeg,indAdd,indDel,renderVs,vsGo,vsNueva,vsQuitar,vsAgregar,vsCancelar,vsGuardar,vsEditar,vsConfirmar,vsCaida,vsReabrir,vsEliminar,vsEntregar,vsAnular,vsCobro,vsQuitarCobro,vsFiltro,vsResumenAnio,vsTot,vsCob,saldoPedido,totalPedido,ESTADOS_PED,ESTADOS_IMP,
+window.GX={indTab,indTg,indSaveProd,indCli,fCxpPagar,indCondEdit,actaAnular,embarques,render,go,fImp,fPed,fLin,fPag,fCotEnPed,quitarCot,syncOps,lockOp,setCol,save,fCierre,fProv,fLoc,migrarProv,renderInv,invGo,fJalar,fEntrada,fAjuste,fPegar,fProdInv,fSerie,fEntrega,ingresarBtn,recalcBtn,ingresarImp,recalcImp,invResumen,transito,renderPas,pasGo,indEtapa,indPdf,indLink,indDesbloq,indVolver,indRowReset,indTcPagos,ctSet,ctAbrirMayor,fAsiento,fPlanCta,ctExcelInf,planAbrir,fEmp,fPlanilla,fLineaPlan,fPagoPlan,planDesPagar,planEliminar,fPrepago,contaTab,ctAbrir,ctFiltro,ctExcel,fCuenta,fMov,fTransf,pasStatsList:()=>pasStats().prox,fPas,fCuota,pasCard,renderConta,contaYear,contaExcel,contaCard,actaCompartir,actaDescargar,limpiarActas,vsFacturar,vsCorregir,vsActa,vsActaDl,renderInd,indNueva,indOpen,indGuardar,indCopiar,indPago,indQuitarPago,indSeg,indAdd,indDel,renderVs,vsGo,vsNueva,vsQuitar,vsAgregar,vsCancelar,vsGuardar,vsEditar,vsConfirmar,vsCaida,vsReabrir,vsEliminar,vsEntregar,vsAnular,vsCobro,vsQuitarCobro,vsFiltro,vsResumenAnio,vsTot,vsCob,saldoPedido,totalPedido,ESTADOS_PED,ESTADOS_IMP,
   get DB(){return DB},COLS:COLS_GX,KEYS};
 try{migrarProv()}catch(e){console.error(e)}
 try{limpiarActas()}catch(e){console.error(e)}
