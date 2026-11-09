@@ -31493,6 +31493,7 @@ function fCxpPagar(id){
   const upd=()=>{const v=vals(b);if(!usd)return;const d=num(p.monto)*(num(v.tcPago)-num(p.tc));b.querySelector('#gxDif').textContent=d===0?'Sin diferencia de cambio.':('Diferencia de cambio: Bs '+N(Math.abs(d))+(d>0?' (pierdes)':' (ganas)')+'. Va a Contabilidad y no cambia el costo de la importación.')};
   b.addEventListener('input',upd);b.addEventListener('change',upd);upd()}
 function fPag(id,impId,pedId){
+  ctSembrar();
   const p=id?byId(DB.payments,id):{fecha:TODAY(),categoria:pedId?'Pago a proveedor':'Flete internacional',moneda:'USD',origenTc:'Paralelo',factura:'si',importId:impId||'',purchaseId:pedId||''};
   const peds=[['','— Ninguno —'],...DB.purchases.map(x=>[x.id,x.numero+' · '+x.proveedor])];
   const b=sheet(id?'Editar pago o gasto':'Nuevo pago o gasto',
@@ -31503,12 +31504,15 @@ function fPag(id,impId,pedId){
    hintDiv('gxBs','')+
    sel('forma','¿Cómo se paga?',[['contado','Al contado (sale de una cuenta)'],['credito','Al crédito (cuenta por pagar)']],p.forma||'contado',{full:1})+
    `<div class="full grid" id="gxCont" style="padding:0">`+sel('cuentaId','Cuenta de donde sale el pago',[['','— Sin cuenta (solo registro) —'],...DB.accounts.map(a=>[a.id,a.nombre+' ('+a.moneda+')'])],p.cuentaId||'',{full:1})+inp('banco','Entidad bancaria (opcional)',p.banco,{full:1,list:'gxBanco'})+`<datalist id="gxBanco">${BANCOS.map(x=>`<option value="${E(x)}">`).join('')}</datalist></div>`+
-   `<div class="full grid" id="gxCred" style="padding:0">`+inp('dias','Plazo en días',p.dias,{mode:'numeric',ph:'30'})+hintDiv('gxVenc','')+'</div>'+
+   `<div class="full grid" id="gxCred" style="padding:0">`+sel('ctaAcreedor','Acreedor: cuenta contable donde queda la deuda',[['','— Elegir acreedor —'],...ctAcreedorOpts()],p.ctaAcreedor||'',{full:1})+inp('dias','Plazo en días',p.dias,{mode:'numeric',ph:'30'})+hintDiv('gxVenc','')+'</div>'+
+   sel('ctaGasto','Cuenta contable a la que se carga el gasto o pago',[['','Automática según la categoría (5.1.02 Costo de importaciones)'],...planOpts()],p.ctaGasto||'',{full:1})+
    `<div class="full grid" id="gxFac" style="padding:0">`+sel('factura','¿Con factura?',[['si','Con factura'],['no','Sin factura']],p.factura)+inp('nroFactura','N.º de factura',p.nroFactura)+hintDiv('gxRet','')+'</div>'+
    sel('importId','Importación asociada',opcionesImp(),p.importId,{full:1})+sel('purchaseId','Pedido asociado',peds,p.purchaseId,{full:1}),
    v=>{if(num(v.monto)<=0){toastX('Falta el monto');return false}
      if(v.moneda==='USD'&&num(v.tc)<=0){toastX('Falta el tipo de cambio de este pago');return false}
      if(v.moneda==='Bs'){v.tc='';v.origenTc=''}
+     if(v.forma==='credito'&&!v.ctaAcreedor){toastX('Elige el acreedor: la cuenta contable donde queda la deuda');return false}
+     if(v.forma!=='credito')v.ctaAcreedor='';
      if(v.forma==='credito'){v.dias=String(parseInt(v.dias)||0);const dd=new Date(v.fecha+'T12:00:00');dd.setDate(dd.getDate()+(+v.dias));v.venc=dd.toISOString().slice(0,10);v.cuentaId='';v.banco=''}else{v.dias='';v.venc=''}
      const aplica=!SIN_FACTURA_NO_APLICA.includes(v.categoria);
      if(!aplica){v.factura='';v.nroFactura='';v.retencion=''}
@@ -31988,11 +31992,11 @@ function indCobros(){
    ${cb.filter(x=>x.concepto).length?`<table style="margin-top:10px"><tr><th>Fecha</th><th>Concepto</th><th class="n">Bs</th><th></th></tr>${cb.map((x,k)=>x.concepto?`<tr><td>${FD(x.fecha)}</td><td>${E(IND_L[x.concepto]||x.concepto)}<br><small style="color:var(--muted)">USD ${N(num(x.monto))} × ${N(num(x.tc))}</small></td><td class="n">${N(num(x.monto)*num(x.tc))}</td><td><button class="btn sm bad" type="button" onclick="GX.indQuitarPago(${k})">Quitar</button></td></tr>`:'').join('')}</table>`:''}`}
 function indPago(){
   const q=lsGet('nt_quotes',[]).find(x=>x.id===IND.id);if(!q)return;const c=indCalc(IND);
-  const b=sheet('Pago del cliente por concepto',sel('concepto','Concepto',c.rows.filter(x=>x.usd>0.004).map(x=>[x.k,x.l]),'',{full:1})+inp('fecha','Fecha del pago',TODAY(),{t:'date'})+inp('monto','Monto (USD)','',{mode:'decimal'})+inp('tc','T/C de la fecha del pago','',{mode:'decimal',full:1,ph:'12,08'})+hintDiv('indPgH',''),
+  const b=sheet('Pago del cliente por concepto',sel('concepto','Concepto',c.rows.filter(x=>x.usd>0.004).map(x=>[x.k,x.l]),'',{full:1})+sel('cuentaId','Cuenta donde ingresa el dinero',ctTesOpts(),'',{full:1})+sel('ctaContra','Contracuenta',[['','Por cobrar del cliente (automática)'],...planOpts().filter(([c])=>/^[124]/.test(c))],'',{full:1})+inp('fecha','Fecha del pago',TODAY(),{t:'date'})+inp('monto','Monto (USD)','',{mode:'decimal'})+inp('tc','T/C de la fecha del pago','',{mode:'decimal',full:1,ph:'12,08'})+hintDiv('indPgH',''),
    v=>{if(num(v.monto)<=0||num(v.tc)<=0){toastX('Falta el monto o el T/C');return false}
-     const o=ensureOp(q.id);if(!o)return false;o.cobros=o.cobros||[];o.cobros.push({fecha:v.fecha,moneda:'USD',monto:num(v.monto),tc:num(v.tc),nota:'',concepto:v.concepto});o.upd=Date.now();saveOps();cloudPushSoon();renderInd();toastX('Pago registrado')});
+     const o=ensureOp(q.id);if(!o)return false;o.cobros=o.cobros||[];const rc={id:'c'+Date.now().toString(36),fecha:v.fecha,moneda:'USD',monto:num(v.monto),tc:num(v.tc),nota:'',concepto:v.concepto,cuentaId:v.cuentaId||'',ctaContra:v.ctaContra||''};o.cobros.push(rc);ctCobroSave(o,rc);o.upd=Date.now();saveOps();cloudPushSoon();renderInd();toastX('Pago registrado')});
   const h=()=>{const v=vals(b);b.querySelector('#indPgH').textContent='Equivale a Bs '+N(num(v.monto)*num(v.tc))};b.addEventListener('input',h);h()}
-async function indQuitarPago(k){const o=IND&&IND.id?opByQuote(IND.id):null;if(!o)return;if(!await gxPin('Para borrar un cobro registrado ingrese la clave.'))return;o.cobros.splice(k,1);o.upd=Date.now();saveOps();cloudPushSoon();renderInd()}
+async function indQuitarPago(k){const o=IND&&IND.id?opByQuote(IND.id):null;if(!o)return;if(!await gxPin('Para borrar un cobro registrado ingrese la clave.'))return;ctCobroDel(o.cobros[k]);o.cobros.splice(k,1);o.upd=Date.now();saveOps();cloudPushSoon();renderInd()}
 function indSeg(){if(IND&&IND.id)openOpFromQuote(IND.id)}
 function indAdd(w){IND[w].push(w==='prods'?indProd():{qty:'1',L:'',A:'',H:'',kg:''});if(w==='prods')IND_OPEN.add(IND.prods.length-1);renderInd()}
 function indDel(w,k){const p=IND[w][k];const nom=w==='prods'?('el producto '+(k+1)+(p&&p.desc?' «'+p.desc+'»':'')):('el bulto '+(k+1));if(!confirm('¿Eliminar '+nom+'? Esta acción no se puede deshacer.'))return;IND[w].splice(k,1);IND_OPEN=new Set();renderInd()}
@@ -32184,7 +32188,7 @@ const ctCuentaNom=id=>{const a=byId(DB.accounts,id);return a?a.nombre:'(cuenta e
 function ctSyncCuota(l,c){DB.accMov.filter(m=>m.ref==='cuota:'+c.id).forEach(m=>del('accMov',m.id));
   if(c.pagada&&c.cuentaId&&byId(DB.accounts,c.cuentaId))DB.accMov.push({id:uid(),cuentaId:c.cuentaId,tipo:'Egreso',fecha:c.fechaPago||TODAY(),monto:num(c.montoPagado)||num(c.monto),categoria:'Pago de préstamo',descripcion:'Cuota '+c.n+' · '+l.entidad,ref:'cuota:'+c.id})}
 function renderConta(){
-  const root=document.getElementById('view-conta');if(!root)return;ctAsegurarCods();
+  const root=document.getElementById('view-conta');if(!root)return;ctSembrar();ctAsegurarCods();
   const tabs=[['cuentas','Cuentas y caja'],['mov','Movimientos'],['diario','Libro diario'],['mayor','Libro mayor'],['plan','Plan de cuentas'],['res','Estado de resultados'],['bal','Balances'],['rrhh','Sueldos (RRHH)'],['imp','IVA e IT']];
   const V={cuentas:ctCuentas,mov:ctMov,diario:ctDiario,mayor:ctMayor,plan:ctPlan,res:ctRes,bal:ctBal,rrhh:ctRrhh,imp:ctImp};
   root.innerHTML=`<div class="row" style="gap:6px;flex-wrap:wrap">${tabs.map(([k,l])=>`<button class="btn sm ${CTab===k?'pri':''}" type="button" onclick="GX.contaTab('${k}')">${l}</button>`).join('')}</div>`+(V[CTab]||ctCuentas)()}
@@ -32274,6 +32278,36 @@ function planFull(){const L=PLAN_BASE.map(([c,n,nat])=>({cod:c,nombre:n,nat,base
 const planOpts=()=>planFull().map(p=>[p.cod,p.cod+' · '+p.nombre]);
 const ctNom=c=>{const p=planFull().find(x=>x.cod===c);return p?p.nombre:c};
 function ctNuevoCod(na){const pre=na.tipo==='Caja'?'1.1.01.':'1.1.02.';let n=0;DB.accounts.forEach(a=>{if(a.cod&&a.cod.startsWith(pre))n=Math.max(n,+a.cod.slice(pre.length)||0)});return pre+String(n+1).padStart(2,'0')}
+const ctSlug=t=>String(t).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+function ctSembrar(){
+  let ch=false;
+  [['Caja general Bs.','Caja','Bs'],['Caja general USD','Caja','USD'],['Caja chica','Caja','Bs'],['Banco BCP Novatrade','Banco','Bs'],['Banco Ganadero Novatrade','Banco','Bs'],['Banco Sol Novatrade','Banco','Bs'],['Banco Fie Novatrade','Banco','Bs'],['Banco Unión Novatrade','Banco','Bs']].forEach(([n,t,m])=>{
+    if(DB.accounts.some(a=>nzs(a.nombre)===nzs(n)))return;
+    const na={id:'seed-'+ctSlug(n),nombre:n,tipo:t,moneda:m,saldoInicial:'0',fechaInicial:TODAY(),tcInicial:'6.96',nota:'Cuenta predefinida'};na.cod=ctNuevoCod(na);DB.accounts.push(na);ch=true});
+  const fijas=[['2.1.09.01','Agencia Urubo por pagar'],['2.1.09.02','Transporte Diego Mondocorre por pagar'],['2.1.09.03','Agencia Allperalta por pagar'],
+    ['2.1.02.01','Préstamo Banco Sol'],['2.1.02.02','Préstamo Banco Fie'],['2.1.02.03','Préstamo Banco Fie Mamá'],['2.1.02.04','Préstamo Banco Unión Allperalta'],
+    ['2.1.10.01','FAP 1 (facilidad de pago de impuestos)'],['2.1.10.02','FAP 2 (facilidad de pago de impuestos)'],['2.1.10.03','FAP 3 (facilidad de pago de impuestos)'],
+    ['2.1.03.01','IVA por pagar (declaración mensual)'],['2.1.03.02','IVA por pagar (saldo por regularizar)']];
+  fijas.forEach(([cod,nombre])=>{if(DB.planCuentas.some(p=>p.cod===cod)||PLAN_BASE.some(p=>p[0]===cod))return;DB.planCuentas.push({id:'seed-'+ctSlug(nombre),cod,nombre});ch=true});
+  /* una cuenta por cada proveedor con al menos un pedido */
+  DB.suppliers.forEach(sp=>{if(!sp.nombre||!supHist(sp.id).length)return;if(DB.planCuentas.some(p=>p.provId===sp.id))return;
+    let n=0;DB.planCuentas.forEach(p=>{if(/^2\.1\.01\.\d+$/.test(p.cod))n=Math.max(n,+p.cod.slice(7)||0)});
+    DB.planCuentas.push({id:'prov-'+sp.id,cod:'2.1.01.'+String(n+1).padStart(2,'0'),nombre:'Proveedor: '+sp.nombre,provId:sp.id});ch=true});
+  if(ch)save();return ch}
+const ctTesOpts=()=>[['','— Sin cuenta (solo registro) —'],...DB.accounts.map(a=>[a.id,a.nombre+' ('+a.moneda+')'])];
+const ctAcreedorOpts=()=>planFull().filter(p=>/^2\./.test(p.cod)).map(p=>[p.cod,p.cod+' · '+p.nombre]);
+function ctCliFind(nombre){if(!nombre)return '';const a=DB.planCuentas.find(p=>p.cliKey&&p.cliKey===nzs(nombre));return a?a.cod:''}
+function ctCliCod(nombre){
+  if(!nombre)return '1.1.03';let c=ctCliFind(nombre);if(c)return c;let n=0;DB.planCuentas.forEach(p=>{if(/^1\.1\.03\.\d+$/.test(p.cod))n=Math.max(n,+p.cod.slice(7)||0)});
+  c='1.1.03.'+String(n+1).padStart(3,'0');DB.planCuentas.push({id:uid(),cod:c,nombre:'Por cobrar: '+nombre,cliKey:nzs(nombre)});save();return c}
+function ctCobroSave(o,rec){
+  ctSembrar();if(!rec.ctaContra)ctCliCod(o.clienteNombre||'');
+  DB.accMov.filter(m=>m.ref==='cob:'+rec.id).forEach(m=>del('accMov',m.id));
+  const a=byId(DB.accounts,rec.cuentaId);
+  if(a){const bs=rec.moneda==='USD'?num(rec.monto)*num(rec.tc):num(rec.monto),mt=a.moneda==='USD'?(rec.moneda==='USD'?num(rec.monto):bs/TC_DEF):bs;
+    DB.accMov.push({id:uid(),cuentaId:a.id,tipo:'Ingreso',fecha:rec.fecha,monto:Math.round(mt*100)/100,categoria:'Cobro de venta',descripcion:'Cobro '+(o.numero||'')+' · '+(o.clienteNombre||''),ref:'cob:'+rec.id,tc:a.moneda==='USD'?String(rec.moneda==='USD'?num(rec.tc):TC_DEF):''})}
+  save()}
+function ctCobroDel(rec){if(!rec||!rec.id)return;DB.accMov.filter(m=>m.ref==='cob:'+rec.id).forEach(m=>del('accMov',m.id));save()}
 function ctAsegurarCods(){let ch=false;DB.accounts.forEach(a=>{if(!a.cod){a.cod=ctNuevoCod(a);ch=true}});if(ch)save()}
 const ctLastDay=(y,m)=>new Date(y,m,0).getDate();
 function ctAuto(){
@@ -32284,25 +32318,25 @@ function ctAuto(){
   const bsm=m=>{const a=byId(DB.accounts,m.cuentaId);return a&&a.moneda==='USD'?num(m.monto)*(num(m.tc)||TC_DEF):num(m.monto)};
   DB.accounts.forEach(a=>{const v=num(a.saldoInicial)*(a.moneda==='USD'?(num(a.tcInicial)||TC_DEF):1);if(v)add(a.fechaInicial||TODAY(),'Saldo inicial · '+a.nombre,'Saldos iniciales','ini:'+a.id,[D(a.cod||'1.1.01.00',v),H('3.1.01',v)])});
   const trf={};
-  DB.accMov.forEach(m=>{if(m.ref&&/^(cuota|plan|pay):/.test(m.ref))return;if(m.transferId){(trf[m.transferId]=trf[m.transferId]||[]).push(m);return}
+  DB.accMov.forEach(m=>{if(m.ref&&/^(cuota|plan|pay|cob):/.test(m.ref))return;if(m.transferId){(trf[m.transferId]=trf[m.transferId]||[]).push(m);return}
     const v=bsm(m),c=cod(m.cuentaId),k=m.ctaContra||MAPCAT[m.categoria]||(m.tipo==='Ingreso'?'4.1.03':'5.2.08'),g=(m.categoria||m.tipo)+(m.descripcion?' · '+m.descripcion:'');
     add(m.fecha,g,'Tesorería','mov:'+m.id,m.tipo==='Ingreso'?[D(c,v),H(k,v)]:[D(k,v),H(c,v)])});
   Object.keys(trf).forEach(t=>{const g=trf[t],o=g.find(x=>x.tipo==='Egreso'),d=g.find(x=>x.tipo==='Ingreso');if(!o||!d)return;const vo=bsm(o),vd=bsm(d);
     add(o.fecha,'Transferencia: '+ctCuentaNom(o.cuentaId)+' → '+ctCuentaNom(d.cuentaId),'Tesorería','trf:'+t,[D(cod(d.cuentaId),vd),H(cod(o.cuentaId),vo),vd<vo?D('5.3.04',vo-vd):H('5.3.04',vd-vo)])});
   DB.liabilities.forEach(l=>{const f=l.moneda==='USD'?(num(l.tc)||TC_DEF):1;(l.cuotas||[]).forEach(c=>{if(!c.pagada)return;const cap=capC(c)*f,it=num(c.interes)*f,sg=num(c.seguro)*f,tot=(num(c.montoPagado)||num(c.monto))*f;
     add(c.fechaPago||c.fecha,(c.tipo==='Amortización total'?'Amortización total · ':'Cuota '+c.n+' · ')+l.entidad,'Préstamos','cuota:'+c.id,[D('2.1.02',cap),D('5.3.01',it+(tot-cap-it-sg)),D('5.3.02',sg),H(cod(c.cuentaId),tot)])})});
-  const venta=(fecha,glosa,ref,cta,T,iva,it)=>add(fecha,glosa,'Ventas',ref,[D('1.1.03',T),H(cta,T-iva),H('2.1.03',iva),D('5.2.07',it),H('2.1.04',it)]);
-  const cobs=(arr,pre,num_)=>(arr||[]).forEach((c,i)=>{const v=c.moneda==='USD'?num(c.monto)*num(c.tc):num(c.monto);add(c.fecha,'Cobro '+num_+(c.concepto?' · '+c.concepto:''),'Cobros','cob:'+pre+':'+i,[D('1.1.01.00',v),H('1.1.03',v)])});
+  const venta=(fecha,glosa,ref,cta,T,iva,it,cc)=>add(fecha,glosa,'Ventas',ref,[D(cc||'1.1.03',T),H(cta,T-iva),H('2.1.03',iva),D('5.2.07',it),H('2.1.04',it)]);
+  const cobs=(arr,pre,num_,cc)=>(arr||[]).forEach((c,i)=>{const v=c.moneda==='USD'?num(c.monto)*num(c.tc):num(c.monto);add(c.fecha,'Cobro '+num_+(c.concepto?' · '+c.concepto:''),'Cobros','cob:'+pre+':'+i,[D(c.cuentaId&&byId(DB.accounts,c.cuentaId)?cod(c.cuentaId):'1.1.01.00',v),H(c.ctaContra||cc||'1.1.03',v)])});
   (typeof ops!=='undefined'?ops:[]).forEach(o=>{const dv=o.docVenta||{};
-    if(o.etapa==='entregada'&&dv.numero){const T=num(o.total),fac=dv.tipo==='Factura';venta(dv.fecha||TODAY(),'Venta '+(o.numero||'')+' · '+(o.clienteNombre||'')+' · '+dv.tipo+' '+dv.numero,'op:'+o.id,'4.1.01',T,fac?T*0.13:0,T*0.03)}
-    cobs(o.cobros,o.id,o.numero||'')});
+    if(o.etapa==='entregada'&&dv.numero){const T=num(o.total),fac=dv.tipo==='Factura';venta(dv.fecha||TODAY(),'Venta '+(o.numero||'')+' · '+(o.clienteNombre||'')+' · '+dv.tipo+' '+dv.numero,'op:'+o.id,'4.1.01',T,fac?T*0.13:0,T*0.03,ctCliFind(o.clienteNombre))}
+    cobs(o.cobros,o.id,o.numero||'',ctCliFind(o.clienteNombre))});
   DB.stockSales.forEach(x=>{if(x.estado==='entregada'&&x.docNumero){const t=vsTot(x,false);venta(x.fechaEntrega||TODAY(),'Venta de stock '+x.numero+' · '+x.comprobante+' '+x.docNumero,'vs:'+x.id,'4.1.02',t.total,t.iva,t.it)}
     cobs(x.cobros,x.id,x.numero||'')});
   DB.payments.forEach(p=>{const t=bsMonto(p);if(!t)return;const fac=p.factura==='si'&&!SIN_FACTURA_NO_APLICA.includes(p.categoria),iva=fac?t*0.13:0,ret=num(p.retencion);
     const cr=p.forma==='credito';
-    add(p.fecha,(p.categoria||'Pago')+(p.nota?' · '+p.nota:'')+(cr?' (a crédito)':''),'Importaciones','pay:'+p.id,[D('5.1.02',t-iva),D('1.1.06',iva),H(cr?'2.1.01':cod(p.cuentaId),t),D('5.3.03',ret),H('2.1.07',ret)]);
+    add(p.fecha,(p.categoria||'Pago')+(p.nota?' · '+p.nota:'')+(cr?' (a crédito)':''),'Importaciones','pay:'+p.id,[D(p.ctaGasto||'5.1.02',t-iva),D('1.1.06',iva),H(cr?(p.ctaAcreedor||'2.1.01'):cod(p.cuentaId),t),D('5.3.03',ret),H('2.1.07',ret)]);
     if(cr&&p.pagadoFecha){const real=p.moneda==='USD'?num(p.monto)*(num(p.tcPago)||num(p.tc)):t,dif=Math.round((real-t)*100)/100;
-      add(p.pagadoFecha,'Pago de cuenta por pagar · '+(p.concepto||p.categoria||''),'Importaciones','paycxp:'+p.id,[D('2.1.01',t),dif>0?D('5.3.04',dif):D('5.3.04',0),H(cod(p.cuentaPago),real),dif<0?H('5.3.04',-dif):H('5.3.04',0)])}});
+      add(p.pagadoFecha,'Pago de cuenta por pagar · '+(p.concepto||p.categoria||''),'Importaciones','paycxp:'+p.id,[D(p.ctaAcreedor||'2.1.01',t),dif>0?D('5.3.04',dif):D('5.3.04',0),H(cod(p.cuentaPago),real),dif<0?H('5.3.04',-dif):H('5.3.04',0)])}});
   DB.localPurchases.forEach(x=>{const t=num(x.monto);if(!t)return;const iva=x.factura==='si'?t*0.13:0,ret=num(x.retencion);
     add(x.fecha,'Compra local '+(x.numero||'')+' · '+(x.proveedor||''),'Compras locales','loc:'+x.id,[D('5.1.03',t-iva),D('1.1.06',iva),H('1.1.01.00',t),D('5.3.03',ret),H('2.1.07',ret)])});
   DB.imports.forEach(i=>{const v=num(i.ivaDim);if(v>0&&i.dimFecha)add(i.dimFecha,'Crédito fiscal IVA del DIM '+(i.dim||'')+' · '+i.numero,'Importaciones','dim:'+i.id,[D('1.1.06',v),H('5.1.02',v)])});
@@ -32454,9 +32488,9 @@ function fPagoPlan(pid){
    v=>{if(!v.fecha){toastX('Falta la fecha');return false}p.pagada=true;p.fechaPago=v.fecha;p.cuentaId=v.cuentaId||'';ctSyncPlanilla(p);save();renderConta();toastX('Pago registrado')})}
 function planDesPagar(pid){const p=byId(DB.planillas,pid);if(!p)return;gxPin('Para deshacer el pago de la planilla ingrese la clave.').then(ok=>{if(ok){p.pagada=false;p.fechaPago='';p.cuentaId='';ctSyncPlanilla(p);save();renderConta()}})}
 function planEliminar(pid){const p=byId(DB.planillas,pid);if(!p)return;if(!confirm('¿Eliminar la planilla '+p.periodo+'?'))return;gxPin('Para eliminar la planilla ingrese la clave.').then(ok=>{if(ok){p.pagada=false;ctSyncPlanilla(p);del('planillas',pid);save();CT.plan='';renderConta()}})}
-window.GX={indTab,indTg,indSaveProd,indCli,fCxpPagar,indCondEdit,actaAnular,embarques,render,go,fImp,fPed,fLin,fPag,fCotEnPed,quitarCot,syncOps,lockOp,setCol,save,fCierre,fProv,fLoc,migrarProv,renderInv,invGo,fJalar,fEntrada,fAjuste,fPegar,fProdInv,fSerie,fEntrega,ingresarBtn,recalcBtn,ingresarImp,recalcImp,invResumen,transito,renderPas,pasGo,indEtapa,indPdf,indLink,indDesbloq,indVolver,indRowReset,indTcPagos,ctSet,ctAbrirMayor,fAsiento,fPlanCta,ctExcelInf,planAbrir,fEmp,fPlanilla,fLineaPlan,fPagoPlan,planDesPagar,planEliminar,fPrepago,contaTab,ctAbrir,ctFiltro,ctExcel,fCuenta,fMov,fTransf,pasStatsList:()=>pasStats().prox,fPas,fCuota,pasCard,renderConta,contaYear,contaExcel,contaCard,actaCompartir,actaDescargar,limpiarActas,vsFacturar,vsCorregir,vsActa,vsActaDl,renderInd,indNueva,indOpen,indGuardar,indCopiar,indPago,indQuitarPago,indSeg,indAdd,indDel,renderVs,vsGo,vsNueva,vsQuitar,vsAgregar,vsCancelar,vsGuardar,vsEditar,vsConfirmar,vsCaida,vsReabrir,vsEliminar,vsEntregar,vsAnular,vsCobro,vsQuitarCobro,vsFiltro,vsResumenAnio,vsTot,vsCob,saldoPedido,totalPedido,ESTADOS_PED,ESTADOS_IMP,
+window.GX={ctSembrar,ctTesOpts,planOpts,ctCobroSave,ctCobroDel,ctCliCod,ctAcreedorOpts,indTab,indTg,indSaveProd,indCli,fCxpPagar,indCondEdit,actaAnular,embarques,render,go,fImp,fPed,fLin,fPag,fCotEnPed,quitarCot,syncOps,lockOp,setCol,save,fCierre,fProv,fLoc,migrarProv,renderInv,invGo,fJalar,fEntrada,fAjuste,fPegar,fProdInv,fSerie,fEntrega,ingresarBtn,recalcBtn,ingresarImp,recalcImp,invResumen,transito,renderPas,pasGo,indEtapa,indPdf,indLink,indDesbloq,indVolver,indRowReset,indTcPagos,ctSet,ctAbrirMayor,fAsiento,fPlanCta,ctExcelInf,planAbrir,fEmp,fPlanilla,fLineaPlan,fPagoPlan,planDesPagar,planEliminar,fPrepago,contaTab,ctAbrir,ctFiltro,ctExcel,fCuenta,fMov,fTransf,pasStatsList:()=>pasStats().prox,fPas,fCuota,pasCard,renderConta,contaYear,contaExcel,contaCard,actaCompartir,actaDescargar,limpiarActas,vsFacturar,vsCorregir,vsActa,vsActaDl,renderInd,indNueva,indOpen,indGuardar,indCopiar,indPago,indQuitarPago,indSeg,indAdd,indDel,renderVs,vsGo,vsNueva,vsQuitar,vsAgregar,vsCancelar,vsGuardar,vsEditar,vsConfirmar,vsCaida,vsReabrir,vsEliminar,vsEntregar,vsAnular,vsCobro,vsQuitarCobro,vsFiltro,vsResumenAnio,vsTot,vsCob,saldoPedido,totalPedido,ESTADOS_PED,ESTADOS_IMP,
   get DB(){return DB},COLS:COLS_GX,KEYS};
-try{migrarProv()}catch(e){console.error(e)}
+try{migrarProv();ctSembrar()}catch(e){console.error(e)}
 try{limpiarActas()}catch(e){console.error(e)}
 try{syncOps()}catch(_){}
 })();
@@ -32610,14 +32644,16 @@ function cobrosHtml(){
   const rows=OP.cobros.map((x,i)=>`<div class="gx2cobro"><div><b>${fd(x.fecha)}</b> · ${nf(x.monto,2)} ${x.moneda}${x.moneda==='USD'?' × T/C '+nf(x.tc,2):''}<small>= Bs ${nf(cobBs(x),2)}${x.nota?' · '+E(x.nota):''}</small></div>
     <div class="gx2act"><button type="button" data-g2="editCob" data-i="${i}">Editar</button><button type="button" class="danger" data-g2="delCob" data-i="${i}">Quitar</button></div></div>`).join('');
   let form='';
-  if(cobDraft){const x=cobDraft.x;
+  if(cobDraft){const x=cobDraft.x;GX.ctSembrar();
     form=`<div class="gx2draft"><b>${cobDraft.i==null?'Nuevo cobro':'Editar cobro'}</b>
       <div class="gx2cob"><input class="plain" type="date" data-cd="fecha" value="${E(x.fecha||'')}">
       <select class="plain" data-cd="moneda"><option${x.moneda!=='USD'?' selected':''}>Bs</option><option${x.moneda==='USD'?' selected':''}>USD</option></select>
       <input class="plain" inputmode="decimal" placeholder="Monto" data-cd="monto" value="${x.monto?showNum(x.monto):''}" autocomplete="off">
       ${x.moneda==='USD'?`<input class="plain" inputmode="decimal" placeholder="T/C del día" data-cd="tc" value="${x.tc?showNum(x.tc):''}" autocomplete="off">`:''}
       <span class="gx2bs" id="cdBs">Bs ${nf(cobBs(x),2)}</span>
-      <input class="plain" placeholder="Nota (depósito, efectivo…)" data-cd="nota" value="${E(x.nota||'')}" autocomplete="off" style="grid-column:1/-1"></div>
+      <input class="plain" placeholder="Nota (depósito, efectivo…)" data-cd="nota" value="${E(x.nota||'')}" autocomplete="off" style="grid-column:1/-1">
+      <label class="f" style="grid-column:1/-1"><span>Cuenta donde ingresa el dinero (banco o caja)</span><select class="plain" data-cd="cuentaId">${GX.ctTesOpts().map(([v,t])=>`<option value="${E(v)}" ${v===(x.cuentaId||'')?'selected':''}>${E(t)}</option>`).join('')}</select></label>
+      <label class="f" style="grid-column:1/-1"><span>Contracuenta (de dónde sale)</span><select class="plain" data-cd="ctaContra"><option value="">Por cobrar del cliente (la cuenta se crea sola)</option>${GX.planOpts().filter(([c])=>/^[124]/.test(c)).map(([v,t])=>`<option value="${E(v)}" ${v===(x.ctaContra||'')?'selected':''}>${E(t)}</option>`).join('')}</select></label></div>
       <div class="row" style="margin-top:8px"><button class="btn pri sm" type="button" data-g2="saveCob">Guardar cobro</button><button class="btn sm ghost" type="button" data-g2="cancelCob">Cancelar</button></div></div>`}
   q$('#opCobros').innerHTML=(rows||(!cobDraft?'<p class="hint">Aún no hay cobros registrados.</p>':''))+form;
   const add=q$('[data-g2=addCob]');if(add)add.hidden=!!cobDraft;
@@ -32750,11 +32786,13 @@ document.addEventListener('click',async e=>{
   else if(a==='saveCob'){const x=cobDraft.x;
     if(!(num(x.monto)>0)){toast('Escriba el monto cobrado');return}
     if(x.moneda==='USD'&&!(num(x.tc)>0)){toast('Escriba el T/C del día del cobro');return}
-    const rec={id:x.id||'c'+Date.now().toString(36),fecha:x.fecha||today(),moneda:x.moneda,monto:num(x.monto),tc:x.moneda==='USD'?num(x.tc):0,nota:x.nota||''};
+    const rec={id:x.id||'c'+Date.now().toString(36),fecha:x.fecha||today(),moneda:x.moneda,monto:num(x.monto),tc:x.moneda==='USD'?num(x.tc):0,nota:x.nota||'',cuentaId:x.cuentaId||'',ctaContra:x.ctaContra||''};
+    if(x.concepto)rec.concepto=x.concepto;
     if(cobDraft.i==null)OP.cobros.push(rec);else OP.cobros[cobDraft.i]=rec;
+    GX.ctSembrar();GX.ctCobroSave(OP,rec);
     cobDraft=null;opCommit();cobrosHtml();toast('Cobro registrado')}
   else if(a==='editCob'){if(await pinOk('Para editar un cobro registrado ingrese la clave.')){const i=+b.dataset.i;cobDraft={i,x:{...OP.cobros[i]}};cobrosHtml()}}
-  else if(a==='delCob'){if(await pinOk('Para borrar un cobro del cliente ingrese la clave.')){OP.cobros.splice(+b.dataset.i,1);opCommit();cobrosHtml();toast('Cobro eliminado')}}
+  else if(a==='delCob'){if(await pinOk('Para borrar un cobro del cliente ingrese la clave.')){GX.ctCobroDel(OP.cobros[+b.dataset.i]);OP.cobros.splice(+b.dataset.i,1);opCommit();cobrosHtml();toast('Cobro eliminado')}}
 });
 document.addEventListener('input',e=>{
   const t=e.target;if(!cobDraft||!t.dataset||!t.dataset.cd)return;const k=t.dataset.cd;
