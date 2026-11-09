@@ -32120,13 +32120,27 @@ document.addEventListener('change',e=>{const t=e.target;if(!IND||!t.closest||!t.
 
 /* ================= SERVICIOS LOGÍSTICOS Y ASESORAMIENTO (forwarder / agente de compras) ================= */
 let LOG=null,LOG_TAB='datos',LOG_FU=false;
-const logItem=()=>({desc:'',qty:'1',fob:''}),logLine=()=>({desc:'',usd:''}),logId=()=>'r'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),logRef=()=>({id:logId(),desc:'',usd:'',pago:'cliente'}),logGasto=()=>({desc:'',monto:'',mon:'USD'});
+const logItem=()=>({desc:'',qty:'1',fob:'',fobRef:'',partida:'',ga:'',iva:'14,94',ice:false,iceModo:'pct',iceVal:''}),logLine=()=>({desc:'',usd:''}),logId=()=>'r'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),logRef=()=>({id:logId(),desc:'',usd:'',pago:'cliente'}),logGasto=()=>({desc:'',monto:'',mon:'USD'});
 const LOG_ROL={forwarder:'Forwarder: logística, transporte y aduana',compras:'Agente de compras en el exterior',mixto:'Agente de compras y forwarder'};
 function logBlank(){return{tipo:'logistica',numero:'',fecha:TODAY(),cliente:'',clienteId:'',tc:'',comprobante:'Factura',factGen:'0.84',provIue:'0.025',
   rol:'forwarder',origen:'',destino:'',transporte:'Marítimo',incoterm:'FOB',descripcion:'',items:[logItem()],
   carga:'general',imoClase:'',imoUN:'',espTipo:'',cargaNota:'',
-  comModo:'pct',comVal:'',comMin:'',busqModo:'no',busqVal:'',serv:[],ref:[],gastos:[],cond:'',condAuto:true}}
+  comModo:'pct',comVal:'',comMin:'',busqModo:'no',busqVal:'',serv:[],ref:[],gastos:[],cond:'',condAuto:true,
+  impOn:false,refOn:false,tcOf:'',imFlete:'',imFletePond:'100',imSegModo:'con',imSegTipo:'pct',imSegVal:'1',imSegPond:'100',imTnac:'',imSistAd:'100',imAgencia:'',imCarpeta:'',imDespacho:'',imOtrosAg:'',imTransp:'',imAlmacen:'',imOtros:'',imPagoMerc:'cliente',imPagoFlete:'cliente',imPagoTax:'cliente',imPagoNac:'cliente'}}
 function logNext(){const y=new Date().getFullYear(),re=new RegExp('^LG-'+y+'-(\\d+)$');let m=0;lsGet('nt_quotes',[]).forEach(q=>{const x=re.exec(q.numero||'');if(x)m=Math.max(m,+x[1])});return 'LG-'+y+'-'+String(m+1).padStart(3,'0')}
+function logImp(d,FOB){
+  if(!d.impOn)return null;const n=num;
+  const segCost=d.imSegModo==='sin'?0:(d.imSegTipo==='fijo'?n(d.imSegVal):FOB*n(d.imSegVal)/100);
+  const di={...indBlank('individual'),tc:d.tc,tcOf:d.tcOf,comprobante:'Recibo',itOn:'0',comModo:'usd',comVal:'0',giroPct:'0',precioModo:'fob',cbmModo:'total',
+    prods:d.items.map(p=>({...indProd(),desc:p.desc,qty:p.qty,fob:(d.refOn&&String(p.fobRef==null?'':p.fobRef).trim()!=='')?p.fobRef:p.fob,partida:p.partida||'',ga:p.ga||'',iva:(p.iva===undefined||p.iva==='')?'14,94':p.iva,ice:!!p.ice,iceModo:p.iceModo||'pct',iceVal:p.iceVal||''})),
+    fletePaga:'cliente',fleteUsd:d.imFlete||'',fletePond:d.imFletePond||'100',tIntPaga:'cliente',tIntUsd:'',tNacPaga:'cliente',tNacUsd:d.imTnac||'',
+    seguroPaga:d.imSegModo==='sin'?'novatrade':'cliente',seguroModo:d.imSegModo==='sin'?'sin':'con',seguroUsd:String(segCost),seguroPond:d.imSegPond||'100',
+    logPaga:'cliente',manejoUsd:'',sistAd:d.imSistAd,agencia:d.imAgencia||'',carpeta:d.imCarpeta||'',despacho:d.imDespacho||'',otrosAg:d.imOtrosAg||'',transpLocal:d.imTransp||'',almacen:d.imAlmacen||'',otros:d.imOtros||''};
+  const ic=indCalc(di),R=ic.R,tc=n(d.tc);
+  const prr=ic.pr.map((x,i)=>{const p=d.items[i]||{},real=n(p.qty)*n(p.fob);return{...x,fobReal:real,dif:d.refOn&&Math.abs(x.fob-real)>0.004}});
+  const FOBref=ic.FOB,hayRef=prr.some(x=>x.dif);
+  const taxUsd=R.ga+R.ice+R.iva,nacUsd=R.sistAd+R.agencia+R.carpeta+R.despacho+R.otrosAg+R.transp+R.almac+R.otros,fleteUsd=n(d.imFlete)+segCost+n(d.imTnac);
+  return{ic,pr:prr,FOBref,hayRef,CIF:ic.CIF,taxUsd,nacUsd,fleteUsd,mercUsd:FOB,puerta:FOB+fleteUsd+taxUsd+nacUsd,agAuto:ic.agAuto,almAuto:ic.almAuto,tc}}
 function logCalc(d){
   const n=num,tc=n(d.tc),FOB=d.items.reduce((t,p)=>t+n(p.qty)*n(p.fob),0),pc=v=>N(n(v),n(v)%1?2:0);
   let com=d.comModo==='usd'?n(d.comVal):FOB*n(d.comVal)/100;if(d.comModo!=='usd'&&n(d.comMin)>com)com=n(d.comMin);
@@ -32139,16 +32153,21 @@ function logCalc(d){
   let itR=0,debR=0,iueR=0;
   if(fac){const g=String(d.factGen==null?'':d.factGen).trim(),f0=g===''?0.84:n(g),f=(f0>0&&f0<=1)?f0:0.84,r0=1-f,p=String(d.provIue==null?'':d.provIue).trim();itR=Math.min(0.03,r0);debR=r0-itR;iueR=p===''?0.025:n(p)}
   const net=x=>x*(1-itR-debR-iueR);
-  const refs=(d.ref||[]).map((s,i)=>({id:s.id||('r'+i),l:String(s.desc||'').trim(),usd:n(s.usd),pago:s.pago==='novatrade'?'novatrade':'cliente'})).filter(r=>r.l&&r.usd>0);
+  const imp=logImp(d,FOB),auto=[];
+  if(imp){const mk=(id,l,usd,pk)=>{if(usd>0.004)auto.push({id,l,usd,pago:d[pk]==='novatrade'?'novatrade':'cliente',auto:1})};
+    mk('imp_merc','Mercadería (valor FOB)',imp.mercUsd,'imPagoMerc');mk('imp_flete','Transporte internacional, seguro y tramo nacional (estimado)',imp.fleteUsd,'imPagoFlete');
+    mk('imp_tax','Impuestos de aduana: GA, ICE e IVA (estimado)',imp.taxUsd,'imPagoTax');mk('imp_nac','Gastos de nacionalización: sistema de aduana, agencia, almacenaje y otros (estimado)',imp.nacUsd,'imPagoNac')}
+  const refs=[...auto,...(d.ref||[]).map((s,i)=>({id:s.id||('r'+i),l:String(s.desc||'').trim(),usd:n(s.usd),pago:s.pago==='novatrade'?'novatrade':'cliente'})).filter(r=>r.l&&r.usd>0)];
   const refN=refs.filter(r=>r.pago==='novatrade'),refC=refs.filter(r=>r.pago!=='novatrade'),fondos=refN.reduce((t,r)=>t+r.usd,0);
   const gastos=(d.gastos||[]).map(g=>({l:String(g.desc||'').trim()||'Gasto',bs:g.mon==='Bs'?n(g.monto):n(g.monto)*tc})).filter(g=>g.bs>0),gBs=gastos.reduce((t,g)=>t+g.bs,0);
   const util=net(T),fa={fac,T,deb:T*debR,it:T*itR,iue:T*iueR,util,utilCom:net(com*tc),utilBusq:net(busq*tc),utilOtros:net((total-com-busq)*tc),margen:T>0?util/T*100:0,gastos:gBs,real:util-gBs,margenReal:T>0?(util-gBs)/T*100:0};
-  return{tc,FOB,com,busq,rows,total,totalBs:Math.round(T*100)/100,fondos,aCobrar:total+fondos,fa,ref:refs,refN,refC,gastos}}
+  return{tc,FOB,com,busq,rows,total,totalBs:Math.round(T*100)/100,fondos,aCobrar:total+fondos,fa,ref:refs,refN,refC,gastos,imp}}
 function logCargaTxt(d){if(d.carga==='imo')return 'CARGA IMO (mercancía peligrosa)'+(d.imoClase?' · Clase '+d.imoClase:'')+(d.imoUN?' · UN '+d.imoUN:'');if(d.carga==='especial')return 'CARGA ESPECIAL'+(d.espTipo?' · '+d.espTipo:'');return ''}
 function logCondTxt(d,c){
   const c0=c||logCalc(d),cg=logCargaTxt(d);
   return ['CONDICIONES COMERCIALES','','- Alcance: '+(LOG_ROL[d.rol]||LOG_ROL.forwarder)+'. Novatrade presta servicios y asesoramiento; la mercadería, el flete, los seguros, los impuestos de aduana y los gastos de terceros se pagan directamente a nombre y por cuenta del cliente.',
     '- Honorarios: Expresados en USD (pueden ser pagados en Bs o USD al T/C del día), '+(d.comprobante==='Recibo'?'con recibo':'con factura')+', solo por los servicios detallados en esta cotización.',
+    c0.imp?'- Estimación de importación: Los impuestos de aduana y costos de nacionalización son estimados con los datos entregados ('+(c0.imp.hayRef?'precio referencial de aduana, ':'valor, ')+'partida arancelaria y T/C oficial) y pueden variar con la valoración y liquidación final de la aduana.':null,
     c0.refC.length?'- Costos pagados directamente por el cliente: Los valores indicados son estimados, no forman parte de los honorarios y pueden variar según naviera, aduana y proveedor.':null,
     c0.refN.length?'- Fondos por cuenta del cliente: Los valores que el cliente deposita a Novatrade para cancelar a terceros no son honorarios ni se facturan; Novatrade los paga por su cuenta y rinde cuentas con los comprobantes.':null,
     cg?'- Carga especial: Esta cotización considera: '+cg+'. Está sujeta a aceptación del transportista y puede generar recargos, documentos o permisos adicionales que se informarán antes de confirmar.':null,
@@ -32157,7 +32176,7 @@ function logNueva(){LOG_FU=false;LOG_TAB='datos';LOG=logBlank();setView('log')}
 async function logOpen(id,dup){
   const q=lsGet('nt_quotes',[]).find(x=>x.id===id);if(!q||!q.log)return;const o=opByQuote(id);
   if(!dup&&o&&o.etapa!=='enviada'&&!(await gxPin('Esta cotización ya está confirmada. Ingrese la clave para modificarla.')))return;
-  LOG_FU=false;LOG_TAB='datos';LOG={...logBlank(),...JSON.parse(JSON.stringify(q.log))};LOG.tipo='logistica';LOG.gastos=LOG.gastos||[];LOG.ref=(LOG.ref||[]).map(r=>({id:logId(),pago:'cliente',...r}));
+  LOG_FU=false;LOG_TAB='datos';LOG={...logBlank(),...JSON.parse(JSON.stringify(q.log))};LOG.tipo='logistica';LOG.gastos=LOG.gastos||[];LOG.items=LOG.items.map(p=>({...logItem(),...p}));LOG.ref=(LOG.ref||[]).map(r=>({id:logId(),pago:'cliente',...r}));
   if(dup){delete LOG.id;LOG.numero='';LOG.fecha=TODAY()}else{LOG.id=id;LOG.numero=q.numero}setView('log')}
 function logTab(k){LOG_TAB=k;renderLog();window.scrollTo(0,0)}
 function logAdd(w){LOG[w].push(w==='items'?logItem():w==='ref'?logRef():w==='gastos'?logGasto():logLine());renderLog()}
@@ -32187,10 +32206,22 @@ function renderLog(){
   const f=(k,l,o={})=>`<label class="f ${o.full?'full':''}"><span>${l}</span><input class="plain" data-log="${k}" ${o.t?`type="${o.t}"`:`inputmode="${o.txt?'text':'decimal'}"`} value="${E(d[k]==null?'':d[k])}" ${o.ph?`placeholder="${o.ph}"`:''} autocomplete="off"></label>`;
   const sk=(k,l,opts,o={})=>`<label class="f ${o.full?'full':''}"><span>${l}</span><select class="plain" data-log="${k}">${opts.map(([v,t])=>`<option value="${v}" ${v===d[k]?'selected':''}>${t}</option>`).join('')}</select></label>`;
   const box='border:1px solid var(--line);border-radius:10px;padding:8px;margin-top:8px';
-  const itemRow=(p,k)=>`<div style="${box}"><div class="grid"><label class="f full"><span>${k+1}. Descripción (vehículo o mercadería)</span><input class="plain" data-ll="items" data-i="${k}" data-f="desc" value="${E(p.desc)}" autocomplete="off"></label><label class="f"><span>Cantidad</span><input class="plain" inputmode="decimal" data-ll="items" data-i="${k}" data-f="qty" value="${E(p.qty)}"></label><label class="f"><span>FOB unitario (USD)</span><input class="plain" inputmode="decimal" data-ll="items" data-i="${k}" data-f="fob" value="${E(p.fob)}"></label></div>${d.items.length>1?`<div class="row" style="margin-top:6px"><button class="btn sm bad" type="button" onclick="GX.logDel('items',${k})">Eliminar</button></div>`:''}</div>`;
+  const itemRow=(p,k)=>`<div style="${box}"><div class="grid"><label class="f full"><span>${k+1}. Descripción (vehículo o mercadería)</span><input class="plain" data-ll="items" data-i="${k}" data-f="desc" value="${E(p.desc)}" autocomplete="off"></label><label class="f"><span>Cantidad</span><input class="plain" inputmode="decimal" data-ll="items" data-i="${k}" data-f="qty" value="${E(p.qty)}"></label><label class="f"><span>FOB unitario (USD)</span><input class="plain" inputmode="decimal" data-ll="items" data-i="${k}" data-f="fob" value="${E(p.fob)}"></label>
+    ${d.impOn&&d.refOn?`<label class="f full"><span>Precio referencial para aduana, unitario (USD)</span><input class="plain" inputmode="decimal" data-ll="items" data-i="${k}" data-f="fobRef" value="${E(p.fobRef)}" placeholder="${E(p.fob||'igual al FOB')}" autocomplete="off"></label>`:''}
+    ${d.impOn?`<label class="f full"><span>Partida arancelaria</span><input class="plain" data-ll="items" data-i="${k}" data-f="partida" value="${E(p.partida)}" placeholder="8703.23.90.00" autocomplete="off"></label><label class="f"><span>Gravamen (GA) %</span><input class="plain" inputmode="decimal" data-ll="items" data-i="${k}" data-f="ga" value="${E(p.ga)}"></label><label class="f"><span>IVA % (aduana)</span><input class="plain" inputmode="decimal" data-ll="items" data-i="${k}" data-f="iva" value="${E(p.iva)}"></label><label class="chk full"><input type="checkbox" data-ll="items" data-i="${k}" data-f="ice" ${p.ice?'checked':''}> ¿Paga ICE?</label>${p.ice?`<label class="f"><span>ICE: tipo</span><select class="plain" data-ll="items" data-i="${k}" data-f="iceModo"><option value="pct" ${p.iceModo!=='fijo'?'selected':''}>Porcentaje (sobre CIF + GA)</option><option value="fijo" ${p.iceModo==='fijo'?'selected':''}>Valor fijo (Bs)</option></select></label><label class="f"><span>${p.iceModo==='fijo'?'ICE (Bs)':'ICE (%)'}</span><input class="plain" inputmode="decimal" data-ll="items" data-i="${k}" data-f="iceVal" value="${E(p.iceVal)}"></label>`:''}`:''}</div>${d.items.length>1?`<div class="row" style="margin-top:6px"><button class="btn sm bad" type="button" onclick="GX.logDel('items',${k})">Eliminar</button></div>`:''}</div>`;
   const lineRow=(w,p,k,ph)=>`<div style="${box}"><div class="grid"><label class="f full"><span>Descripción</span><input class="plain" data-ll="${w}" data-i="${k}" data-f="desc" value="${E(p.desc)}" placeholder="${ph}" autocomplete="off"></label><label class="f full"><span>Monto (USD)</span><input class="plain" inputmode="decimal" data-ll="${w}" data-i="${k}" data-f="usd" value="${E(p.usd)}"></label></div><div class="row" style="margin-top:6px"><button class="btn sm bad" type="button" onclick="GX.logDel('${w}',${k})">Eliminar</button></div></div>`;
   const refRow=(p,k)=>`<div style="${box}"><div class="grid"><label class="f full"><span>Descripción</span><input class="plain" data-ll="ref" data-i="${k}" data-f="desc" value="${E(p.desc)}" placeholder="Flete marítimo estimado" autocomplete="off"></label><label class="f"><span>Monto (USD)</span><input class="plain" inputmode="decimal" data-ll="ref" data-i="${k}" data-f="usd" value="${E(p.usd)}"></label><label class="f"><span>Quién lo paga</span><select class="plain" data-ll="ref" data-i="${k}" data-f="pago"><option value="cliente" ${p.pago!=='novatrade'?'selected':''}>Directo por el cliente</option><option value="novatrade" ${p.pago==='novatrade'?'selected':''}>Cliente paga a Novatrade</option></select></label></div><div class="row" style="margin-top:6px"><button class="btn sm bad" type="button" onclick="GX.logDel('ref',${k})">Eliminar</button></div></div>`;
   const gastoRow=(p,k)=>`<div style="${box}"><div class="grid"><label class="f full"><span>Descripción</span><input class="plain" data-ll="gastos" data-i="${k}" data-f="desc" value="${E(p.desc)}" placeholder="Viáticos de inspección" autocomplete="off"></label><label class="f"><span>Monto</span><input class="plain" inputmode="decimal" data-ll="gastos" data-i="${k}" data-f="monto" value="${E(p.monto)}"></label><label class="f"><span>Moneda</span><select class="plain" data-ll="gastos" data-i="${k}" data-f="mon"><option value="USD" ${p.mon!=='Bs'?'selected':''}>USD</option><option value="Bs" ${p.mon==='Bs'?'selected':''}>Bs</option></select></label></div><div class="row" style="margin-top:6px"><button class="btn sm bad" type="button" onclick="GX.logDel('gastos',${k})">Eliminar</button></div></div>`;
+  const cI=logCalc(d),pgS=[['cliente','Directo por el cliente'],['novatrade','Cliente paga a Novatrade']];
+  const impCard=`<div class="card"><h2>Estimación de importación (puerta a puerta)</h2><label class="chk full"><input type="checkbox" data-log="impOn" ${d.impOn?'checked':''}> Incluir impuestos de aduana y costos de importación por producto</label>
+   ${d.impOn?`<label class="chk full" style="margin-top:8px"><input type="checkbox" data-log="refOn" ${d.refOn?'checked':''}> Aplicar precio referencial para los pagos de aduana</label>${d.refOn?'<p class="hint" style="margin:6px 0">En cada producto aparece un campo de precio referencial: ese valor es el que se usa como base del CIF, gravamen, ICE, IVA, agencia y almacenaje. La cotización sigue mostrando el FOB real. Si dejas el campo vacío, se usa el FOB declarado.</p>':''}<p class="hint" style="margin:8px 0">Usa el mismo cálculo de la cotización individual (CIF, gravamen, ICE e IVA por producto), pero los costos no se hacen a tu nombre: son una estimación para el cliente. Completa partida, GA % e IVA % en cada producto de arriba.</p><div class="grid">
+    ${f('tcOf','T/C oficial para la aduana (vacío = el mismo)',{full:1,ph:'6,96'})}
+    <h4 class="sec">Transporte y seguro (para el CIF)</h4>${f('imFlete','Transporte internacional (USD)',{full:1})}${f('imFletePond','% del transporte que entra al CIF',{full:1})}
+    ${sk('imSegModo','Seguro',[['con','Con seguro'],['sin','Sin seguro (para el CIF se toma el 2% del FOB)']],{full:1})}${d.imSegModo==='sin'?'':sk('imSegTipo','Se calcula como',[['pct','Porcentaje del FOB total'],['fijo','Valor fijo (USD)']])+f('imSegVal',d.imSegTipo==='fijo'?'Seguro (USD)':'Seguro (% del FOB)')+f('imSegPond','% del seguro que entra al CIF',{full:1})}
+    ${f('imTnac','Transporte terrestre tramo nacional (USD)',{full:1})}
+    <h4 class="sec">Gastos de nacionalización (Bs)</h4>${f('imSistAd','Uso sistema aduana (Bs)',{full:1})}${f('imAgencia','Comisión de agencia (Bs)',{full:1,ph:cI.imp?'automática: '+N(cI.imp.agAuto,0):''})}${f('imCarpeta','Costo carpeta (Bs)')}${f('imDespacho','Gastos de despacho (Bs)')}${f('imOtrosAg','Otros gastos de agencia (Bs)',{full:1})}${f('imTransp','Entrega a domicilio (Bs)',{full:1})}${f('imAlmacen','Almacenaje (Bs)',{full:1,ph:cI.imp?'automático: '+N(cI.imp.almAuto,0):''})}${f('imOtros','Otros gastos (Bs)',{full:1})}
+    <h4 class="sec">Quién paga cada bloque</h4>${sk('imPagoMerc','Mercadería (FOB)',pgS,{full:1})}${sk('imPagoFlete','Transporte, seguro y tramo nacional',pgS,{full:1})}${sk('imPagoTax','Impuestos de aduana',pgS,{full:1})}${sk('imPagoNac','Gastos de nacionalización',pgS,{full:1})}
+    ${hintDiv('logImpH','')}</div>`:''}</div>`;
   const oo=d.id?opByQuote(d.id):null,cur=oo?oo.etapa:null;
   const est=d.id?`<div class="card"><h2>Estado de la cotización</h2><div class="chips">${ETAPAS.map(([k,l])=>`<button class="chip" type="button" onclick="GX.logEtapa('${k}')" aria-pressed="${cur===k}">${l}</button>`).join('')}</div><p class="hint" style="margin:8px 0 0">Los estados son los mismos del seguimiento.</p></div>`
     :`<div class="card"><p class="hint" style="margin:0">Guarde la cotización para darle seguimiento y registrar cobros.</p></div>`;
@@ -32215,6 +32246,7 @@ function renderLog(){
   <div class="${T_('serv')}">
    <div class="card"><h2>Mercadería o vehículos (referencia)</h2><p class="hint" style="margin:0 0 4px">Con el valor FOB se calculan las comisiones en porcentaje. No se factura: lo paga el cliente directamente al proveedor.</p>
     ${d.items.map(itemRow).join('')}<button class="btn sm" style="margin-top:8px" type="button" onclick="GX.logAdd('items')">+ Ítem</button><div class="hint" id="logFob" style="margin-top:8px"></div></div>
+   ${impCard}
    <div class="card"><h2>Honorarios de Novatrade</h2><div class="grid">
     <h4 class="sec">Servicios logísticos y asesoramiento</h4>${sk('comModo','Se calcula como',[['pct','Porcentaje del valor FOB'],['usd','Monto fijo en USD']],{full:1})}
     ${f('comVal',d.comModo==='usd'?'Honorarios (USD)':'Honorarios (% del FOB)',{full:1})}${d.comModo!=='usd'?f('comMin','Honorarios mínimos (USD, opcional)',{full:1}):''}
@@ -32244,6 +32276,7 @@ function logRecalc(){
     r.innerHTML=(c.tc>0?'':'<p class="hint"><span class="tag warn">Falta el T/C para convertir a Bs</span></p>')
     +tb('Honorarios de Novatrade',c.rows.map(x=>`<tr><td>${E(x.l)}</td><td class="n">${N(x.usd)}</td><td class="n">${N(x.usd*c.tc)}</td></tr>`).join('')+`<tr><td><b>Total honorarios</b></td><td class="n"><b>${N(c.total)}</b></td><td class="n"><b>${N(c.totalBs)}</b></td></tr>`)
     +(c.refN.length?tb('Fondos por cuenta del cliente (se pagan a Novatrade, no son ingreso)',c.refN.map(x=>`<tr><td>${E(x.l)}</td><td class="n">${N(x.usd)}</td><td class="n">${N(x.usd*c.tc)}</td></tr>`).join('')+`<tr><td><b>Total a pagar a Novatrade</b></td><td class="n"><b>${N(c.aCobrar)}</b></td><td class="n"><b>${N(c.aCobrar*c.tc)}</b></td></tr>`):'')
+    +(c.imp?`<div style="overflow-x:auto;margin-top:10px"><table><tr><th>Impuestos de aduana por producto (estimado, Bs)</th><th class="n">CIF USD</th><th class="n">GA</th><th class="n">ICE</th><th class="n">IVA</th><th class="n">Total</th></tr>${c.imp.pr.map(x=>`<tr><td>${E(x.desc||'—')}${x.partida?'<br><small style="color:var(--muted)">'+E(x.partida)+'</small>':''}${x.dif?'<br><small style="color:var(--muted)">FOB real USD '+N(x.fobReal)+' (valor para aduana: USD '+N(x.fob)+')</small>':''}</td><td class="n">${N(x.cif)}</td><td class="n">${N(x.ga*c.tc)}</td><td class="n">${N(x.ice*c.tc)}</td><td class="n">${N(x.iva*c.tc)}</td><td class="n"><b>${N((x.ga+x.ice+x.iva)*c.tc)}</b></td></tr>`).join('')}<tr><td><b>Total impuestos de aduana</b></td><td class="n">${N(c.imp.CIF)}</td><td colspan="3"></td><td class="n"><b>${N(c.imp.taxUsd*c.tc)}</b></td></tr></table></div><p class="hint" style="margin:6px 0 0">Costo estimado puerta a puerta (mercadería + transporte y seguro + impuestos + gastos de nacionalización): <b>USD ${N(c.imp.puerta)}</b> · Bs ${N(c.imp.puerta*c.tc)}</p>`:'')
     +(logCargaTxt(d)?`<p style="margin:8px 0 0"><span class="tag warn">${E(logCargaTxt(d))}</span></p>`:'')
     +(c.refC.length?`<details style="margin-top:10px" open><summary class="hint">Costos pagados directamente por el cliente (informativos, no se facturan)</summary><div style="overflow-x:auto"><table>${c.refC.map(x=>`<tr><td>${E(x.l)}</td><td class="n">USD ${N(x.usd)}</td></tr>`).join('')}</table></div></details>`:'')}
   const fa=document.getElementById('logFac');
@@ -32292,6 +32325,7 @@ function logTexto(d,c){
   if(d.descripcion)L.push(d.descripcion);if(d.origen||d.destino)L.push((d.origen||'—')+' → '+(d.destino||'—')+' · '+d.transporte+' · '+d.incoterm);
   if(logCargaTxt(d))L.push('⚠ '+logCargaTxt(d)+(d.cargaNota?' – '+d.cargaNota:''));
   L.push('','Honorarios (USD):',...c.rows.map(x=>x.l+': '+N(x.usd)),'','*Total honorarios: USD '+N(c.total)+'*','Equivale a Bs '+N(c.totalBs)+' (T/C '+N(c.tc,2)+')');
+  if(c.imp)L.push('','Impuestos de aduana estimados por producto (Bs):',...c.imp.pr.map(x=>'• '+(x.desc||'—')+(x.dif?' (FOB USD '+N(x.fobReal)+'; valor para aduana USD '+N(x.fob)+')':'')+': '+N((x.ga+x.ice+x.iva)*c.tc)),'*Total impuestos de aduana: Bs '+N(c.imp.taxUsd*c.tc)+'*');
   if(c.refN.length)L.push('','Fondos por cuenta suya (se pagan a Novatrade, no son honorarios):',...c.refN.map(x=>x.l+': USD '+N(x.usd)),'*Total a pagar a Novatrade: USD '+N(c.aCobrar)+'*');
   if(c.refC.length)L.push('','Costos que usted paga directamente (referenciales, no incluidos):',...c.refC.map(x=>x.l+': USD '+N(x.usd)));return L.join('\n')}
 function logCopiar(){const d=LOG,c=logCalc(d),t=logTexto(d,c);
@@ -32348,6 +32382,12 @@ async function logPdfBlob(){
   y=tbl(y+3,['Concepto','USD','Bs (T/C '+N(c.tc,2)+')'],c.rows.map(r=>[r.l,N(r.usd),N(r.usd*c.tc)]),[W-2*M-62,28,34],['l','r','r']);
   y+=7;need(22);doc.setFont('helvetica','bold');doc.setFontSize(12);doc.setTextColor(...NAVY);doc.text('TOTAL HONORARIOS',W-M-90,y);doc.text('USD '+N(c.total),W-M,y,{align:'right'});y+=5.5;
   doc.setFont('helvetica','normal');doc.setFontSize(9.5);doc.setTextColor(50,62,78);doc.text('Equivale a',W-M-90,y);doc.text('Bs '+N(c.totalBs),W-M,y,{align:'right'});y+=5.5;
+  if(c.imp){y+=5;need(34);doc.setFont('helvetica','bold');doc.setFontSize(10.5);doc.setTextColor(...NAVY);doc.text('ESTIMACIÓN DE IMPUESTOS DE ADUANA POR PRODUCTO',M,y);
+    const tb=c.imp.pr.map(x=>[(x.desc||'—')+(x.partida?'  ('+x.partida+')':'')+(x.dif?'  [FOB USD '+N(x.fobReal)+' (valor para aduana: USD '+N(x.fob)+')]':''),N(x.cif),N(x.ga*c.tc),N(x.ice*c.tc),N(x.iva*c.tc),N((x.ga+x.ice+x.iva)*c.tc)]);
+    tb.push(['Total',N(c.imp.CIF),N(c.imp.ic.R.ga*c.tc),N(c.imp.ic.R.ice*c.tc),N(c.imp.ic.R.iva*c.tc),N(c.imp.taxUsd*c.tc)]);
+    y=tbl(y+3,['Producto','CIF (USD)','GA (Bs)','ICE (Bs)','IVA (Bs)','Total (Bs)'],tb,[W-2*M-122,24,24,22,24,28],['l','r','r','r','r','r'],i=>i===tb.length-1?{b:1}:{});
+    y+=5;need(14);doc.setFont('helvetica','normal');doc.setFontSize(8.8);doc.setTextColor(...GRAY);
+    doc.text(doc.splitTextToSize((c.imp.hayRef?'Los impuestos se calculan sobre el precio referencial indicado entre paréntesis (no sobre el FOB real). ':'')+'Estimación referencial calculada con T/C oficial '+N(num(LOG.tcOf)||c.tc,2)+'. Costo estimado puerta a puerta (mercadería, transporte y seguro, impuestos y gastos de nacionalización): USD '+N(c.imp.puerta)+'  =  Bs '+N(c.imp.puerta*c.tc)+'.',W-2*M),M,y);y+=11}
   if(c.refN.length){y+=5;need(30);doc.setFont('helvetica','bold');doc.setFontSize(10.5);doc.setTextColor(...NAVY);doc.text('FONDOS POR CUENTA DEL CLIENTE (SE PAGAN A NOVATRADE, NO SON HONORARIOS)',M,y);
     y=tbl(y+3,['Concepto','Valor (USD)','Bs (T/C '+N(c.tc,2)+')'],c.refN.map(r=>[r.l,N(r.usd),N(r.usd*c.tc)]),[W-2*M-62,28,34],['l','r','r']);
     y+=7;need(14);doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(...NAVY);doc.text('TOTAL A PAGAR A NOVATRADE',W-M-90,y);doc.text('USD '+N(c.aCobrar),W-M,y,{align:'right'});y+=6}
@@ -32374,11 +32414,11 @@ async function logPdf(share){
   catch(e){console.error(e);toastX('No se pudo generar el PDF: '+(e&&e.message||e))}}
 document.addEventListener('input',e=>{const t=e.target;if(!LOG||!t.closest||!t.closest('#view-log'))return;
   if(t.dataset.log&&t.type!=='checkbox'&&(t.tagName==='INPUT'||t.tagName==='TEXTAREA'))LOG[t.dataset.log]=t.value;
-  else if(t.dataset.ll!==undefined&&t.tagName==='INPUT')LOG[t.dataset.ll][+t.dataset.i][t.dataset.f]=t.value;
+  else if(t.dataset.ll!==undefined&&t.tagName==='INPUT'&&t.type!=='checkbox')LOG[t.dataset.ll][+t.dataset.i][t.dataset.f]=t.value;
   else return;logRecalc();logCobros()});
 document.addEventListener('change',e=>{const t=e.target;if(!LOG||!t.closest||!t.closest('#view-log'))return;
   if(t.dataset.log&&(t.type==='checkbox'||t.tagName==='SELECT')){LOG[t.dataset.log]=t.type==='checkbox'?t.checked:t.value;renderLog()}
-  else if(t.dataset.ll!==undefined&&t.tagName==='SELECT'){LOG[t.dataset.ll][+t.dataset.i][t.dataset.f]=t.value;renderLog()}});
+  else if(t.dataset.ll!==undefined&&(t.tagName==='SELECT'||t.type==='checkbox')){LOG[t.dataset.ll][+t.dataset.i][t.dataset.f]=t.type==='checkbox'?t.checked:t.value;renderLog()}});
 
 /* ================= BANCOS Y PASIVOS ================= */
 let PAS={mode:'list',id:null};
