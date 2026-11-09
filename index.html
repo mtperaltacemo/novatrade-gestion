@@ -331,6 +331,7 @@ body.inhome{padding-block:0 calc(88px + env(safe-area-inset-bottom,0px))}
         <p class="hint" style="margin-bottom:12px">Las cotizaciones y los clientes se guardan en este teléfono. Si cambia de equipo o borra los datos del navegador se pierden, por eso conviene exportar una copia de vez en cuando.</p>
         <div class="row"><button class="btn sm" data-act="excel" type="button">Exportar a Excel</button><button class="btn sm" data-act="export" type="button">Exportar copia</button><button class="btn sm" data-act="import" type="button">Importar copia</button></div>
         <input type="file" id="fileImport" accept="application/json,.json" hidden>
+        <div class="row" style="margin-top:8px"><button class="btn sm danger" data-g2="reset" type="button">Restablecer datos de prueba…</button></div>
         <div id="cuBox" hidden><p class="hint" style="margin:0 0 8px"><b>Cuenta y nube.</b> <span id="cuEmail"></span></p>
         <label class="f full"><span>Sigla de usuario (para numerar cotizaciones y clientes)</span><input class="plain" id="cuPref" maxlength="4" autocomplete="off" placeholder="Ej. KD"></label>
         <div class="row" style="margin-top:10px"><button class="btn sm" data-g2="pin" type="button">Clave de 4 números (crear o cambiar)</button><button class="btn sm" data-act="logout" type="button">Cerrar sesión</button></div>
@@ -30549,9 +30550,10 @@ function renderQState(){
    +'<p class="hint" style="margin:10px 0 0">'+(o?(cur==='cancelada'?'Operación cancelada.':'Estado actual: <b>'+ETL[cur]+'</b> desde '+fmtDate(new Date((o.hist[o.hist.length-1]||{ts:o.creado}).ts).toISOString().slice(0,10))+'.'):'Sin seguimiento todavía. Toque una etapa para iniciarlo.')+'</p>'
    +(o?'<div class="row" style="margin-top:10px"><button class="btn sm" type="button" data-go="qOpenOp">Abrir seguimiento completo</button></div>':'')
 }
-function setQuoteEtapa(e){
+async function setQuoteEtapa(e){
   if(!S.id)return;const o=ensureOp(S.id);if(!o)return;
-  if(o.etapa!==e){o.etapa=e;o.hist=(o.hist||[]).concat([{etapa:e,ts:Date.now(),nota:''}]);o.upd=Date.now();
+  {const rr=await etapaRetroOk(o,e);if(rr===false)return;if(rr){etapaRetro(o,e);saveOps();cloudPushSoon();toast('Seguimiento retrocedido a: '+ETL[e]);renderQState();renderHome();return}}
+  if(o.etapa!==e){etapaSet(o,e,'');o.upd=Date.now();
     if(e!=='enviada'){const c=clients.find(x=>x.id===o.clienteId);if(c&&c.estado!=='ganado'){c.estado='ganado';c.actualizado=Date.now();saveClients()}}
     saveOps();cloudPushSoon();toast('Estado: '+ETL[e])}
   renderQState();renderHome()
@@ -30562,9 +30564,22 @@ function opCommit(){
   if(i>=0)ops[i]=c;else ops.unshift(c);saveOps();cloudPushSoon()
 }
 const opCommitSoon=()=>{clearTimeout(opTimer);opTimer=setTimeout(opCommit,400)};
+const ETIDX=k=>ETAPAS.findIndex(x=>x[0]===k);
+const ET_OPC=['puerto','aduanap','demorado','entregap'];
+function etapaSet(o,e,nota){
+  o.hist=o.hist||[];const a=ETIDX(o.etapa),b=ETIDX(e),ts=Date.now();
+  if(a>=0&&b>a+1)ETAPAS.forEach(([k],i)=>{if(i>a&&i<b&&!ET_OPC.includes(k)&&!o.hist.some(h=>h.etapa===k))o.hist.push({etapa:k,ts,nota:'',auto:1})});
+  o.etapa=e;o.hist.push({etapa:e,ts:ts+1,nota:nota||''})}
+async function etapaRetroOk(o,e){
+  const a=ETIDX(o.etapa),b=ETIDX(e);if(a<0||b<0||b>=a)return null;
+  return (await pinOk('Vas a retroceder el seguimiento de «'+ETL[o.etapa]+'» a «'+ETL[e]+'». Las etapas posteriores se borran del historial y dejan de verse en el seguimiento del cliente. Ingrese la clave para confirmar.'))?true:false}
+function etapaRetro(o,e){
+  const a=o.etapa,b=ETIDX(e);o.hist=(o.hist||[]).filter(h=>{const i=ETIDX(h.etapa);return i>=0&&i<=b});
+  const l=o.hist[o.hist.length-1];if(!l||l.etapa!==e)o.hist.push({etapa:e,ts:Date.now(),nota:'Corregido (retrocedió desde '+ETL[a]+')'});
+  o.etapa=e;(o.retro=o.retro||[]).push({de:a,a:e,ts:Date.now()});o.upd=Date.now()}
 function setEtapa(e){
   if(!OP||OP.etapa===e)return;
-  OP.etapa=e;OP.hist.push({etapa:e,ts:Date.now(),nota:''});
+  etapaSet(OP,e,'');
   if(['confirmada','pedido','transito','aduana','demorado','disponible','entregada'].includes(e)){
     const c=clients.find(x=>x.id===OP.clienteId);
     if(c&&c.estado!=='ganado'){c.estado='ganado';c.actualizado=Date.now();saveClients();cloudPushSoon()}
@@ -30583,7 +30598,7 @@ function renderOp(){
   renderOpLists();updateOpSummaries()
 }
 function renderOpLists(){
-  $('#opStages').innerHTML=ETAPAS.map(([k,l])=>`<button class="chip" type="button" data-go="setEtapa" data-e="${k}" aria-pressed="${OP.etapa===k}">${l}</button>`).join('');
+  $('#opStages').innerHTML=ETAPAS.map(([k,l])=>`<button class="chip" type="button" data-go="setEtapa" data-e="${k}" aria-pressed="${OP.etapa===k}">${(OP.hist||[]).some(h=>h.etapa===k)&&OP.etapa!==k?'✓ ':''}${l}</button>`).join('');
   const idx=ETAPAS.findIndex(x=>x[0]===OP.etapa),nb=$('#btnNextE');
   if(OP.etapa==='cancelada'){nb.hidden=false;nb.textContent='Reactivar operación'}
   else if(idx>=0&&idx<ETAPAS.length-1){nb.hidden=false;nb.textContent='Avanzar a: '+ETAPAS[idx+1][1]}
@@ -30763,10 +30778,15 @@ function syncOps(){
   if(typeof ops==='undefined')return;
   let changed=false;
   for(const o of ops){
-    const lk=linkDeCot(o.quoteId);if(!lk)continue;
-    let ch=false;
+    const lk=linkDeCot(o.quoteId);
+    if(!lk){ /* sin pedido asociado: lo que vino de un pedido/importación se vacía */
+      if(o.linked||o.embSig){let c2=false;Object.keys(MAP_PED).concat(Object.keys(MAP_IMP)).forEach(k=>{if(o[k]){o[k]='';c2=true}});
+        if(o.embSig){o.embSig='';c2=true}if(o.linked){o.linked=false;c2=true}o.hadImp=false;
+        if(c2){o.upd=Date.now();changed=true;if(typeof OP!=='undefined'&&OP&&OP.id===o.id)Object.assign(OP,JSON.parse(JSON.stringify(o)))}}
+      continue}
+    let ch=false;if(!o.linked){o.linked=true;ch=true}
     const apply=(map,src)=>{for(const k in map){const v=map[k](src);if((o[k]||'')!==v){o[k]=v;ch=true}}};
-    apply(MAP_PED,lk.pedido);if(lk.imp)apply(MAP_IMP,lk.imp);
+    apply(MAP_PED,lk.pedido);if(lk.imp){apply(MAP_IMP,lk.imp);if(!o.hadImp){o.hadImp=true;ch=true}}else if(o.hadImp){apply(MAP_IMP,{});o.hadImp=false;ch=true}
     {const sg=JSON.stringify(embarques(o.quoteId));if((o.embSig||'')!==sg){o.embSig=sg;ch=true}}
     if(ch){o.upd=Date.now();changed=true;if(typeof OP!=='undefined'&&OP&&OP.id===o.id)Object.assign(OP,JSON.parse(JSON.stringify(o)))}
   }
@@ -31771,9 +31791,13 @@ function indCalc(d){
   const tcC=n(d.tcCosto)||tc,cMerc=(R.merc+R.origen)*tcC,cEnv=(R.giro+R.flete+R.tint+R.tnac+R.manejo+R.recojo+R.seguro)*tcC,cAdu=(R.ga+R.ice+R.sistAd)*tc,
     cGas=(R.agencia+R.carpeta+R.despacho+R.otrosAg+R.transp+R.almac+R.otros)*tc,ivaB=R.iva*tc,costoCaja=cMerc+cEnv+cAdu+cGas+ivaB;
   const T=totalBs,fac=d.comprobante!=='Recibo',itOn=d.itOn!=='0',nI=pr.length;
-  const items=d.prods.map((p,i)=>{const sh=FOB>0?pr[i].fob/FOB:(nI?1/nI:0),V=T*sh,ivaR=(fac&&String(p.ivaV)!=='0')?0.13:0,itR=itOn?0.03:0,fo=String(p.fact==null?'':p.fact).trim()!==''?n(p.fact):null,ok=fo!=null&&fo>0&&fo<=1;
+  const items0=d.prods.map((p,i)=>{const shF=FOB>0?pr[i].fob/FOB:(nI?1/nI:0),ivaR=(fac&&String(p.ivaV)!=='0')?0.13:0,itR=itOn?0.03:0,own=String(p.fact==null?'':p.fact).trim(),
+      gen0=String(String(p.ivaV)==='0'?(d.factGen0==null?'':d.factGen0):(d.factGen==null?'':d.factGen)).trim(),fo=own!==''?n(own):(gen0!==''?n(gen0):null),ok=fo!=null&&fo>0&&fo<=1;
     const rate=ok?1-fo:ivaR+itR,itI=ok?Math.min(itR,rate):itR;
-    return{desc:p.desc,qty:n(p.qty),sh,V,unit:n(p.qty)>0?V/n(p.qty):0,f:ok?fo:1-ivaR-itR,man:ok,ivaR:rate-itI,itR:itI,rate}});
+    return{p,shF,ivaR:rate-itI,itR:itI,rate,f:1-rate,man:ok}});
+  /* el precio de cada ítem es proporcional a su base (costo + comisión, sin el IVA de importación) dividida entre su factor: igual que en la cotización grupal */
+  const bT=T-rb('iva'),wt=items0.map(x=>(bT>0?bT*x.shF:x.shF)/Math.max(x.f,0.05)),wS=wt.reduce((a,b)=>a+b,0);
+  const items=items0.map((x,i)=>{const sh=wS>0?wt[i]/wS:x.shF,V=T*sh,q=n(x.p.qty);return{desc:x.p.desc,qty:q,sh,V,unit:q>0?V/q:0,f:x.f,man:x.man,ivaR:x.ivaR,itR:x.itR,rate:x.rate}});
   const rEff=items.reduce((x,y)=>x+y.sh*y.rate,0),den=1-rEff;
   const deb=items.reduce((x,y)=>x+y.V*y.ivaR,0),itx=items.reduce((x,y)=>x+y.V*y.itR,0),cred=fac?ivaB:0,costoNeto=costoCaja-cred,util=T-deb-itx-costoNeto,ivaPag=Math.max(0,deb-cred),fav=Math.max(0,cred-deb),caja=T-costoCaja-ivaPag-itx;
   let mmBs=0,Tmin=null;const mv=String(d.margenVal==null?'':d.margenVal).trim(),equil=den>0?costoNeto/den:0;
@@ -31852,10 +31876,11 @@ function renderInd(){
    <h4 class="sec">Otros gastos (Bs)</h4>${f('transpLocal','Transporte de entrega a domicilio (Bs)',{full:1})}${lock('almacen','Almacenaje (0,67% del CIF)')}${f('otros','Otros gastos (Bs)',{full:1})}
    <h4 class="sec">Comisión de Novatrade</h4>${sk('comModo','Se calcula como',[['pct','Porcentaje del valor FOB'],['usd','Monto fijo en USD']],{full:1})}${f('comVal',d.comModo==='usd'?'Comisión Novatrade (USD)':'Comisión Novatrade (% del FOB)',{full:1})}</div></div>
   </div><div class="${T_('res')}"><div class="card"><h2>Condiciones que salen en el PDF</h2><textarea class="ta" id="indCond" data-ind="cond" ${d.condAuto===false?'':'readonly'} style="min-height:260px">${E(d.condAuto===false?d.cond:indCondTxt(d))}</textarea><div class="row" style="margin-top:8px"><button class="btn sm" type="button" onclick="GX.indCondEdit()">${d.condAuto===false?'Volver al texto automático':'Editar texto (clave)'}</button></div><p class="hint" style="margin:6px 0 0">El texto se genera solo (incluye el descuento si lo activas). Para cambiarlo hace falta la clave.</p></div>
+  <div class="card"><h2>Descuento por pago anticipado</h2><div class="grid">${sk('descModo','Descuento por pago 100% anticipado',[['no','No aplicar'],['pct','Porcentaje del total'],['usd','Monto fijo (USD)']],{full:1})}${d.descModo&&d.descModo!=='no'?f('descVal',d.descModo==='usd'?'Descuento (USD)':'Descuento (% del total)',{full:1}):''}</div><p class="hint" style="margin:8px 0 0">Si lo activas, el PDF muestra el precio total y el precio pagando el 100% por anticipado. Revisa abajo en «Rentabilidad interna» cuánto ganas con el descuento.</p></div>
   <div class="card"><div class="row sp"><h2 style="margin:0">Resumen para el cliente</h2><select class="plain" data-ind="vista" style="width:auto;padding:4px 8px"><option value="ambas" ${d.vista==='ambas'||!d.vista?'selected':''}>USD y Bs</option><option value="USD" ${d.vista==='USD'?'selected':''}>Solo USD</option><option value="Bs" ${d.vista==='Bs'?'selected':''}>Solo Bs</option></select></div>
    <p class="hint" style="margin:6px 0 8px">Cada línea usa el T/C de la cotización. Puede poner otro T/C en una línea (por ejemplo el del pago al proveedor o del flete) o escribir directamente el monto en Bs si agrupa varios T/C. Con ↺ vuelve al cálculo.</p><div id="indRes"></div></div>
   <div class="card"><h2>Rentabilidad interna (después de facturar)</h2><p class="hint" style="margin:0 0 8px">Solo para ti: no se muestra al cliente. Descuenta el IVA débito y el IT, y el IVA de importación se recupera como crédito fiscal.</p>
-   <div class="grid">${f('tcCosto','T/C real con el que compro los dólares (vacío = el de la cotización)',{full:1})}${sk('margenModo','Margen mínimo que quiero ganar',[['pct','Porcentaje del precio facturado'],['bs','Monto fijo en Bs'],['usd','Monto fijo en USD']],{full:1})}${f('margenVal','Margen mínimo',{full:1})}${sk('itOn','¿Calcular el IT (3%) y descontarlo de mi ganancia?',[['1','Sí, calcular el IT'],['0','No: no se calcula ni se descuenta']],{full:1})}${sk('descModo','Descuento por pago 100% anticipado',[['no','No aplicar'],['pct','Porcentaje del total'],['usd','Monto fijo (USD)']],{full:1})}${d.descModo!=='no'?f('descVal',d.descModo==='usd'?'Descuento (USD)':'Descuento (% del total)',{full:1}):''}</div><div id="indFac" style="margin-top:10px"></div></div>
+   <div class="grid">${f('tcCosto','T/C real con el que compro los dólares (vacío = el de la cotización)',{full:1})}${sk('margenModo','Margen mínimo que quiero ganar',[['pct','Porcentaje del precio facturado'],['bs','Monto fijo en Bs'],['usd','Monto fijo en USD']],{full:1})}${f('margenVal','Margen mínimo',{full:1})}${sk('itOn','¿Calcular el IT (3%) y descontarlo de mi ganancia?',[['1','Sí, calcular el IT'],['0','No: no se calcula ni se descuenta']],{full:1})}${f('factGen','Factor de facturación general (ítems con IVA). Vacío = 0,84',{ph:'0,84'})}${f('factGen0','Factor general (ítems con IVA 0%). Vacío = 0,97',{ph:'0,97'})}${hintDiv('','El factor ya incluye todo lo que se descuenta de la facturación (IVA débito, IT y el % a cuenta del IUE si lo consideras): ejemplo 0,83 = 13% + 3% + 1%. Si escribes un factor (general o en un producto), el IT NO se descuenta otra vez: la opción de IT solo aplica a los productos que no tienen factor.')}</div><div id="indFac" style="margin-top:10px"></div></div>
   <div class="row" style="flex-wrap:wrap"><button class="btn pri" type="button" onclick="GX.indGuardar()">Guardar cotización</button><button class="btn" type="button" onclick="GX.indCopiar()">Copiar texto para el cliente</button><button class="btn" type="button" onclick="GX.indPdf(false)">Descargar PDF</button><button class="btn" type="button" onclick="GX.indPdf(true)">Compartir PDF</button>${q?'<button class="btn" type="button" onclick="GX.indSeg()">Ver seguimiento</button>':''}</div>
   ${q?`<div class="card"><h2>Cobros por concepto</h2><div id="indCob"></div></div>`:''}</div>
   <div class="sticky"><div class="row" style="gap:8px;align-items:center"><div id="indBarTxt" class="hint" style="flex:1;margin:0"></div><button class="btn pri" type="button" onclick="GX.indGuardar()">Guardar</button></div></div>`;
@@ -31905,10 +31930,11 @@ function indRecalc(){
      <p class="hint" style="margin:6px 0 0">Precio mínimo para no perder: Bs ${N(F.equil)}${F.Tmin!=null?` · para tu margen mínimo: <b>Bs ${N(F.Tmin)}</b> → comisión de Novatrade de al menos USD ${N(F.comMinUsd)} (${N(F.comMinPct,2)}% del FOB)`:''}.</p>`}
   else if(fb)fb.innerHTML='<p class="hint">Escribe el T/C para ver el análisis.</p>'}
 async function indDesbloq(k){if(!IND)return;if(!(await gxPin('Para modificar este valor calculado a mano ingrese la clave.')))return;const c=indCalc(IND);IND[k]=String(Math.round(k==='agencia'?c.agAuto:c.almAuto));renderInd()}
-function indEtapa(e){
+async function indEtapa(e){
   if(!IND||!IND.id){toastX('Guarde la cotización primero');return}
   const o=ensureOp(IND.id);if(!o)return;
-  if(o.etapa!==e){o.etapa=e;o.hist=(o.hist||[]).concat([{etapa:e,ts:Date.now(),nota:''}]);o.upd=Date.now();
+  {const rr=await etapaRetroOk(o,e);if(rr===false)return;if(rr){etapaRetro(o,e);saveOps();cloudPushSoon();toastX('Seguimiento retrocedido a: '+ETL[e]);renderInd();return}}
+  if(o.etapa!==e){etapaSet(o,e,'');o.upd=Date.now();
     if(e!=='enviada'){const c=clients.find(x=>x.id===o.clienteId);if(c&&c.estado!=='ganado'){c.estado='ganado';c.actualizado=Date.now();saveClients()}}
     saveOps();cloudPushSoon();toastX('Estado: '+ETL[e])}
   renderInd()}
@@ -31942,8 +31968,14 @@ async function indPdfBlob(){
     return y1};
   let fy=y-2;
 
+  const GR=[],GK=['ga','ice','iva','sistAd','agencia','carpeta','despacho','otrosAg','transp','almac','otros','com'];
+  c.rows.forEach(r=>{if(!GK.includes(r.k))GR.push({l:r.l,ks:[r.k],usd:r.usd})});
+  const grp=(l,ks)=>{const rs=c.rows.filter(r=>ks.includes(r.k));if(rs.length)GR.push({l,ks,usd:rs.reduce((t,r)=>t+r.usd,0)})};
+  grp('Impuestos de aduana',['ga','ice','iva','sistAd']);
+  grp(c.rows.some(r=>r.k==='transp')?'Gastos de nacionalización y entrega a domicilio':'Gastos de nacionalización',['agencia','carpeta','despacho','otrosAg','transp','otros']);
+  grp('Almacenaje de aduana',['almac']);grp('Comisión Novatrade',['com']);
   const body=[],pagUsd=k=>cb.filter(x=>x.concepto===k&&x.moneda==='USD').reduce((t,x)=>t+num(x.monto),0);let totPagUsd=0,totPagBs=0;
-  c.rows.forEach(r=>{const ps=cb.filter(x=>x.concepto===r.k&&x.moneda==='USD');
+  GR.forEach(r=>{const ps=cb.filter(x=>r.ks.includes(x.concepto)&&x.moneda==='USD');
     body.push({cells:[r.l,N(r.usd),'','',''],main:1});
     ps.forEach(x=>{const bsx=num(x.monto)*num(x.tc);totPagUsd+=num(x.monto);totPagBs+=bsx;body.push({cells:['    Pago recibido','USD '+N(num(x.monto)),FD(x.fecha),N(num(x.tc),2),N(bsx)],main:0})})});
   const gen=cb.filter(x=>!x.concepto).reduce((t,x)=>t+(x.moneda==='USD'?num(x.monto)*num(x.tc):num(x.monto)),0);
@@ -32308,6 +32340,25 @@ function ctCobroSave(o,rec){
     DB.accMov.push({id:uid(),cuentaId:a.id,tipo:'Ingreso',fecha:rec.fecha,monto:Math.round(mt*100)/100,categoria:'Cobro de venta',descripcion:'Cobro '+(o.numero||'')+' · '+(o.clienteNombre||''),ref:'cob:'+rec.id,tc:a.moneda==='USD'?String(rec.moneda==='USD'?num(rec.tc):TC_DEF):''})}
   save()}
 function ctCobroDel(rec){if(!rec||!rec.id)return;DB.accMov.filter(m=>m.ref==='cob:'+rec.id).forEach(m=>del('accMov',m.id));save()}
+async function resetDatos(){
+  if(!(await gxPin('Restablecer datos de prueba: esta acción borra información (se descarga un respaldo antes). Ingrese la clave.')))return;
+  const b=sheet('Restablecer datos de prueba',hintDiv('','Las cotizaciones y los clientes no se tocan. Antes de borrar se descarga un respaldo (.json). Marque lo que quiere dejar en blanco:')+
+   `<label class="chk full"><input type="checkbox" data-k="seg" checked> Historial de seguimiento (cada cotización vuelve a «Enviada»)</label>
+    <label class="chk full"><input type="checkbox" data-k="cob" checked> Cobros de clientes (y su ingreso en bancos y cajas)</label>
+    <label class="chk full"><input type="checkbox" data-k="pag" checked> Pagos y gastos de importación, incluidas las cuentas por pagar (y su salida en bancos y cajas)</label>
+    <label class="chk full"><input type="checkbox" data-k="ent" checked> Entregas, actas y comprobantes (lo entregado vuelve a pendiente en el inventario)</label>`,
+   v=>{if(!v.seg&&!v.cob&&!v.pag&&!v.ent){toastX('No marcó nada');return false}
+     try{const snap={fecha:new Date().toISOString(),ops:JSON.parse(JSON.stringify(ops)),payments:DB.payments,accMov:DB.accMov,invAsig:DB.invAsig,stockSales:DB.stockSales};saveBlob(new Blob([JSON.stringify(snap)],{type:'application/json'}),'respaldo-antes-de-restablecer-'+TODAY()+'.json')}catch(e){console.error(e)}
+     const now=Date.now();
+     ops.forEach(o=>{let ch=false;
+       if(v.seg){o.etapa='enviada';o.hist=[{etapa:'enviada',ts:o.creado||now,nota:''}];o.retro=[];o.comentario='';ch=true}
+       if(v.cob){o.cobros=[];o.pagos=[];ch=true}
+       if(v.ent){o.entregas=[];o.actas=[];o.docVenta={tipo:'',numero:'',fecha:''};ch=true}
+       if(ch)o.upd=now});
+     if(v.cob){DB.stockSales.forEach(x=>{x.cobros=[]});DB.accMov.filter(m=>/^cob:/.test(m.ref||'')).forEach(m=>del('accMov',m.id))}
+     if(v.pag){DB.payments.slice().forEach(p=>del('payments',p.id));DB.accMov.filter(m=>/^pay:/.test(m.ref||'')).forEach(m=>del('accMov',m.id))}
+     if(v.ent)DB.invAsig.forEach(a=>{a.entregado=0});
+     saveOps();save();cloudPushSoon();render();toastX('Datos restablecidos');return true})}
 function ctAsegurarCods(){let ch=false;DB.accounts.forEach(a=>{if(!a.cod){a.cod=ctNuevoCod(a);ch=true}});if(ch)save()}
 const ctLastDay=(y,m)=>new Date(y,m,0).getDate();
 function ctAuto(){
@@ -32488,7 +32539,7 @@ function fPagoPlan(pid){
    v=>{if(!v.fecha){toastX('Falta la fecha');return false}p.pagada=true;p.fechaPago=v.fecha;p.cuentaId=v.cuentaId||'';ctSyncPlanilla(p);save();renderConta();toastX('Pago registrado')})}
 function planDesPagar(pid){const p=byId(DB.planillas,pid);if(!p)return;gxPin('Para deshacer el pago de la planilla ingrese la clave.').then(ok=>{if(ok){p.pagada=false;p.fechaPago='';p.cuentaId='';ctSyncPlanilla(p);save();renderConta()}})}
 function planEliminar(pid){const p=byId(DB.planillas,pid);if(!p)return;if(!confirm('¿Eliminar la planilla '+p.periodo+'?'))return;gxPin('Para eliminar la planilla ingrese la clave.').then(ok=>{if(ok){p.pagada=false;ctSyncPlanilla(p);del('planillas',pid);save();CT.plan='';renderConta()}})}
-window.GX={ctSembrar,ctTesOpts,planOpts,ctCobroSave,ctCobroDel,ctCliCod,ctAcreedorOpts,indTab,indTg,indSaveProd,indCli,fCxpPagar,indCondEdit,actaAnular,embarques,render,go,fImp,fPed,fLin,fPag,fCotEnPed,quitarCot,syncOps,lockOp,setCol,save,fCierre,fProv,fLoc,migrarProv,renderInv,invGo,fJalar,fEntrada,fAjuste,fPegar,fProdInv,fSerie,fEntrega,ingresarBtn,recalcBtn,ingresarImp,recalcImp,invResumen,transito,renderPas,pasGo,indEtapa,indPdf,indLink,indDesbloq,indVolver,indRowReset,indTcPagos,ctSet,ctAbrirMayor,fAsiento,fPlanCta,ctExcelInf,planAbrir,fEmp,fPlanilla,fLineaPlan,fPagoPlan,planDesPagar,planEliminar,fPrepago,contaTab,ctAbrir,ctFiltro,ctExcel,fCuenta,fMov,fTransf,pasStatsList:()=>pasStats().prox,fPas,fCuota,pasCard,renderConta,contaYear,contaExcel,contaCard,actaCompartir,actaDescargar,limpiarActas,vsFacturar,vsCorregir,vsActa,vsActaDl,renderInd,indNueva,indOpen,indGuardar,indCopiar,indPago,indQuitarPago,indSeg,indAdd,indDel,renderVs,vsGo,vsNueva,vsQuitar,vsAgregar,vsCancelar,vsGuardar,vsEditar,vsConfirmar,vsCaida,vsReabrir,vsEliminar,vsEntregar,vsAnular,vsCobro,vsQuitarCobro,vsFiltro,vsResumenAnio,vsTot,vsCob,saldoPedido,totalPedido,ESTADOS_PED,ESTADOS_IMP,
+window.GX={resetDatos,ctSembrar,ctTesOpts,planOpts,ctCobroSave,ctCobroDel,ctCliCod,ctAcreedorOpts,indTab,indTg,indSaveProd,indCli,fCxpPagar,indCondEdit,actaAnular,embarques,render,go,fImp,fPed,fLin,fPag,fCotEnPed,quitarCot,syncOps,lockOp,setCol,save,fCierre,fProv,fLoc,migrarProv,renderInv,invGo,fJalar,fEntrada,fAjuste,fPegar,fProdInv,fSerie,fEntrega,ingresarBtn,recalcBtn,ingresarImp,recalcImp,invResumen,transito,renderPas,pasGo,indEtapa,indPdf,indLink,indDesbloq,indVolver,indRowReset,indTcPagos,ctSet,ctAbrirMayor,fAsiento,fPlanCta,ctExcelInf,planAbrir,fEmp,fPlanilla,fLineaPlan,fPagoPlan,planDesPagar,planEliminar,fPrepago,contaTab,ctAbrir,ctFiltro,ctExcel,fCuenta,fMov,fTransf,pasStatsList:()=>pasStats().prox,fPas,fCuota,pasCard,renderConta,contaYear,contaExcel,contaCard,actaCompartir,actaDescargar,limpiarActas,vsFacturar,vsCorregir,vsActa,vsActaDl,renderInd,indNueva,indOpen,indGuardar,indCopiar,indPago,indQuitarPago,indSeg,indAdd,indDel,renderVs,vsGo,vsNueva,vsQuitar,vsAgregar,vsCancelar,vsGuardar,vsEditar,vsConfirmar,vsCaida,vsReabrir,vsEliminar,vsEntregar,vsAnular,vsCobro,vsQuitarCobro,vsFiltro,vsResumenAnio,vsTot,vsCob,saldoPedido,totalPedido,ESTADOS_PED,ESTADOS_IMP,
   get DB(){return DB},COLS:COLS_GX,KEYS};
 try{migrarProv();ctSembrar()}catch(e){console.error(e)}
 try{limpiarActas()}catch(e){console.error(e)}
@@ -32677,7 +32728,7 @@ function askForm({title,msg,fields}){
 let trkGroup='cot';
 const IMP2ET={'Programada':'pedido','En tránsito':'transito','En aduana':'aduana','En almacenes de Novatrade':'disponible'};
 function moverOp(o,e,nota){
-  o.etapa=e;(o.hist=o.hist||[]).push({etapa:e,ts:Date.now(),nota:nota||''});o.upd=Date.now();
+  etapaSet(o,e,nota);o.upd=Date.now();
   const c=clients.find(x=>x.id===o.clienteId);if(c&&c.estado!=='ganado'&&e!=='enviada'&&e!=='cancelada'){c.estado='ganado';c.actualizado=Date.now();saveClients()}
   saveOps();cloudPushSoon()}
 async function propagarImp(imp){
@@ -32716,6 +32767,7 @@ const _se=setEtapa;
 const CONF={demorado:['Confirmar: Demorado por aduana','Motivo de la demora'],aduanap:['Confirmar: Arribo parcial en aduana','Detalle del arribo parcial (qué llegó y qué falta)']};
 setEtapa=async function(e){
   if(!OP||OP.etapa===e)return;
+  {const rr=await etapaRetroOk(OP,e);if(rr===false)return;if(rr){etapaRetro(OP,e);opCommit();renderOp();toast('Seguimiento retrocedido a: '+ETL[e]);return}}
   if(CONF[e]){
     const r=await askForm({title:CONF[e][0],msg:'Este estado lo verá el cliente en su seguimiento. Escriba el motivo para confirmar.',fields:[{k:'motivo',l:CONF[e][1],req:1}]});
     if(!r)return;_se(e);OP.hist[OP.hist.length-1].nota=r.motivo.trim();opCommit();renderOp();return}
@@ -32780,6 +32832,7 @@ document.addEventListener('click',async e=>{
   else if(a==='indnew'){GX.indNueva(b.dataset.t)}
   else if(a==='gxgo'){setView('compras');GX.go(b.dataset.v,b.dataset.id||null)}
   else if(a==='pin')cambiarPin();
+  else if(a==='reset')GX.resetDatos();
   else if(a==='trkg'){trkGroup=b.dataset.k;trkRender()}
   else if(a==='addCob'){cobDraft={i:null,x:{fecha:today(),moneda:'Bs',monto:0,tc:0,nota:''}};cobrosHtml()}
   else if(a==='cancelCob'){cobDraft=null;cobrosHtml()}
