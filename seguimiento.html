@@ -67,8 +67,8 @@ dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:8px 14px;font-size:1
   </div>
 </main>
 <script>
-/* Prefijo de las colecciones: 'test_' en modo prueba; vacío en producción. Debe coincidir con CP del index.html */
-const CP='test_';
+/* Prefijo de las colecciones: vacío = producción; 'test_' = modo prueba. Debe coincidir con CP del index.html */
+const CP='';
 const PROJ='crm-novatrade',KEY='AIzaSyA2J3Z4gHQyYYvU8AzSVs9r_L_DG6Ax9AE';
 const ETAPAS=[['enviada','Cotización enviada'],['confirmada','Confirmada'],['pedido','Pedido realizado'],['transito','En tránsito'],['puerto','Arribado a puerto'],['aduanap','Arribo parcial en aduana'],['aduana','Arribo en aduana'],['demorado','Demorado por aduana'],['disponible','Disponible para entrega'],['entregap','Entregado parcial'],['entregada','Entrega finalizada']];
 const $=s=>document.querySelector(s);
