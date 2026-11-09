@@ -427,6 +427,7 @@ body.inhome{padding-block:0 calc(88px + env(safe-area-inset-bottom,0px))}
   <button class="gx2card" data-g2="indnew" data-t="individual" type="button"><b>Importación individual</b><small>Todos los cobros por categoría, con T/C por pago</small></button>
   <button class="gx2card" data-go="startQuote" type="button"><b>Importación grupal</b><small id="tQuote">Cotizar una operación de importación</small></button>
   <button class="gx2card" data-g2="indnew" data-t="urgente" type="button"><b>Importación urgente</b><small>Vía aérea: peso volumétrico y pickup</small></button>
+  <button class="gx2card" data-g2="lognew" type="button"><b>Servicios logísticos y asesoramiento</b><small>Forwarder o agente de compras: honorarios sobre el FOB, sin facturar la mercadería</small></button>
 </div>
 <div class="hc hgreen" id="homeFollowCard" hidden><h2>Contactar hoy</h2><div id="homeFollow" style="display:flex;flex-direction:column;gap:8px"></div></div>
       <input class="plain" id="qSearch" placeholder="Buscar por código de cliente, apellido o N.º de cotización" autocomplete="off">
@@ -518,6 +519,7 @@ body.inhome{padding-block:0 calc(88px + env(safe-area-inset-bottom,0px))}
     <section id="view-pasivos" class="gx" hidden style="flex-direction:column;gap:14px"></section>
     <section id="view-conta" class="gx" hidden style="flex-direction:column;gap:14px"></section>
     <section id="view-ind" class="gx" hidden style="flex-direction:column;gap:14px"></section>
+    <section id="view-log" class="gx" hidden style="flex-direction:column;gap:14px"></section>
     <section id="view-vstock" class="gx" hidden style="flex-direction:column;gap:14px"></section>
     <section id="view-inventario" class="gx" hidden style="flex-direction:column;gap:14px"></section>
     <section id="view-catalog" hidden style="flex-direction:column;gap:14px">
@@ -29892,7 +29894,7 @@ function loadList(){qCache=lsGet('nt_quotes',[]).sort((a,b)=>b.ts-a.ts);renderLi
 function renderList(){
   const el=$('#qList'),f=nz(qQuery.trim());
   const l=qCache.filter(q=>!f||nz((q.numero||'')+' '+(q.cliente||'')+' '+((q.meta&&q.meta.clienteCodigo)||'')).includes(f));
-  el.innerHTML=l.length?l.map(q=>`<div class="q"><div><b>${esc(q.numero)}</b>${q.tipoCot?' <span class="tag">'+(q.tipoCot==='urgente'?'Urgente':'Individual')+'</span>':''}<br><small>${esc(((q.meta&&q.meta.clienteCodigo)?q.meta.clienteCodigo+' · ':'')+(q.cliente||'Sin cliente'))} · ${new Date(q.ts).toLocaleDateString('es-BO')}</small></div><div class="amt">${bs(q.total)}</div>
+  el.innerHTML=l.length?l.map(q=>`<div class="q"><div><b>${esc(q.numero)}</b>${q.tipoCot?' <span class="tag">'+(q.tipoCot==='urgente'?'Urgente':q.tipoCot==='logistica'?'Logística':'Individual')+'</span>':''}<br><small>${esc(((q.meta&&q.meta.clienteCodigo)?q.meta.clienteCodigo+' · ':'')+(q.cliente||'Sin cliente'))} · ${new Date(q.ts).toLocaleDateString('es-BO')}</small></div><div class="amt">${bs(q.total)}</div>
    <div class="acts"><button class="btn sm pri" data-act="abrir" data-id="${q.id}" type="button">Abrir</button><button class="btn sm" data-act="dupQ" data-id="${q.id}" type="button">Duplicar</button><button class="btn sm" data-act="trk" data-id="${q.id}" type="button">${opByQuote(q.id)?'Ver seguimiento':'Seguimiento'}</button>${
    confirmDel===q.id?`<button class="btn sm danger" data-act="delQ" data-id="${q.id}" type="button">Sí, eliminar</button><button class="btn sm ghost" data-act="noDel" type="button">Cancelar</button>`:`<button class="btn sm danger ghost" data-act="askDel" data-id="${q.id}" type="button">Eliminar</button>`}</div></div>`).join('')
    :`<p class="hint">${qCache.length?'Ninguna cotización coincide con la búsqueda.':'Aún no hay cotizaciones guardadas. Use «Guardar» dentro de una cotización.'}</p>`;
@@ -30030,8 +30032,8 @@ document.addEventListener('click',async e=>{
   else if(a==='guardar')guardar();
   else if(a==='pdf')downloadPDF(false);
   else if(a==='copyTxt')copyText();
-  else if(a==='abrir'){const q=qCache.find(x=>x.id===b.dataset.id);if(q){if(q.tipoCot&&window.GX)GX.indOpen(q.id,false);else{const o=opByQuote(q.id);if(o&&!['enviada','cancelada'].includes(o.etapa)&&window.GX2)GX2.pinOk('Esta cotización ya está confirmada. Ingrese la clave para modificarla.').then(ok=>{if(ok)adopt(q,false)});else adopt(q,false)}}}
-  else if(a==='dupQ'){const q=qCache.find(x=>x.id===b.dataset.id);if(q){if(q.tipoCot&&window.GX)GX.indOpen(q.id,true);else adopt(q,true)}}
+  else if(a==='abrir'){const q=qCache.find(x=>x.id===b.dataset.id);if(q){if(q.tipoCot&&window.GX)GX[q.tipoCot==='logistica'?'logOpen':'indOpen'](q.id,false);else{const o=opByQuote(q.id);if(o&&!['enviada','cancelada'].includes(o.etapa)&&window.GX2)GX2.pinOk('Esta cotización ya está confirmada. Ingrese la clave para modificarla.').then(ok=>{if(ok)adopt(q,false)});else adopt(q,false)}}}
+  else if(a==='dupQ'){const q=qCache.find(x=>x.id===b.dataset.id);if(q){if(q.tipoCot&&window.GX)GX[q.tipoCot==='logistica'?'logOpen':'indOpen'](q.id,true);else adopt(q,true)}}
   else if(a==='askDel'){confirmDel=b.dataset.id;renderList()}
   else if(a==='noDel'){confirmDel=null;renderList()}
   else if(a==='delQ'){const id=b.dataset.id,o=opByQuote(id);if(o&&!['enviada','cancelada'].includes(o.etapa)&&window.GX2)GX2.pinOk('Esta cotización ya está confirmada. Ingrese la clave para eliminarla.').then(ok=>{if(ok)removeQ(id)});else removeQ(id)}
@@ -30049,8 +30051,8 @@ document.addEventListener('click',async e=>{
 });
 
 /* ---------- pantalla principal, clientes (CRM) y navegación ---------- */
-const VIEWS=['pasivos','conta','ind','vstock','inventario','compras','home','quote','saved','clients','client','catalog','product','send','login','track','op','flyers','flyer'];
-const TITLES={pasivos:'Bancos y pasivos',conta:'Contabilidad',ind:'Cotización de importación',vstock:'Venta de stock',quote:'Hacer cotización',saved:'Cotizaciones guardadas',clients:'Clientes',client:'Ficha de cliente',catalog:'Catálogo',product:'Producto',send:'Enviar por WhatsApp',flyers:'Volantes',flyer:'Volante',track:'Seguimiento',op:'Operación',compras:'Importaciones',inventario:'Inventario'};
+const VIEWS=['pasivos','conta','ind','log','vstock','inventario','compras','home','quote','saved','clients','client','catalog','product','send','login','track','op','flyers','flyer'];
+const TITLES={log:'Servicios logísticos',pasivos:'Bancos y pasivos',conta:'Contabilidad',ind:'Cotización de importación',vstock:'Venta de stock',quote:'Hacer cotización',saved:'Cotizaciones guardadas',clients:'Clientes',client:'Ficha de cliente',catalog:'Catálogo',product:'Producto',send:'Enviar por WhatsApp',flyers:'Volantes',flyer:'Volante',track:'Seguimiento',op:'Operación',compras:'Importaciones',inventario:'Inventario'};
 const ESTADOS=[['nuevo','Nuevo'],['cotizado','Cotizado'],['ganado','Ganado'],['perdido','Perdido']];
 let clients=[],C=null,cNew=false,cPick=false,pickMode=false,cFilter='todos',cQuery='',qQuery='',confirmDelClient=false,newArm=false,cTimer;
 const loadClients=()=>{clients=lsGet('nt_clients',[])};
@@ -30072,12 +30074,13 @@ function setView(v,push=true){
   if(v==='home')pickMode=false;
   $('#ttl').textContent=(v==='clients'&&pickMode)?'Elegir cliente':(TITLES[v]||'');
   $('#pickNote').hidden=!(v==='clients'&&pickMode);
-  $('#btnBack').textContent=v==='client'?'‹ Clientes':(v==='product'||v==='send')?'‹ Catálogo':v==='flyer'?'‹ Volantes':v==='op'?'‹ Seguimiento':(v==='vstock'||v==='ind')?'‹ Cotizaciones':'‹ Inicio';
+  $('#btnBack').textContent=v==='client'?'‹ Clientes':(v==='product'||v==='send')?'‹ Catálogo':v==='flyer'?'‹ Volantes':v==='op'?'‹ Seguimiento':(v==='vstock'||v==='ind'||v==='log')?'‹ Cotizaciones':'‹ Inicio';
   if(v==='home')renderHome();
   if(v==='compras'){$('#subtitle').textContent='';if(window.GX)GX.render()}
   if(v==='inventario'){$('#subtitle').textContent='';if(window.GX)GX.renderInv()}
   if(v==='vstock'){$('#subtitle').textContent='';if(window.GX)GX.renderVs()}
   if(v==='ind'){$('#subtitle').textContent='';if(window.GX)GX.renderInd()}
+  if(v==='log'){$('#subtitle').textContent='';if(window.GX)GX.renderLog()}
   if(v==='pasivos'){$('#subtitle').textContent='';if(window.GX)GX.renderPas()}
   if(v==='conta'){$('#subtitle').textContent='';if(window.GX)GX.renderConta()}
   if(v==='saved'){$('#subtitle').textContent=qCache.length+' guardadas';renderList();renderHome()}
@@ -30177,7 +30180,7 @@ document.addEventListener('input',e=>{
 document.addEventListener('click',e=>{
   const b=e.target.closest('[data-go]');if(!b)return;
   const g=b.dataset.go;
-  if(g==='back'){if(view==='client'){if(String(C.nombre||'').trim())commitClient();setView('clients')}else if(view==='product'||view==='send')setView('catalog');else if(view==='flyer')setView('flyers');else if(view==='op')setView('track');else if(view==='vstock'||view==='ind')setView('saved');else setView('home')}
+  if(g==='back'){if(view==='client'){if(String(C.nombre||'').trim())commitClient();setView('clients')}else if(view==='product'||view==='send')setView('catalog');else if(view==='flyer')setView('flyers');else if(view==='op')setView('track');else if(view==='vstock'||view==='ind'||view==='log')setView('saved');else setView('home')}
   else if(g==='home')setView('home');
   else if(g==='startQuote'){if(S.dirty){show('datos');setView('quote')}else startQuoteFlow()}
   else if(g==='saved'||g==='clients'||g==='compras'||g==='inventario'||g==='pasivos'||g==='conta')setView(g);
@@ -30696,7 +30699,7 @@ document.addEventListener('click',e=>{
     try{navigator.clipboard&&navigator.clipboard.writeText(n).catch(()=>{})}catch(_){}
     toast('Número '+n+' copiado: péguelo en la página de la naviera');window.open(url,'_blank','noopener')}
   else if(g==='opWa'){const c=clients.find(x=>x.id===OP.clienteId),msg=opMsg(),ph=c&&normPhone(c.telefono);window.open(ph?waLink(c.telefono,msg):'https://wa.me/?text='+encodeURIComponent(msg),'_blank','noopener')}
-  else if(g==='opQuote'){const q=qCache.find(x=>x.id===OP.quoteId);if(q){if(q.tipoCot&&window.GX)GX.indOpen(q.id,false);else adopt(q,false)}}
+  else if(g==='opQuote'){const q=qCache.find(x=>x.id===OP.quoteId);if(q){if(q.tipoCot&&window.GX)GX[q.tipoCot==='logistica'?'logOpen':'indOpen'](q.id,false);else adopt(q,false)}}
   else if(g==='askOpDel'){opDelArm=true;renderOpLists()}
   else if(g==='noOpDel'){opDelArm=false;renderOpLists()}
   else if(g==='opDel'){try{if(OP.codigo&&typeof cloudUser!=='undefined'&&cloudUser&&window.NTCloud)NTCloud.put(CP+'seguimiento',OP.codigo,{activo:false,upd:Date.now()}).catch(()=>{})}catch(_){}ops=ops.filter(x=>x.id!==OP.id);saveOps();addTomb('ops',OP.id);OP=null;toast('Operación eliminada');setView('track')}
@@ -32115,6 +32118,238 @@ document.addEventListener('change',e=>{const t=e.target;if(!IND||!t.closest||!t.
   if(t.dataset.ind&&(t.type==='checkbox'||t.tagName==='SELECT')){IND[t.dataset.ind]=t.type==='checkbox'?t.checked:t.value;renderInd()}
   else if(t.dataset.ip!==undefined&&(t.type==='checkbox'||t.tagName==='SELECT')){IND.prods[+t.dataset.ip][t.dataset.f]=t.type==='checkbox'?t.checked:t.value;renderInd()}});
 
+/* ================= SERVICIOS LOGÍSTICOS Y ASESORAMIENTO (forwarder / agente de compras) ================= */
+let LOG=null,LOG_TAB='datos',LOG_FU=false;
+const logItem=()=>({desc:'',qty:'1',fob:''}),logLine=()=>({desc:'',usd:''});
+const LOG_ROL={forwarder:'Forwarder: logística, transporte y aduana',compras:'Agente de compras en el exterior',mixto:'Agente de compras y forwarder'};
+function logBlank(){return{tipo:'logistica',numero:'',fecha:TODAY(),cliente:'',clienteId:'',tc:'',comprobante:'Factura',itOn:'1',factGen:'0.84',provIue:'0.025',
+  rol:'forwarder',origen:'',destino:'',transporte:'Marítimo',incoterm:'FOB',descripcion:'',items:[logItem()],
+  carga:'general',imoClase:'',imoUN:'',espTipo:'',cargaNota:'',
+  comModo:'pct',comVal:'',comMin:'',busqModo:'no',busqVal:'',serv:[],ref:[],cond:'',condAuto:true}}
+function logNext(){const y=new Date().getFullYear(),re=new RegExp('^LG-'+y+'-(\\d+)$');let m=0;lsGet('nt_quotes',[]).forEach(q=>{const x=re.exec(q.numero||'');if(x)m=Math.max(m,+x[1])});return 'LG-'+y+'-'+String(m+1).padStart(3,'0')}
+function logCalc(d){
+  const n=num,tc=n(d.tc),FOB=d.items.reduce((t,p)=>t+n(p.qty)*n(p.fob),0),pc=v=>N(n(v),n(v)%1?2:0);
+  let com=d.comModo==='usd'?n(d.comVal):FOB*n(d.comVal)/100;if(d.comModo!=='usd'&&n(d.comMin)>com)com=n(d.comMin);
+  const busq=d.busqModo==='pct'?FOB*n(d.busqVal)/100:(d.busqModo==='usd'?n(d.busqVal):0);
+  const rows=[{k:'com',l:'Servicios logísticos y asesoramiento'+(d.comModo!=='usd'?' ('+pc(d.comVal)+'% del FOB'+(n(d.comMin)>FOB*n(d.comVal)/100?', mínimo aplicado':'')+')':''),usd:com}];
+  if(busq>0)rows.push({k:'busq',l:'Búsqueda y verificación de proveedores'+(d.busqModo==='pct'?' ('+pc(d.busqVal)+'% del FOB)':''),usd:busq});
+  d.serv.filter(s=>String(s.desc).trim()&&n(s.usd)>0).forEach((s,i)=>rows.push({k:'s'+i,l:String(s.desc).trim(),usd:n(s.usd)}));
+  const total=rows.reduce((t,r)=>t+r.usd,0),T=total*tc,fac=d.comprobante==='Factura';
+  let itR,debR,iueR;
+  if(fac){const g=String(d.factGen==null?'':d.factGen).trim(),f0=g===''?0.84:n(g),f=(f0>0&&f0<=1)?f0:0.84,r0=1-f,p=String(d.provIue==null?'':d.provIue).trim();itR=Math.min(0.03,r0);debR=r0-itR;iueR=p===''?0.025:n(p)}
+  else{itR=d.itOn==='0'?0:0.03;debR=0;iueR=0}
+  const net=x=>x*(1-itR-debR-iueR);
+  const fa={fac,T,deb:T*debR,it:T*itR,iue:T*iueR,util:net(T),utilCom:net(com*tc),utilBusq:net(busq*tc),utilOtros:net((total-com-busq)*tc),margen:T>0?net(T)/T*100:0};
+  return{tc,FOB,com,busq,rows,total,totalBs:Math.round(T*100)/100,fa,ref:d.ref.filter(s=>String(s.desc).trim()&&n(s.usd)>0).map(s=>({l:String(s.desc).trim(),usd:n(s.usd)}))}}
+function logCargaTxt(d){if(d.carga==='imo')return 'CARGA IMO (mercancía peligrosa)'+(d.imoClase?' · Clase '+d.imoClase:'')+(d.imoUN?' · UN '+d.imoUN:'');if(d.carga==='especial')return 'CARGA ESPECIAL'+(d.espTipo?' · '+d.espTipo:'');return ''}
+function logCondTxt(d,c){
+  const c0=c||logCalc(d),cg=logCargaTxt(d);
+  return ['CONDICIONES COMERCIALES','','- Alcance: '+(LOG_ROL[d.rol]||LOG_ROL.forwarder)+'. Novatrade presta servicios y asesoramiento; la mercadería, el flete, los seguros, los impuestos de aduana y los gastos de terceros se pagan directamente a nombre y por cuenta del cliente.',
+    '- Honorarios: Expresados en USD (pueden ser pagados en Bs o USD al T/C del día), '+(d.comprobante==='Recibo'?'con recibo':'con factura')+', solo por los servicios detallados en esta cotización.',
+    c0.ref.length?'- Costos referenciales: Los valores indicados como «a cargo del cliente» son estimados, no forman parte de esta cotización y pueden variar según naviera, aduana y proveedor.':null,
+    cg?'- Carga especial: Esta cotización considera: '+cg+'. Está sujeta a aceptación del transportista y puede generar recargos, documentos o permisos adicionales que se informarán antes de confirmar.':null,
+    '- Forma de pago: A convenir al confirmar el servicio.','- Validez: 7 días calendario desde la fecha de la cotización.'].filter(x=>x!==null).join('\n')}
+function logNueva(){LOG_FU=false;LOG_TAB='datos';LOG=logBlank();setView('log')}
+async function logOpen(id,dup){
+  const q=lsGet('nt_quotes',[]).find(x=>x.id===id);if(!q||!q.log)return;const o=opByQuote(id);
+  if(!dup&&o&&o.etapa!=='enviada'&&!(await gxPin('Esta cotización ya está confirmada. Ingrese la clave para modificarla.')))return;
+  LOG_FU=false;LOG_TAB='datos';LOG={...logBlank(),...JSON.parse(JSON.stringify(q.log))};LOG.tipo='logistica';
+  if(dup){delete LOG.id;LOG.numero='';LOG.fecha=TODAY()}else{LOG.id=id;LOG.numero=q.numero}setView('log')}
+function logTab(k){LOG_TAB=k;renderLog();window.scrollTo(0,0)}
+function logAdd(w){LOG[w].push(w==='items'?logItem():logLine());renderLog()}
+function logDel(w,k){const p=LOG[w][k];if(!confirm('¿Eliminar «'+((p&&p.desc)||'esta línea')+'»? Esta acción no se puede deshacer.'))return;LOG[w].splice(k,1);if(w==='items'&&!LOG.items.length)LOG.items.push(logItem());renderLog()}
+async function logFactDesbloq(){if(!(await gxPin('Para modificar el factor de facturación y la provisión IUE ingrese la clave.')))return;LOG_FU=true;renderLog()}
+async function logCondEdit(){if(!LOG)return;
+  if(LOG.condAuto===false){LOG.condAuto=true;LOG.cond='';renderLog();return}
+  if(!(await gxPin('Para editar el texto de condiciones ingrese la clave.')))return;LOG.cond=logCondTxt(LOG);LOG.condAuto=false;renderLog()}
+function logCliSel(d){return indCliSel(d).replace('GX.indCli(','GX.logCli(')}
+function logCli(v){
+  if(v==='__cur')return;
+  if(v==='__new'){sheet('Nuevo cliente',inp('nombre','Nombre o razón social','',{full:1})+inp('telefono','Teléfono','',{})+inp('direccion','Dirección','',{full:1}),
+    x=>{if(!x.nombre){toastX('Falta el nombre');return false}
+      let c=clients.find(y=>sameName(y.nombre,x.nombre));
+      if(!c){c={id:'c'+Date.now(),codigo:nextClientCode(),nombre:x.nombre,contacto:'',telefono:x.telefono||'',ci:'',direccion:x.direccion||'',correo:'',notas:'',estado:'nuevo',proximo:'',creado:Date.now(),actualizado:Date.now()};clients.unshift(c);saveClients();updateDatalist();syncSoon();cloudPushSoon()}
+      LOG.cliente=c.nombre;LOG.clienteId=c.id;renderLog()},null,()=>renderLog());return}
+  const c=clients.find(x=>x.id===v);if(c){LOG.cliente=c.nombre;LOG.clienteId=c.id}else{LOG.cliente='';LOG.clienteId=''}
+  renderLog()}
+function logFactHtml(d){
+  const g=String(d.factGen==null||String(d.factGen).trim()===''?'0.84':d.factGen).replace('.',','),pi=String(d.provIue==null||String(d.provIue).trim()===''?'0.025':d.provIue).replace('.',',');
+  const ro=(l,v)=>`<label class="f"><span>${l}</span><input class="plain" readonly value="${E(v)}"></label>`;
+  const ed=(k,l,ph)=>`<label class="f"><span>${l}</span><input class="plain" inputmode="decimal" data-log="${k}" value="${E(d[k]==null?'':d[k])}" placeholder="${ph}" autocomplete="off"></label>`;
+  return d.comprobante==='Recibo'?`<label class="f full"><span>¿Considerar el IT 3% para calcular mi ganancia?</span><select class="plain" data-log="itOn"><option value="1" ${d.itOn!=='0'?'selected':''}>Sí, descontar el IT 3%</option><option value="0" ${d.itOn==='0'?'selected':''}>No, no lo considero</option></select></label>`
+   :(LOG_FU?ed('factGen','Factor de facturación (3% IT + 13% débito fiscal)','0,84')+ed('provIue','Factor de provisión IUE','0,025'):ro('Factor de facturación (3% IT + 13% débito fiscal)',g)+ro('Factor de provisión IUE',pi)+'<div class="full row"><button class="btn sm" type="button" onclick="GX.logFactDesbloq()">Modificar factores (clave)</button></div>')}
+function renderLog(){
+  const root=document.getElementById('view-log');if(!root||!LOG)return;const d=LOG;
+  const f=(k,l,o={})=>`<label class="f ${o.full?'full':''}"><span>${l}</span><input class="plain" data-log="${k}" ${o.t?`type="${o.t}"`:`inputmode="${o.txt?'text':'decimal'}"`} value="${E(d[k]==null?'':d[k])}" ${o.ph?`placeholder="${o.ph}"`:''} autocomplete="off"></label>`;
+  const sk=(k,l,opts,o={})=>`<label class="f ${o.full?'full':''}"><span>${l}</span><select class="plain" data-log="${k}">${opts.map(([v,t])=>`<option value="${v}" ${v===d[k]?'selected':''}>${t}</option>`).join('')}</select></label>`;
+  const box='border:1px solid var(--line);border-radius:10px;padding:8px;margin-top:8px';
+  const itemRow=(p,k)=>`<div style="${box}"><div class="grid"><label class="f full"><span>${k+1}. Descripción (vehículo o mercadería)</span><input class="plain" data-ll="items" data-i="${k}" data-f="desc" value="${E(p.desc)}" autocomplete="off"></label><label class="f"><span>Cantidad</span><input class="plain" inputmode="decimal" data-ll="items" data-i="${k}" data-f="qty" value="${E(p.qty)}"></label><label class="f"><span>FOB unitario (USD)</span><input class="plain" inputmode="decimal" data-ll="items" data-i="${k}" data-f="fob" value="${E(p.fob)}"></label></div>${d.items.length>1?`<div class="row" style="margin-top:6px"><button class="btn sm bad" type="button" onclick="GX.logDel('items',${k})">Eliminar</button></div>`:''}</div>`;
+  const lineRow=(w,p,k,ph)=>`<div style="${box}"><div class="grid"><label class="f full"><span>Descripción</span><input class="plain" data-ll="${w}" data-i="${k}" data-f="desc" value="${E(p.desc)}" placeholder="${ph}" autocomplete="off"></label><label class="f full"><span>Monto (USD)</span><input class="plain" inputmode="decimal" data-ll="${w}" data-i="${k}" data-f="usd" value="${E(p.usd)}"></label></div><div class="row" style="margin-top:6px"><button class="btn sm bad" type="button" onclick="GX.logDel('${w}',${k})">Eliminar</button></div></div>`;
+  const oo=d.id?opByQuote(d.id):null,cur=oo?oo.etapa:null;
+  const est=d.id?`<div class="card"><h2>Estado de la cotización</h2><div class="chips">${ETAPAS.map(([k,l])=>`<button class="chip" type="button" onclick="GX.logEtapa('${k}')" aria-pressed="${cur===k}">${l}</button>`).join('')}</div><p class="hint" style="margin:8px 0 0">Los estados son los mismos del seguimiento.</p></div>`
+    :`<div class="card"><p class="hint" style="margin:0">Guarde la cotización para darle seguimiento y registrar cobros.</p></div>`;
+  const T_=k=>`itab ${LOG_TAB===k?'on':''}`;
+  root.innerHTML=`<button class="back" type="button" onclick="setView('saved')">← Cotizaciones</button>
+  <div class="chips itabs">${[['datos','Datos'],['serv','Servicio'],['res','Resumen']].map(([k,l])=>`<button class="chip" type="button" aria-pressed="${LOG_TAB===k}" onclick="GX.logTab('${k}')">${l}</button>`).join('')}</div>
+  <div class="${T_('datos')}">${est}
+   <div class="card"><h2>Servicios logísticos y asesoramiento ${d.numero?'· '+E(d.numero):'· nueva'}</h2><div class="grid">
+    ${logCliSel(d)}${f('fecha','Fecha',{t:'date'})}${f('tc','T/C de la cotización (Bs por USD)',{ph:'12,08'})}
+    ${sk('rol','Cómo trabajamos',Object.entries(LOG_ROL),{full:1})}
+    ${sk('comprobante','Voy a emitir',[['Factura','Factura'],['Recibo','Recibo']],{full:1})}
+    ${f('descripcion','Operación (ej. importación de vehículo Toyota Hilux 2022)',{full:1,txt:1})}
+    ${f('origen','Origen',{txt:1,ph:'Miami, EE.UU.'})}${f('destino','Destino',{txt:1,ph:'Santa Cruz, Bolivia'})}
+    ${sk('transporte','Transporte',[['Marítimo','Marítimo'],['Aéreo','Aéreo'],['Terrestre','Terrestre'],['Multimodal','Multimodal']])}
+    ${sk('incoterm','Incoterm',['EXW','FCA','FOB','CFR','CIF','DAP','DDP'].map(x=>[x,x]))}</div></div>
+   <div class="card"><h2>Tipo de carga</h2><div class="grid">
+    ${sk('carga','La carga es',[['general','General'],['imo','IMO (mercancía peligrosa)'],['especial','Especial']],{full:1})}
+    ${d.carga==='imo'?f('imoClase','Clase IMO',{txt:1,ph:'3, 8, 9…'})+f('imoUN','N° UN',{txt:1,ph:'UN1203'}):''}
+    ${d.carga==='especial'?sk('espTipo','Tipo de carga especial',[['','— Elegir —'],['Sobredimensionada / fuera de medida','Sobredimensionada / fuera de medida'],['Refrigerada / controlada','Refrigerada / controlada'],['Vehículo o maquinaria rodante','Vehículo o maquinaria rodante'],['Frágil o de alto valor','Frágil o de alto valor'],['Otra','Otra']],{full:1}):''}
+    ${d.carga!=='general'?f('cargaNota','Notas de la carga (se muestran en el PDF)',{full:1,txt:1}):''}
+    ${d.carga!=='general'?hintDiv('','En el PDF saldrá un recuadro destacado con este tipo de carga.'):''}</div></div></div>
+  <div class="${T_('serv')}">
+   <div class="card"><h2>Mercadería o vehículos (referencia)</h2><p class="hint" style="margin:0 0 4px">Con el valor FOB se calculan las comisiones en porcentaje. No se factura: lo paga el cliente directamente al proveedor.</p>
+    ${d.items.map(itemRow).join('')}<button class="btn sm" style="margin-top:8px" type="button" onclick="GX.logAdd('items')">+ Ítem</button><div class="hint" id="logFob" style="margin-top:8px"></div></div>
+   <div class="card"><h2>Honorarios de Novatrade</h2><div class="grid">
+    <h4 class="sec">Servicios logísticos y asesoramiento</h4>${sk('comModo','Se calcula como',[['pct','Porcentaje del valor FOB'],['usd','Monto fijo en USD']],{full:1})}
+    ${f('comVal',d.comModo==='usd'?'Honorarios (USD)':'Honorarios (% del FOB)',{full:1})}${d.comModo!=='usd'?f('comMin','Honorarios mínimos (USD, opcional)',{full:1}):''}
+    <h4 class="sec">Búsqueda y verificación de proveedores</h4>${sk('busqModo','Cobrar este servicio',[['no','No aplica'],['pct','Porcentaje del valor FOB'],['usd','Monto fijo en USD']],{full:1})}
+    ${d.busqModo!=='no'?f('busqVal',d.busqModo==='usd'?'Monto (USD)':'Porcentaje (% del FOB)',{full:1}):''}</div></div>
+   <div class="card"><h2>Otros servicios cobrados</h2><p class="hint" style="margin:0 0 4px">Por ejemplo: gestión aduanera, coordinación de transporte, inspección, trámites.</p>
+    ${d.serv.map((p,k)=>lineRow('serv',p,k,'Gestión aduanera')).join('')}<button class="btn sm" style="margin-top:8px" type="button" onclick="GX.logAdd('serv')">+ Servicio</button></div>
+   <div class="card"><h2>Costos a cargo del cliente (referenciales)</h2><p class="hint" style="margin:0 0 4px">Solo informativos para el PDF (flete, seguro, impuestos de aduana estimados…). No suman al total que se factura.</p>
+    ${d.ref.map((p,k)=>lineRow('ref',p,k,'Flete marítimo estimado')).join('')}<button class="btn sm" style="margin-top:8px" type="button" onclick="GX.logAdd('ref')">+ Costo referencial</button></div></div>
+  <div class="${T_('res')}">
+   <div class="card"><h2>Resumen para el cliente</h2><div id="logRes"></div></div>
+   <div class="card"><h2>Condiciones que salen en el PDF</h2><textarea class="ta" id="logCond" data-log="cond" ${d.condAuto===false?'':'readonly'} style="min-height:240px">${E(d.condAuto===false?d.cond:logCondTxt(d))}</textarea><div class="row" style="margin-top:8px"><button class="btn sm" type="button" onclick="GX.logCondEdit()">${d.condAuto===false?'Volver al texto automático':'Editar texto (clave)'}</button></div></div>
+   <div class="card"><h2>Rentabilidad interna</h2><p class="hint" style="margin:0 0 8px">Solo para ti: no se muestra al cliente. Asume que los servicios no tienen costo directo para Novatrade (los pagos a terceros los hace el cliente).</p>
+    <div class="grid">${logFactHtml(d)}</div><div id="logFac" style="margin-top:10px"></div></div>
+   <div class="row" style="flex-wrap:wrap"><button class="btn pri" type="button" onclick="GX.logGuardar()">Guardar cotización</button><button class="btn" type="button" onclick="GX.logCopiar()">Copiar texto para el cliente</button><button class="btn" type="button" onclick="GX.logPdf(false)">PDF</button><button class="btn" type="button" onclick="GX.logPdf(true)">Compartir PDF</button>${d.id?`<button class="btn" type="button" onclick="GX.logSeg()">Seguimiento</button><button class="btn" type="button" onclick="GX.logLink(true)">Enlace al cliente (WhatsApp)</button>`:''}</div>
+   ${d.id?`<div class="card"><h2>Cobros</h2><div id="logCob"></div></div>`:''}</div>
+  <div class="sticky"><div class="row" style="gap:8px;align-items:center"><div id="logBarTxt" class="hint" style="flex:1;margin:0"></div><button class="btn pri" type="button" onclick="GX.logGuardar()">Guardar</button></div></div>`;
+  logRecalc();logCobros()}
+function logRecalc(){
+  const d=LOG;if(!d)return;const c=logCalc(d),r=document.getElementById('logRes');
+  const bt=document.getElementById('logBarTxt');if(bt)bt.innerHTML='Total <b>USD '+N(c.total)+'</b>'+(c.tc>0?' · Bs '+N(c.totalBs,0)+' · Ganancia neta <b>Bs '+N(c.fa.util,0)+'</b>':'');
+  const fb=document.getElementById('logFob');if(fb)fb.innerHTML='Valor FOB total: <b>USD '+N(c.FOB)+'</b>'+(c.tc>0?' · Bs '+N(c.FOB*c.tc,0):'');
+  {const ct=document.getElementById('logCond');if(ct&&d.condAuto!==false)ct.value=logCondTxt(d,c)}
+  if(r){r.innerHTML=(c.tc>0?'':'<p class="hint"><span class="tag warn">Falta el T/C para convertir a Bs</span></p>')+`<div style="overflow-x:auto"><table><tr><th>Concepto</th><th class="n">USD</th><th class="n">Bs</th></tr>${c.rows.map(x=>`<tr><td>${E(x.l)}</td><td class="n">${N(x.usd)}</td><td class="n">${N(x.usd*c.tc)}</td></tr>`).join('')}<tr><td><b>Total a cobrar</b></td><td class="n"><b>${N(c.total)}</b></td><td class="n"><b>${N(c.totalBs)}</b></td></tr></table></div>`
+    +(logCargaTxt(d)?`<p style="margin:8px 0 0"><span class="tag warn">${E(logCargaTxt(d))}</span></p>`:'')
+    +(c.ref.length?`<details style="margin-top:10px" open><summary class="hint">Costos a cargo del cliente (referenciales, no se facturan)</summary><div style="overflow-x:auto"><table>${c.ref.map(x=>`<tr><td>${E(x.l)}</td><td class="n">USD ${N(x.usd)}</td></tr>`).join('')}</table></div></details>`:'')}
+  const fa=document.getElementById('logFac');
+  if(fa){if(!(c.tc>0))fa.innerHTML='<p class="hint">Escribe el T/C para ver el análisis.</p>';
+    else{const F=c.fa,row=(l,x,b,neg)=>`<tr><td>${b?'<b>'+l+'</b>':l}</td><td class="n">${b?'<b>':''}${neg?'− ':''}${N(x)}${b?'</b>':''}</td></tr>`;
+      fa.innerHTML=`<table><tr><th>${F.fac?'Con factura':'Con recibo'}</th><th class="n">Bs</th></tr>${row('Total cobrado al cliente',F.T,1)}${F.fac?row('IVA débito fiscal estimado (13%)',F.deb,0,1):''}${F.it>0?row('IT (3%)',F.it,0,1):''}${F.iue>0?row('Provisión IUE (reservada)',F.iue,0,1):''}${row('= GANANCIA NETA DESPUÉS DE IMPUESTOS',F.util,1)}</table>
+      <p class="hint" style="margin:8px 0 0">Margen neto: ${N(F.margen,1)}% · Ganancia por comisión: Bs ${N(F.utilCom)}${c.busq>0?' · por búsqueda de proveedores: Bs '+N(F.utilBusq):''}${F.utilOtros>0.005?' · por otros servicios: Bs '+N(F.utilOtros):''}.</p>
+      <p class="hint" style="margin:6px 0 0">${F.fac?'Total a reservar para impuestos: Bs '+N(F.deb+F.it+F.iue)+' (IVA '+N(F.deb)+' + IT '+N(F.it)+' + IUE '+N(F.iue)+'). Como estos servicios no tienen IVA de importación a tu nombre, no hay crédito fiscal que descontar del IVA. ':''}Cifras estimadas: valídalas con tu contador.</p>`}}}
+function logCobros(){
+  const box=document.getElementById('logCob');if(!box||!LOG||!LOG.id)return;const c=logCalc(LOG),o=opByQuote(LOG.id),cb=(o&&o.cobros)||[];
+  const usdDe=x=>x.moneda==='USD'?num(x.monto):(c.tc>0?num(x.monto)/c.tc:0),pag=cb.reduce((t,x)=>t+usdDe(x),0);
+  box.innerHTML=`<p style="margin:0 0 8px">Cobrado: <b>USD ${N(pag)}</b> · Saldo: <b>USD ${N(Math.max(0,c.total-pag))}</b> de USD ${N(c.total)}</p>
+   ${cb.length?`<table><tr><th>Fecha</th><th class="n">Bs</th><th></th></tr>${cb.map((x,k)=>`<tr><td>${FD(x.fecha)}<br><small style="color:var(--muted)">${x.moneda==='USD'?'USD '+N(num(x.monto))+' × '+N(num(x.tc)):'Bs'}</small></td><td class="n">${N(x.moneda==='USD'?num(x.monto)*num(x.tc):num(x.monto))}</td><td><button class="btn sm bad" type="button" onclick="GX.logQuitarPago(${k})">Quitar</button></td></tr>`).join('')}</table>`:''}
+   <div class="row" style="margin-top:10px"><button class="btn sm" type="button" onclick="GX.logPago()">+ Registrar cobro</button></div>`}
+function logPago(){
+  const q=lsGet('nt_quotes',[]).find(x=>x.id===LOG.id);if(!q)return;
+  const b=sheet('Cobro del cliente',sel('cuentaId','Cuenta donde ingresa el dinero',ctTesOpts(),'',{full:1})+sel('ctaContra','Contracuenta',[['','Por cobrar del cliente (automática)'],...planOpts().filter(([c])=>/^[124]/.test(c))],'',{full:1})+inp('fecha','Fecha del cobro',TODAY(),{t:'date'})+inp('monto','Monto (USD)','',{mode:'decimal'})+inp('tc','T/C de la fecha del cobro',LOG.tc||'',{mode:'decimal',full:1,ph:'12,08'})+hintDiv('logPgH',''),
+   v=>{if(num(v.monto)<=0||num(v.tc)<=0){toastX('Falta el monto o el T/C');return false}
+     const o=ensureOp(q.id);if(!o)return false;o.cobros=o.cobros||[];const rc={id:'c'+Date.now().toString(36),fecha:v.fecha,moneda:'USD',monto:num(v.monto),tc:num(v.tc),nota:'',concepto:'',cuentaId:v.cuentaId||'',ctaContra:v.ctaContra||''};o.cobros.push(rc);ctCobroSave(o,rc);o.upd=Date.now();saveOps();cloudPushSoon();renderLog();toastX('Cobro registrado')});
+  const h=()=>{const v=vals(b);b.querySelector('#logPgH').textContent='Equivale a Bs '+N(num(v.monto)*num(v.tc))};b.addEventListener('input',h);h()}
+async function logQuitarPago(k){const o=LOG&&LOG.id?opByQuote(LOG.id):null;if(!o)return;if(!await gxPin('Para borrar un cobro registrado ingrese la clave.'))return;ctCobroDel(o.cobros[k]);o.cobros.splice(k,1);o.upd=Date.now();saveOps();cloudPushSoon();renderLog()}
+function logSeg(){if(LOG&&LOG.id)openOpFromQuote(LOG.id)}
+async function logEtapa(e){
+  if(!LOG||!LOG.id){toastX('Guarde la cotización primero');return}
+  const o=ensureOp(LOG.id);if(!o)return;
+  {const rr=await etapaRetroOk(o,e);if(rr===false)return;if(rr){etapaRetro(o,e);saveOps();cloudPushSoon();toastX('Seguimiento retrocedido a: '+ETL[e]);renderLog();return}}
+  if(o.etapa!==e){etapaSet(o,e,'');o.upd=Date.now();
+    if(e!=='enviada'){const c=clients.find(x=>x.id===o.clienteId);if(c&&c.estado!=='ganado'){c.estado='ganado';c.actualizado=Date.now();saveClients()}}
+    saveOps();cloudPushSoon();toastX('Estado: '+ETL[e])}
+  renderLog()}
+function logLink(wa){
+  if(!LOG||!LOG.id)return;const o=ensureOp(LOG.id);if(!o)return;if(!o.codigo){o.codigo=genCode();o.upd=Date.now();saveOps();cloudPushSoon()}
+  const u=trkLink(o),msg='Hola '+(LOG.cliente||'')+', puede seguir su operación (cotización '+(LOG.numero||'')+') aquí: '+u+'  Código: '+o.codigo;
+  if(wa){const c=clients.find(x=>x.id===o.clienteId),ph=c&&c.telefono&&normPhone(c.telefono);window.open(ph?waLink(c.telefono,msg):'https://wa.me/?text='+encodeURIComponent(msg),'_blank','noopener');return}
+  try{navigator.clipboard.writeText(u).then(()=>toastX('Enlace copiado: '+o.codigo),()=>toastX(u))}catch(_){toastX(u)}}
+function logTexto(d,c){
+  const L=['*Cotización '+(d.numero||'')+'* · '+d.cliente,'*Servicios logísticos y asesoramiento*'];
+  if(d.descripcion)L.push(d.descripcion);if(d.origen||d.destino)L.push((d.origen||'—')+' → '+(d.destino||'—')+' · '+d.transporte+' · '+d.incoterm);
+  if(logCargaTxt(d))L.push('⚠ '+logCargaTxt(d)+(d.cargaNota?' – '+d.cargaNota:''));
+  L.push('','Detalle (USD):',...c.rows.map(x=>x.l+': '+N(x.usd)),'','*Total: USD '+N(c.total)+'*','Equivale a Bs '+N(c.totalBs)+' (T/C '+N(c.tc,2)+')');
+  if(c.ref.length)L.push('','Costos a cargo del cliente (referenciales, no incluidos):',...c.ref.map(x=>x.l+': USD '+N(x.usd)));return L.join('\n')}
+function logCopiar(){const d=LOG,c=logCalc(d),t=logTexto(d,c);
+  (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toastX('Texto copiado'),()=>{prompt('Copie el texto:',t)})}
+async function logGuardar(){
+  const d=LOG;if(!d)return;const c=logCalc(d);
+  if(!d.cliente.trim()){toastX('Falta el cliente');return}
+  if(num(d.tc)<=0){toastX('Falta el T/C de la cotización');return}
+  if(c.total<=0){toastX('Falta el monto de los honorarios o de algún servicio');return}
+  const numero=d.numero||logNext(),id=d.id||('q'+Date.now());
+  const log=JSON.parse(JSON.stringify(d));delete log.id;
+  const indRes={prod:0,flete:0,ga:0,otros:0,iva:0,neto:0,fob:0,total:c.totalBs,fobRef:c.FOB};
+  const q={id,numero,cliente:d.cliente.trim(),ts:Date.now(),total:c.totalBs,tipoCot:'logistica',meta:{...newMeta(),numero,cliente:d.cliente.trim(),fecha:d.fecha,clienteId:d.clienteId||''},params:{...DEF},prods:[],log,indRes,indFac:c.fa};
+  const l=lsGet('nt_quotes',[]).filter(x=>x.id!==id);l.unshift(q);
+  if(!lsSet('nt_quotes',l.slice(0,300))){toastX('No se pudo guardar: sin espacio en el teléfono');return}
+  const o=opByQuote(id);if(o){o.numero=numero;o.total=q.total;o.clienteNombre=q.cliente;o.cot=indRes;o.upd=Date.now();saveOps()}
+  try{const old=S;S={...old,meta:{...newMeta(),cliente:q.cliente,clienteId:d.clienteId||''}};try{syncClientFromQuote()}finally{S=old}}catch(_){}
+  LOG.id=id;LOG.numero=numero;loadList();renderHome();syncSoon();cloudPushSoon();renderLog();toastX('Cotización '+numero+' guardada')}
+async function logPdfBlob(){
+  if(!(await ensureJsPdf()))throw new Error('no se cargó la librería de PDF');
+  const d=LOG,c=logCalc(d),{jsPDF}=window.jspdf,doc=new jsPDF({unit:'mm',format:'a4'});
+  const W=210,M=16,NAVY=[28,53,86],BLUE=[43,127,196],GRAY=[95,108,124],o=d.id?opByQuote(d.id):null,cb=((o&&o.cobros)||[]);
+  const lh=24,lw=lh*LOGO_W/LOGO_H;doc.addImage(LOGO,'PNG',M,12,lw,lh);
+  doc.setFont('helvetica','bold');doc.setFontSize(16);doc.setTextColor(...NAVY);doc.text('COTIZACIÓN DE SERVICIOS LOGÍSTICOS',W-M,19,{align:'right'});
+  doc.setFontSize(10);doc.setFont('helvetica','normal');doc.setTextColor(...GRAY);
+  doc.text('Logística, aduana y asesoramiento · N° '+(d.numero||'—'),W-M,26,{align:'right'});doc.text('Fecha: '+FD(d.fecha),W-M,31,{align:'right'});
+  doc.setDrawColor(...BLUE);doc.setLineWidth(.7);doc.line(M,41,W-M,41);
+  let y=48;doc.setFontSize(10);
+  const cli=(typeof clients!=='undefined'?clients:[]).find(x=>x.nombre===d.cliente);
+  const ln=(l,v)=>{if(!String(v||'').trim())return;doc.setTextColor(...NAVY);doc.setFont('helvetica','bold');doc.text(l,M,y);doc.setFont('helvetica','normal');doc.setTextColor(30,40,55);const t=doc.splitTextToSize(String(v),W-2*M-30);doc.text(t,M+30,y);y+=t.length*5+1.2};
+  ln('Cliente',d.cliente||'—');ln('Dirección',cli&&cli.direccion);ln('Servicio',LOG_ROL[d.rol]||'');ln('Operación',d.descripcion);
+  ln('Ruta',[d.origen?'Origen: '+d.origen:'',d.destino?'Destino: '+d.destino:''].filter(Boolean).join('   ·   ')+((d.origen||d.destino)?'   ·   '+d.transporte+'   ·   '+d.incoterm:''));
+  const cg=logCargaTxt(d);
+  if(cg){y+=1;const tx=cg+(d.cargaNota?'  —  '+d.cargaNota:''),t=doc.splitTextToSize(tx,W-2*M-8),h=t.length*5+5;
+    doc.setFillColor(255,243,205);doc.setDrawColor(230,160,0);doc.setLineWidth(.5);doc.roundedRect(M,y-4,W-2*M,h,2,2,'FD');
+    doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(120,70,0);doc.text(t,M+4,y+1);y+=h}
+  const tbl=(y0,head,rows,w,al,st)=>{
+    const fs=9.2,lh2=4.6,pad=2.2;let y1=y0;
+    const hdr=()=>{doc.setFillColor(...NAVY);doc.rect(M,y1,W-2*M,7.5,'F');doc.setFont('helvetica','bold');doc.setFontSize(fs);doc.setTextColor(255,255,255);
+      let x=M;head.forEach((t,i)=>{const tx=al[i]==='r'?x+w[i]-pad:al[i]==='c'?x+w[i]/2:x+pad;doc.text(t,tx,y1+5,{align:al[i]==='r'?'right':al[i]==='c'?'center':'left'});x+=w[i]});y1+=7.5};
+    hdr();
+    rows.forEach((r,ri)=>{const sty=(st&&st(ri))||{};doc.setFont('helvetica',sty.b?'bold':'normal');doc.setFontSize(fs);
+      const wr=r.map((t,i)=>doc.splitTextToSize(String(t==null?'':t),w[i]-2*pad)),n=Math.max(...wr.map(x=>x.length),1),h=n*lh2+2*pad-1;
+      if(y1+h>272){doc.addPage();y1=18;hdr();doc.setFont('helvetica',sty.b?'bold':'normal');doc.setFontSize(fs)}
+      doc.setTextColor(30,40,55);let x=M;
+      wr.forEach((l2,i)=>{const tx=al[i]==='r'?x+w[i]-pad:al[i]==='c'?x+w[i]/2:x+pad;doc.text(l2,tx,y1+pad+3,{align:al[i]==='r'?'right':al[i]==='c'?'center':'left'});x+=w[i]});
+      y1+=h;doc.setDrawColor(222,229,237);doc.setLineWidth(.2);doc.line(M,y1,W-M,y1)});
+    return y1};
+  const need=h=>{if(y+h>272){doc.addPage();y=20}};
+  const its=d.items.filter(p=>String(p.desc).trim());
+  if(its.length){y+=6;need(24);doc.setFont('helvetica','bold');doc.setFontSize(10.5);doc.setTextColor(...NAVY);doc.text('MERCADERÍA / VEHÍCULOS DE LA OPERACIÓN',M,y);
+    y=tbl(y+3,['Ítem','Descripción','Cant.','FOB unit. (USD)'],its.map((p,i)=>[i+1,p.desc,N(num(p.qty),num(p.qty)%1?2:0),num(p.fob)>0?N(num(p.fob)):'—']),[12,W-2*M-72,22,38],['c','l','r','r'])}
+  y+=8;need(30);doc.setFont('helvetica','bold');doc.setFontSize(10.5);doc.setTextColor(...NAVY);doc.text('HONORARIOS POR SERVICIOS',M,y);
+  y=tbl(y+3,['Concepto','USD','Bs (T/C '+N(c.tc,2)+')'],c.rows.map(r=>[r.l,N(r.usd),N(r.usd*c.tc)]),[W-2*M-62,28,34],['l','r','r']);
+  y+=7;need(22);doc.setFont('helvetica','bold');doc.setFontSize(12);doc.setTextColor(...NAVY);doc.text('TOTAL',W-M-70,y);doc.text('USD '+N(c.total),W-M,y,{align:'right'});y+=5.5;
+  doc.setFont('helvetica','normal');doc.setFontSize(9.5);doc.setTextColor(50,62,78);doc.text('Equivale a',W-M-70,y);doc.text('Bs '+N(c.totalBs),W-M,y,{align:'right'});y+=5.5;
+  const pagUsd=cb.reduce((t,x)=>t+(x.moneda==='USD'?num(x.monto):(c.tc>0?num(x.monto)/c.tc:0)),0);
+  if(pagUsd>0){doc.text('Pagado a la fecha',W-M-70,y);doc.text('USD '+N(pagUsd),W-M,y,{align:'right'});y+=5.5;doc.text('Saldo pendiente',W-M-70,y);doc.text('USD '+N(Math.max(0,c.total-pagUsd)),W-M,y,{align:'right'});y+=5.5}
+  if(c.ref.length){y+=5;need(30);doc.setFont('helvetica','bold');doc.setFontSize(10.5);doc.setTextColor(...NAVY);doc.text('COSTOS A CARGO DEL CLIENTE (REFERENCIALES, NO INCLUIDOS)',M,y);
+    y=tbl(y+3,['Concepto','Estimado (USD)'],c.ref.map(r=>[r.l,N(r.usd)]),[W-2*M-40,40],['l','r'])+4}
+  y+=6;y=pdfCond(doc,d.condAuto===false?d.cond:logCondTxt(d,c),M,W,y);
+  const n=doc.getNumberOfPages(),contact=[cfg.tel,cfg.mail,cfg.dir].filter(Boolean).join('  ·  ');
+  for(let i=1;i<=n;i++){doc.setPage(i);doc.setDrawColor(215,224,234);doc.setLineWidth(.3);doc.line(M,282,W-M,282);doc.setFontSize(8.5);doc.setTextColor(...GRAY);
+    doc.text(doc.splitTextToSize('NOVATRADE Import & Export'+(contact?'  ·  '+contact:''),W-2*M-30).slice(0,2),M,286.5);doc.text(`Página ${i} de ${n}`,W-M,286.5,{align:'right'})}
+  return doc.output('blob')}
+async function logPdf(share){
+  if(!LOG)return;if(!LOG.id){toastX('Guarde la cotización primero: así el PDF lleva su número');return}
+  try{const blob=await logPdfBlob(),name='Cotizacion-'+(LOG.numero||'LG')+'-'+String(LOG.cliente||'').replace(/[^\w]+/g,'_').slice(0,30)+'.pdf',file=new File([blob],name,{type:'application/pdf'});
+    if(share&&navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:'Cotización '+(LOG.numero||'')});return}catch(e){if(e&&e.name==='AbortError')return}}
+    saveBlob(blob,name);toastX(share?'Este equipo no puede compartir directo: el PDF se descargó':'PDF listo: revise sus descargas')}
+  catch(e){console.error(e);toastX('No se pudo generar el PDF: '+(e&&e.message||e))}}
+document.addEventListener('input',e=>{const t=e.target;if(!LOG||!t.closest||!t.closest('#view-log'))return;
+  if(t.dataset.log&&t.type!=='checkbox'&&(t.tagName==='INPUT'||t.tagName==='TEXTAREA'))LOG[t.dataset.log]=t.value;
+  else if(t.dataset.ll!==undefined&&t.tagName==='INPUT')LOG[t.dataset.ll][+t.dataset.i][t.dataset.f]=t.value;
+  else return;logRecalc();logCobros()});
+document.addEventListener('change',e=>{const t=e.target;if(!LOG||!t.closest||!t.closest('#view-log'))return;
+  if(t.dataset.log&&(t.type==='checkbox'||t.tagName==='SELECT')){LOG[t.dataset.log]=t.type==='checkbox'?t.checked:t.value;renderLog()}});
+
 /* ================= BANCOS Y PASIVOS ================= */
 let PAS={mode:'list',id:null};
 const PAS_TIPOS=['Préstamo','Línea de crédito','Tarjeta de crédito','Sobregiro','Otro'];
@@ -32583,7 +32818,7 @@ function fPagoPlan(pid){
    v=>{if(!v.fecha){toastX('Falta la fecha');return false}p.pagada=true;p.fechaPago=v.fecha;p.cuentaId=v.cuentaId||'';ctSyncPlanilla(p);save();renderConta();toastX('Pago registrado')})}
 function planDesPagar(pid){const p=byId(DB.planillas,pid);if(!p)return;gxPin('Para deshacer el pago de la planilla ingrese la clave.').then(ok=>{if(ok){p.pagada=false;p.fechaPago='';p.cuentaId='';ctSyncPlanilla(p);save();renderConta()}})}
 function planEliminar(pid){const p=byId(DB.planillas,pid);if(!p)return;if(!confirm('¿Eliminar la planilla '+p.periodo+'?'))return;gxPin('Para eliminar la planilla ingrese la clave.').then(ok=>{if(ok){p.pagada=false;ctSyncPlanilla(p);del('planillas',pid);save();CT.plan='';renderConta()}})}
-window.GX={vsFactDesbloq,indFactDesbloq,resetDatos,ctSembrar,ctTesOpts,planOpts,ctCobroSave,ctCobroDel,ctCliCod,ctAcreedorOpts,indTab,indTg,indSaveProd,indCli,fCxpPagar,indCondEdit,actaAnular,embarques,render,go,fImp,fPed,fLin,fPag,fCotEnPed,quitarCot,syncOps,lockOp,setCol,save,fCierre,fProv,fLoc,migrarProv,renderInv,invGo,fJalar,fEntrada,fAjuste,fPegar,fProdInv,fSerie,fEntrega,ingresarBtn,recalcBtn,ingresarImp,recalcImp,invResumen,transito,renderPas,pasGo,indEtapa,indPdf,indLink,indDesbloq,indVolver,indRowReset,indTcPagos,ctSet,ctAbrirMayor,fAsiento,fPlanCta,ctExcelInf,planAbrir,fEmp,fPlanilla,fLineaPlan,fPagoPlan,planDesPagar,planEliminar,fPrepago,contaTab,ctAbrir,ctFiltro,ctExcel,fCuenta,fMov,fTransf,pasStatsList:()=>pasStats().prox,fPas,fCuota,pasCard,renderConta,contaYear,contaExcel,contaCard,actaCompartir,actaDescargar,limpiarActas,vsFacturar,vsCorregir,vsActa,vsActaDl,renderInd,indNueva,indOpen,indGuardar,indCopiar,indPago,indQuitarPago,indSeg,indAdd,indDel,renderVs,vsGo,vsNueva,vsQuitar,vsAgregar,vsCancelar,vsGuardar,vsEditar,vsConfirmar,vsCaida,vsReabrir,vsEliminar,vsEntregar,vsAnular,vsCobro,vsQuitarCobro,vsFiltro,vsResumenAnio,vsTot,vsCob,saldoPedido,totalPedido,ESTADOS_PED,ESTADOS_IMP,
+window.GX={logNueva,logOpen,renderLog,logTab,logCli,logAdd,logDel,logGuardar,logCopiar,logPdf,logSeg,logLink,logEtapa,logPago,logQuitarPago,logCondEdit,logFactDesbloq,vsFactDesbloq,indFactDesbloq,resetDatos,ctSembrar,ctTesOpts,planOpts,ctCobroSave,ctCobroDel,ctCliCod,ctAcreedorOpts,indTab,indTg,indSaveProd,indCli,fCxpPagar,indCondEdit,actaAnular,embarques,render,go,fImp,fPed,fLin,fPag,fCotEnPed,quitarCot,syncOps,lockOp,setCol,save,fCierre,fProv,fLoc,migrarProv,renderInv,invGo,fJalar,fEntrada,fAjuste,fPegar,fProdInv,fSerie,fEntrega,ingresarBtn,recalcBtn,ingresarImp,recalcImp,invResumen,transito,renderPas,pasGo,indEtapa,indPdf,indLink,indDesbloq,indVolver,indRowReset,indTcPagos,ctSet,ctAbrirMayor,fAsiento,fPlanCta,ctExcelInf,planAbrir,fEmp,fPlanilla,fLineaPlan,fPagoPlan,planDesPagar,planEliminar,fPrepago,contaTab,ctAbrir,ctFiltro,ctExcel,fCuenta,fMov,fTransf,pasStatsList:()=>pasStats().prox,fPas,fCuota,pasCard,renderConta,contaYear,contaExcel,contaCard,actaCompartir,actaDescargar,limpiarActas,vsFacturar,vsCorregir,vsActa,vsActaDl,renderInd,indNueva,indOpen,indGuardar,indCopiar,indPago,indQuitarPago,indSeg,indAdd,indDel,renderVs,vsGo,vsNueva,vsQuitar,vsAgregar,vsCancelar,vsGuardar,vsEditar,vsConfirmar,vsCaida,vsReabrir,vsEliminar,vsEntregar,vsAnular,vsCobro,vsQuitarCobro,vsFiltro,vsResumenAnio,vsTot,vsCob,saldoPedido,totalPedido,ESTADOS_PED,ESTADOS_IMP,
   get DB(){return DB},COLS:COLS_GX,KEYS};
 try{migrarProv();ctSembrar()}catch(e){console.error(e)}
 try{limpiarActas()}catch(e){console.error(e)}
@@ -32874,6 +33109,7 @@ document.addEventListener('click',async e=>{
   else if(a==='regdoc'){const r=await askForm({title:'Registrar factura o recibo',msg:'Número del comprobante emitido por esta entrega.',fields:[{k:'tipo',l:'Comprobante',t:'select',o:['Factura','Recibo'],v:(OP.docVenta&&OP.docVenta.tipo)||'Factura'},{k:'numero',l:'N.º de factura o recibo',req:1}]});
     if(r){OP.docVenta={tipo:r.tipo,numero:r.numero.trim(),fecha:today()};(OP.entregas||[]).forEach(x=>{if(!x.numero){x.numero=r.numero.trim();x.tipo=r.tipo}});opCommit();actasBox();toast('Comprobante registrado')}}
   else if(a==='indnew'){GX.indNueva(b.dataset.t)}
+  else if(a==='lognew'){GX.logNueva()}
   else if(a==='gxgo'){setView('compras');GX.go(b.dataset.v,b.dataset.id||null)}
   else if(a==='pin')cambiarPin();
   else if(a==='reset')GX.resetDatos();
