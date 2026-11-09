@@ -1,6 +1,6 @@
 /* Service worker de Gestión Novatrade: permite abrir la app sin internet.
    Cuando publique una versión nueva, cambie el número de VERSION. */
-const VERSION='g24';
+const VERSION='g27';
 const CACHE = 'nt-gestion-' + VERSION;
 const ARCHIVOS = ['./', 'index.html', 'manifest.webmanifest', 'firebase-bundle.js',
   'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'apple-touch-icon.png'];
