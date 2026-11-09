@@ -30370,9 +30370,9 @@ document.addEventListener('change',e=>{if(e.target.id==='flCli'){$('#flTelRow').
 document.addEventListener('input',e=>{if(e.target.id==='flMsg')flMsgEdited=true});
 
 /* ---------- nube compartida (Firebase) ---------- */
-/* Prefijo de las colecciones de la nube. Vacío = PRODUCCIÓN (datos reales). Para volver a modo prueba: const CP='test_'; (debe coincidir con seguimiento.html) */
-const CP='';
-try{if(CP){const b=document.getElementById('testBanner');if(b)b.hidden=false}}catch(_){}
+/* Prefijo de las colecciones de la nube. 'gx_' = PRODUCCIÓN de Gestión (datos reales, separados del cotizador viejo). 'test_' = modo prueba. Debe coincidir con seguimiento.html */
+const CP='gx_';
+try{if(CP==='test_'){const b=document.getElementById('testBanner');if(b)b.hidden=false}}catch(_){}
 const FB_CFG={apiKey:"AIzaSyA2J3Z4gHQyYYvU8AzSVs9r_L_DG6Ax9AE",authDomain:"crm-novatrade.firebaseapp.com",projectId:"crm-novatrade",storageBucket:"crm-novatrade.firebasestorage.app",messagingSenderId:"944968945401",appId:"1:944968945401:web:c7af94f3b5e478442c9c28"};
 const COLS=['clients','quotes','catalog','ops','imports','purchases','purchaseLines','payments','settings','suppliers','localPurchases','invProducts','invMov','invAsig','stockSales','liabilities','accounts','accMov','planCuentas','asientos','empleados','planillas'];
 let cloudUser=null,cloudRemote={clients:{},quotes:{},catalog:{},ops:{},imports:{},purchases:{},purchaseLines:{},payments:{},settings:{},suppliers:{},localPurchases:{},invProducts:{},invMov:{},invAsig:{},stockSales:{},liabilities:{},accounts:{},accMov:{},planCuentas:{},asientos:{},empleados:{},planillas:{}},cloudUnsubs=[],cloudT,cloudSeen={},cloudMsg='';
