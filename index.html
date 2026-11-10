@@ -30530,6 +30530,12 @@ function pubPush(){
   if(ch)lsSet('nt_pub',pub)
 }
 const opByQuote=qid=>ops.find(o=>o.quoteId===qid);
+/* el comprobante (factura/recibo) de la cotización y el que se registra después no deben contradecirse sin avisar */
+const compCot=q=>q?((q.ind&&q.ind.comprobante)||(q.log&&q.log.comprobante)||''):'';
+window.compOk=function(op,tipo){const c=compCot(quoteOf(op.quoteId));if(!tipo||!c||c===tipo)return true;
+  return confirm('La cotización se emitió con '+c.toLowerCase()+' y usted va a registrar '+tipo.toLowerCase()+'. Cambian el IVA, el IT y su utilidad, y puede afectar lo que cobra. ¿Confirma el cambio?')};
+window.compCambio=function(qid,viejo,nuevo){if(!qid||!viejo||viejo===nuevo||!opByQuote(qid))return true;
+  return confirm('Esta cotización ya tiene seguimiento y se emitió con '+viejo.toLowerCase()+'. Si cambia a '+nuevo.toLowerCase()+' cambian el IVA, el IT y su utilidad, y puede afectar lo que cobra. ¿Confirma el cambio?')};
 const r2=x=>Math.round((+x||0)*100)/100;
 const daysTo=s=>Math.round((new Date(s+'T12:00:00')-new Date(today()+'T12:00:00'))/DAYMS);
 function opCotizado(o){
@@ -30764,7 +30770,8 @@ function viernesAnterior(f){if(!f)return '';const d=new Date(f+'T12:00:00');cons
 const TRANSPORTES=['Marítimo','Aéreo','Terrestre'];
 const ESTADOS_IMP=['Programada','En tránsito','En aduana','Liberada','En almacenes de Novatrade','Cerrada'];
 const ESTADOS_PED=['Pedido','En producción','Enviado','Entregado al transportista','Recibido'];
-const CATS_PAGO=['Pago a proveedor','Flete internacional','Seguro','Aduana / impuestos','Agente despachante','Transporte local','Almacenaje','Otros gastos de importación'];
+const CATS_PAGO=['Pago a proveedor','Flete internacional','Seguro','Aduana / impuestos','Agente despachante','Transporte local','Transporte tramo nacional','Almacenaje','Otros gastos de importación'];
+const SIN_CREDITO_CAT=['Transporte tramo nacional']; /* factura sin derecho a crédito fiscal */
 const SIN_FACTURA_NO_APLICA=['Pago a proveedor','Aduana / impuestos'];
 const ORIGEN_TC=['Oficial','Paralelo','De la cotización','Otro'];
 const RETENCION=0.16; /* sin factura: retención 16% (13% + 3%) que asume la empresa */
@@ -30774,7 +30781,9 @@ const BANCOS=['Banco Nacional de Bolivia (BNB)','Banco de Crédito (BCP)','Banco
 const lineasDe=pid=>DB.purchaseLines.filter(l=>l.purchaseId===pid);
 const totalPedido=pid=>lineasDe(pid).reduce((s,l)=>s+num(l.qty)*num(l.fob),0);
 const bsMonto=p=>p.moneda==='USD'?num(p.monto)*num(p.tc):num(p.monto);
-const costoBs=p=>bsMonto(p)+num(p.retencion);
+/* crédito fiscal (13% de la factura): solo con factura, en categorías que no se amparan en el DIM, y si la factura da derecho */
+const credP=p=>(p.factura==='si'&&!SIN_FACTURA_NO_APLICA.includes(p.categoria)&&!SIN_CREDITO_CAT.includes(p.categoria)&&p.credito!=='no')?bsMonto(p)*0.13:0;
+const costoBs=p=>bsMonto(p)-credP(p)+num(p.retencion);
 const pagCash=p=>!(p.forma==='credito'&&!p.pagadoFecha);
 const pagadoProv=pid=>DB.payments.filter(p=>p.purchaseId===pid&&p.moneda==='USD'&&pagCash(p)).reduce((s,p)=>s+num(p.monto),0);
 const saldoPedido=pid=>totalPedido(pid)-pagadoProv(pid);
@@ -31173,9 +31182,12 @@ function rendimientoImp(i,cm){
     const all=DB.purchaseLines.filter(l=>l.quoteId===g.key).reduce((x,l)=>x+fobL(l),0),ratio=all>0?Math.min(g.fob/all,1):1;
     const tot=o?num(o.total):(q?num(q.total):0),cob=o?(o.cobros||[]).filter(y=>!y.fondos).reduce((x,y)=>x+(y.moneda==='USD'?num(y.monto)*num(y.tc):num(y.monto)),0):0;
     let F=null;try{if(q&&q.ind)F=indCalc(q.ind).fac}catch(_){}
-    rows.push({q,numero:q?q.numero:'(cotización borrada)',cliente:q?q.cliente:'',ratio,venta:tot*ratio,cobrado:cob*ratio,costo:g.costo,impV:F?(F.deb+F.itx)*ratio:0,utilCot:F?F.util*ratio:null,recibo:!!(F&&!F.fac_)})});
+    const est=!F,deb=F?F.deb*ratio:tot*ratio*0.13,it=F?F.itx*ratio:tot*ratio*0.03,iue=F?F.iue*ratio:tot*ratio*0.025;
+    rows.push({q,numero:q?q.numero:'(cotización borrada)',cliente:q?q.cliente:'',ratio,venta:tot*ratio,cobrado:cob*ratio,costo:g.costo,deb,it,iue,est,impV:deb+it+iue,utilCot:F?F.util*ratio:null,recibo:!!(F&&!F.fac)})});
   const venta=rows.reduce((x,r)=>x+r.venta,0),costo=rows.reduce((x,r)=>x+r.costo,0),cobrado=rows.reduce((x,r)=>x+r.cobrado,0);
-  const impV=rows.reduce((x,r)=>x+r.impV,0);return{rows,venta,costo,cobrado,util:venta-costo,impV,utilNeta:venta-costo-impV,margen:venta>0?(venta-costo)/venta*100:0,stock}}
+  const impV=rows.reduce((x,r)=>x+r.impV,0),deb=rows.reduce((x,r)=>x+r.deb,0),it=rows.reduce((x,r)=>x+r.it,0),iue=rows.reduce((x,r)=>x+r.iue,0);
+  const pagsI=c.pays,credPag=pagsI.reduce((x,p)=>x+credP(p),0),credDim=num(i.ivaDim),cred=credDim+credPag;
+  return{rows,venta,costo,cobrado,util:venta-costo,impV,deb,it,iue,cred,credDim,credPag,saldoCred:cred-deb,ivaPagar:Math.max(deb-cred,0),utilNeta:venta-costo-impV,margen:venta>0?(venta-costo)/venta*100:0,stock,hayRecibo:rows.some(x=>x.recibo),hayEst:rows.some(x=>x.est)}}
 function costosCard(i){
   const cm=costosPorLinea(i),c=cm.c,rp=cm.rp,peds=c.peds,pays=c.pays;
   const kv=(l,v)=>`<div><span>${l}</span><b>${v}</b></div>`,cat=k=>pays.filter(p=>p.categoria===k).reduce((x,p)=>x+costoBs(p),0);
@@ -31208,9 +31220,14 @@ function costosCard(i){
    ${peds.length?`<h4 class="sec">Reparto por pedido ${rp.porCbm?'(logística por CBM)':'(logística por valor FOB: falta el CBM de algún pedido)'}</h4>
    <table><tr><th>Pedido</th><th class="n">%</th><th class="n">Merc.</th><th class="n">Logíst.</th><th class="n">Impu.</th><th class="n">Total</th></tr>${peds.map(p=>{const t=pedTot(p);return `<tr><td>${E(p.numero)}</td><td class="n">${N(rp.sh[p.id]*100,1)}</td><td class="n">${N(t.prov,0)}</td><td class="n">${N(t.logis,0)}</td><td class="n">${N(t.imp,0)}</td><td class="n">${N(t.tot,0)}</td></tr>`}).join('')}</table>`:''}
    <h4 class="sec">Rendimiento de la importación</h4>
-   ${r.rows.length?`<table><tr><th>Cotización</th><th class="n">Venta</th><th class="n">Costo</th><th class="n">Utilidad</th></tr>${r.rows.map(x=>`<tr><td>${E(x.numero)}<br><small style="color:var(--muted)">${E(x.cliente||'')}${x.ratio<0.999?' · '+N(x.ratio*100,0)+'% de la cotización':''} · cobrado ${N(x.cobrado,0)}</small></td><td class="n">${N(x.venta,0)}</td><td class="n">${N(x.costo,0)}</td><td class="n">${N(x.venta-x.costo,0)}${x.impV>0?`<br><small style="color:var(--muted)">− IVA/IT venta ${N(x.impV,0)} = <b>${N(x.venta-x.costo-x.impV,0)}</b></small>`:''}${x.utilCot!=null?`<br><small style="color:var(--muted)">cotización: ${N(x.utilCot,0)}</small>`:''}</td></tr>`).join('')}
-    <tr><td><b>Total</b></td><td class="n"><b>${N(r.venta,0)}</b></td><td class="n"><b>${N(r.costo,0)}</b></td><td class="n"><b>${N(r.util,0)}</b></td></tr>${r.impV>0?`<tr><td>(−) IVA débito e IT de la venta</td><td></td><td></td><td class="n">− ${N(r.impV,0)}</td></tr><tr><td><b>Utilidad después de impuestos de la venta</b></td><td></td><td></td><td class="n"><b>${N(r.utilNeta,0)}</b></td></tr>`:''}</table>
-    <p class="hint" style="margin:6px 0 0">«Utilidad» = venta − costo real (mercadería + logística + impuestos netos). Aún no descuenta el IVA débito ni el IT de la venta; esa línea los resta tal como los calcula la cotización. Si sigue habiendo diferencia con la utilidad de la cotización (la cifra «cotización» debajo de cada utilidad), es porque los costos reales pagados difieren de los estimados, o porque en «Datos de costeo» hay un crédito fiscal de IVA del DIM y la cotización es con recibo (sin crédito).</p>
+   ${r.rows.length?`<table><tr><th>Cotización</th><th class="n">Venta</th><th class="n">Costo</th><th class="n">Utilidad</th></tr>${r.rows.map(x=>`<tr><td>${E(x.numero)}<br><small style="color:var(--muted)">${E(x.cliente||'')}${x.ratio<0.999?' · '+N(x.ratio*100,0)+'% de la cotización':''} · cobrado ${N(x.cobrado,0)}</small></td><td class="n">${N(x.venta,0)}</td><td class="n">${N(x.costo,0)}</td><td class="n">${N(x.venta-x.costo,0)}${x.impV>0?`<br><small style="color:var(--muted)">− IVA, IT e IUE ${N(x.impV,0)} = <b>${N(x.venta-x.costo-x.impV,0)}</b></small>`:''}${x.utilCot!=null?`<br><small style="color:var(--muted)">cotización: ${N(x.utilCot,0)}</small>`:''}</td></tr>`).join('')}
+    <tr><td><b>Total</b></td><td class="n"><b>${N(r.venta,0)}</b></td><td class="n"><b>${N(r.costo,0)}</b></td><td class="n"><b>${N(r.util,0)}</b></td></tr><tr><td>(−) IVA débito fiscal 13% de la venta ${r.hayEst?'<small>(estimado: se asume con factura)</small>':''}</td><td></td><td></td><td class="n">− ${N(r.deb,0)}</td></tr><tr><td>(−) IT 3% de la venta</td><td></td><td></td><td class="n">− ${N(r.it,0)}</td></tr><tr><td>(−) Provisión IUE 2,5% (no es ingreso)</td><td></td><td></td><td class="n">− ${N(r.iue,0)}</td></tr><tr><td><b>Utilidad después de impuestos</b></td><td></td><td></td><td class="n"><b>${N(r.utilNeta,0)}</b></td></tr></table>
+    <p class="hint" style="margin:6px 0 0">«Utilidad» = venta − costo real neto de crédito fiscal (mercadería + logística + impuestos netos). La utilidad después de impuestos resta además el débito fiscal, el IT y la provisión IUE de la venta. El crédito fiscal que sobra no es ganancia: se muestra aparte.</p>
+    <h4 class="sec">Resumen tributario (guía)</h4>
+    <table><tr><td>Crédito fiscal del DIM</td><td class="n">${N(r.credDim)}</td></tr><tr><td>Crédito fiscal de facturas (13%)</td><td class="n">${N(r.credPag)}</td></tr><tr><td><b>Crédito fiscal total</b></td><td class="n"><b>${N(r.cred)}</b></td></tr><tr><td>Débito fiscal de la venta (13%)</td><td class="n">${N(r.deb)}</td></tr>
+    ${r.saldoCred>=0?`<tr><td><b>Crédito fiscal a favor (no es ganancia)</b></td><td class="n"><b>${N(r.saldoCred)}</b></td></tr>`:`<tr><td><b>IVA a pagar</b></td><td class="n"><b>${N(r.ivaPagar)}</b></td></tr>`}
+    <tr><td>IT 3% a pagar</td><td class="n">${N(r.it)}</td></tr><tr><td>Provisión IUE 2,5% (reserva, no es ingreso)</td><td class="n">${N(r.iue)}</td></tr></table>
+    ${r.hayRecibo?'<p class="hint" style="margin:6px 0 0"><span class="tag warn">Atención</span> Una de las cotizaciones está con <b>recibo</b>: no genera débito fiscal y el crédito del DIM no se compensa. Si vas a facturar, corrige el comprobante en la cotización.</p>':''}
     <div class="kv" style="margin-top:10px">${kv('Margen sobre la venta',N(r.margen,1)+' %')}${kv('Cobrado a la fecha (Bs)',N(r.cobrado,0))}</div>`:'<div class="empty">Ninguna línea de los pedidos viene de una cotización.</div>'}
    ${r.stock>0?`<p class="hint" style="margin:8px 0 0">Mercadería para stock propio (no entra en el rendimiento): costo Bs ${N(r.stock,0)}.</p>`:''}
    <p class="hint">Lo que falte por registrar (pagos, CBM, CIF, impuestos) cambia estas cifras. Las cifras de IVA y crédito fiscal son una guía operativa: valídalas con tu contador. Al cerrar la importación se recalculan los costos del inventario.</p></div>`}
@@ -31449,6 +31466,7 @@ function fEntregaSheet(op,parcial,sin){
      v=>{if(!(v.entregador||'').trim()){toastX('Escriba el nombre de quien entrega');return false}
        if(!v.receptor){toastX('Escriba quién recibió');return false}
        if(v.numero&&!v.tipoUnico){toastX('Elija si el comprobante es factura o recibo');return false}
+       if(v.tipoUnico&&!window.compOk(op,v.tipoUnico))return false;
        if(parcial&&!v.detalle){toastX('Escriba el detalle de la entrega parcial');return false}
        if(!fot.some(Boolean)&&!confirm('No adjuntó foto de constancia. ¿Guardar el acta sin foto?'))return false;
        const items=[];let restante=0;
@@ -31563,7 +31581,7 @@ function fPag(id,impId,pedId){
    `<div class="full grid" id="gxCont" style="padding:0">`+sel('cuentaId','Cuenta de donde sale el pago',[['','— Sin cuenta (solo registro) —'],...DB.accounts.map(a=>[a.id,a.nombre+' ('+a.moneda+')'])],p.cuentaId||'',{full:1})+inp('banco','Entidad bancaria (opcional)',p.banco,{full:1,list:'gxBanco'})+`<datalist id="gxBanco">${BANCOS.map(x=>`<option value="${E(x)}">`).join('')}</datalist></div>`+
    `<div class="full grid" id="gxCred" style="padding:0">`+sel('ctaAcreedor','Acreedor: cuenta contable donde queda la deuda',[['','— Elegir acreedor —'],...ctAcreedorOpts()],p.ctaAcreedor||'',{full:1})+inp('dias','Plazo en días',p.dias,{mode:'numeric',ph:'30'})+hintDiv('gxVenc','')+'</div>'+
    sel('ctaGasto','Cuenta contable a la que se carga el gasto o pago',[['','Automática según la categoría (5.1.02 Costo de importaciones)'],...planOpts()],p.ctaGasto||'',{full:1})+
-   `<div class="full grid" id="gxFac" style="padding:0">`+sel('factura','¿Con factura?',[['si','Con factura'],['no','Sin factura']],p.factura)+inp('nroFactura','N.º de factura',p.nroFactura)+hintDiv('gxRet','')+'</div>'+
+   `<div class="full grid" id="gxFac" style="padding:0">`+sel('factura','¿Con factura?',[['si','Con factura'],['no','Sin factura']],p.factura)+inp('nroFactura','N.º de factura',p.nroFactura)+sel('credito','¿La factura da derecho a crédito fiscal (13%)?',[['si','Sí, da derecho'],['no','No da derecho']],p.credito||'si')+sel('retOn','¿Aplicar la retención del 16%?',[['si','Sí, aplicar'],['no','No aplicar']],p.retOn||'si')+hintDiv('gxRet','')+'</div>'+
    sel('importId','Importación asociada',opcionesImp(),p.importId,{full:1})+sel('purchaseId','Pedido asociado',peds,p.purchaseId,{full:1}),
    v=>{if(num(v.monto)<=0){toastX('Falta el monto');return false}
      if(v.moneda==='USD'&&num(v.tc)<=0){toastX('Falta el tipo de cambio de este pago');return false}
@@ -31572,9 +31590,9 @@ function fPag(id,impId,pedId){
      if(v.forma!=='credito')v.ctaAcreedor='';
      if(v.forma==='credito'){v.dias=String(parseInt(v.dias)||0);const dd=new Date(v.fecha+'T12:00:00');dd.setDate(dd.getDate()+(+v.dias));v.venc=dd.toISOString().slice(0,10);v.cuentaId='';v.banco=''}else{v.dias='';v.venc=''}
      const aplica=!SIN_FACTURA_NO_APLICA.includes(v.categoria);
-     if(!aplica){v.factura='';v.nroFactura='';v.retencion=''}
-     else if(v.factura==='no'){v.nroFactura='';v.retencion=String(Math.round(bsMonto(v)*RETENCION*100)/100)}
-     else v.retencion='';
+     if(!aplica){v.factura='';v.nroFactura='';v.retencion='';v.credito='';v.retOn=''}
+     else if(v.factura==='no'){v.nroFactura='';v.credito='';v.retencion=v.retOn==='no'?'':String(Math.round(bsMonto(v)*RETENCION*100)/100)}
+     else{v.retencion='';v.retOn='';if(SIN_CREDITO_CAT.includes(v.categoria))v.credito='no'}
      if(v.purchaseId&&!v.importId){const pp=byId(DB.purchases,v.purchaseId);if(pp&&pp.importId)v.importId=pp.importId}
      let pp=p;if(id)Object.assign(p,v);else{pp={id:uid(),...v};DB.payments.push(pp)}pagSyncMov(pp);save();render();toastX('Guardado')},
    id?()=>{(window.GX2?GX2.pinOk('Para borrar un pago o gasto ingrese la clave.'):Promise.resolve(true)).then(ok=>{if(ok){pagSyncMov({id,forma:'x'},true);del('payments',id);save();render();toastX('Pago eliminado')}})}:null);
@@ -31584,8 +31602,11 @@ function fPag(id,impId,pedId){
      if(cr){const dd=new Date((v.fecha||TODAY())+'T12:00:00');dd.setDate(dd.getDate()+(parseInt(v.dias)||0));b.querySelector('#gxVenc').textContent='Queda por pagar '+v.moneda+' '+N(num(v.monto))+(v.moneda==='USD'?' (Bs '+N(bsv)+' al T/C de hoy)':'')+' · vence el '+FD(dd.toISOString().slice(0,10))+'. Cuenta en Pasivos.'}}
     b.querySelector('#gxBs').textContent='Equivale a Bs '+N(bsv);
     const aplica=!SIN_FACTURA_NO_APLICA.includes(v.categoria);b.querySelector('#gxFac').style.display=aplica?'':'none';
-    b.querySelector('#gxRet').textContent=(aplica&&v.factura==='no')?'Sin factura: retención del 16% que asume la empresa = Bs '+N(bsv*RETENCION)+' (costo total Bs '+N(bsv*(1+RETENCION))+').':'';
-    b.querySelector('[data-k=nroFactura]').parentElement.style.display=v.factura==='si'?'':'none'};
+    const forzaNo=SIN_CREDITO_CAT.includes(v.categoria),conCred=aplica&&v.factura==='si'&&!forzaNo&&v.credito!=='no',aplRet=aplica&&v.factura==='no'&&v.retOn!=='no';
+    b.querySelector('#gxRet').textContent=(aplica&&v.factura==='no')?(aplRet?'Sin factura: retención del 16% que asume la empresa = Bs '+N(bsv*RETENCION)+' (costo total Bs '+N(bsv*(1+RETENCION))+').':'Sin factura y sin retención: el costo es el monto pagado.'):(aplica&&v.factura==='si'?(conCred?'Crédito fiscal 13% = Bs '+N(bsv*0.13)+'. Costo neto Bs '+N(bsv*0.87)+'.':(forzaNo?'Este tramo se factura sin derecho a crédito fiscal: el costo es el monto completo.':'Sin crédito fiscal: el costo es el monto completo.')):'');
+    b.querySelector('[data-k=nroFactura]').parentElement.style.display=v.factura==='si'?'':'none';
+    b.querySelector('[data-k=retOn]').parentElement.style.display=(aplica&&v.factura==='no')?'':'none';
+    b.querySelector('[data-k=credito]').parentElement.style.display=(aplica&&v.factura==='si'&&!forzaNo)?'':'none'};
   b.addEventListener('input',upd);b.addEventListener('change',upd);upd();
 }
 
@@ -31827,7 +31848,9 @@ function indCalc(d){
   const rb=q=>{const r=rows.find(x=>x.k===q);return r?r.bs:0},totalBs=rows.reduce((x,r)=>x+r.bs,0);
   /* rentabilidad interna (Bs): costos reales con el T/C con el que se compran los dólares */
   const tcC=n(d.tcCosto)||tc,cMerc=(R.merc+R.origen)*tcC,cEnv=(R.giro+R.flete+R.tint+R.tnac+R.manejo+R.recojo+R.seguro)*tcC,cAdu=(R.ga+R.ice+R.sistAd)*tc,
-    cGas=(R.agencia+R.carpeta+R.despacho+R.otrosAg+R.transp+R.almac+R.otros)*tc,ivaB=R.iva*tc,costoCaja=cMerc+cEnv+cAdu+cGas+ivaB;
+    cGas=(R.agencia+R.carpeta+R.despacho+R.otrosAg+R.transp+R.almac+R.otros)*tc,ivaB=R.iva*tc,
+    tFac=d.transpFac||'no',oFac=d.otrosAgFac||'no',retG=((tFac==='no'?R.transp:0)+(oFac==='no'?R.otrosAg:0))*tc*0.16,
+    credG0=(R.agencia+R.carpeta+R.despacho+R.almac+R.otros+(tFac==='si'?R.transp:0)+(oFac==='si'?R.otrosAg:0))*tc*0.13,costoCaja=cMerc+cEnv+cAdu+cGas+ivaB+retG;
   const T=totalBs,fac=d.comprobante!=='Recibo',itOn=d.itOn!=='0',nI=pr.length;
   const pIue=String(d.provIue==null?'':d.provIue).trim()===''?0.025:n(d.provIue);
   const items0=d.prods.map((p,i)=>{const shF=FOB>0?pr[i].fob/FOB:(nI?1/nI:0);
@@ -31840,13 +31863,13 @@ function indCalc(d){
   const bT=T-rb('iva'),wt=items0.map(x=>(bT>0?bT*x.shF:x.shF)/Math.max(x.f,0.05)),wS=wt.reduce((a,b)=>a+b,0);
   const items=items0.map((x,i)=>{const sh=wS>0?wt[i]/wS:x.shF,V=T*sh,q=n(x.p.qty);return{desc:x.p.desc,qty:q,sh,V,unit:q>0?V/q:0,f:x.f,man:x.man,ivaR:x.ivaR,iueR:x.iueR,itR:x.itR,rate:x.rate}});
   const rEff=items.reduce((x,y)=>x+y.sh*y.rate,0),den=1-rEff;
-  const deb=items.reduce((x,y)=>x+y.V*y.ivaR,0),itx=items.reduce((x,y)=>x+y.V*y.itR,0),iue=items.reduce((x,y)=>x+y.V*y.iueR,0),cred=fac?ivaB:0,costoNeto=costoCaja-cred,util=T-deb-itx-iue-costoNeto,ivaPag=Math.max(0,deb-cred),fav=Math.max(0,cred-deb),caja=T-costoCaja-ivaPag-itx-iue;
+  const deb=items.reduce((x,y)=>x+y.V*y.ivaR,0),itx=items.reduce((x,y)=>x+y.V*y.itR,0),iue=items.reduce((x,y)=>x+y.V*y.iueR,0),credG=fac?credG0:0,cred=fac?ivaB+credG:0,costoNeto=costoCaja-cred,util=T-deb-itx-iue-costoNeto,ivaPag=Math.max(0,deb-cred),fav=Math.max(0,cred-deb),caja=T-costoCaja-ivaPag-itx-iue;
   let mmBs=0,Tmin=null;const mv=String(d.margenVal==null?'':d.margenVal).trim(),equil=den>0?costoNeto/den:0;
   if(mv!==''){const m=n(d.margenVal);if(d.margenModo==='pct'){mmBs=T*m/100;Tmin=den-m/100>0?costoNeto/(den-m/100):null}else{mmBs=d.margenModo==='usd'?m*tc:m;Tmin=den>0?(costoNeto+mmBs)/den:null}}
   const comMinUsd=(Tmin!=null&&tc>0)?Math.max(0,(rb('com')+Tmin-T)/tc):null;
   let dsc=0;if(d.descModo==='pct')dsc=T*n(d.descVal)/100;else if(d.descModo==='usd')dsc=n(d.descVal)*tc;dsc=Math.max(0,Math.min(dsc,T));
   const util2=util-dsc*(1-rEff);
-  const F={items,rEff,itOn,dsc,dscU:tc>0?dsc/tc:0,util2,margen2:(T-dsc)>0?util2/(T-dsc)*100:0,T,deb,itx,iue,cred,costoNeto,costoCaja,cMerc,cEnv,cAdu,cGas,ivaB,tcC,util,ivaPag,fav,caja,margenPct:T>0?util/T*100:0,rend:costoCaja>0?util/costoCaja*100:0,mmBs,Tmin,equil,comMinUsd,comMinPct:(comMinUsd!=null&&FOB>0)?comMinUsd/FOB*100:null,fac};
+  const F={items,rEff,itOn,dsc,dscU:tc>0?dsc/tc:0,util2,margen2:(T-dsc)>0?util2/(T-dsc)*100:0,T,deb,itx,iue,cred,costoNeto,costoCaja,cMerc,cEnv,cAdu,cGas,ivaB,credG,retG,tcC,util,ivaPag,fav,caja,margenPct:T>0?util/T*100:0,rend:costoCaja>0?util/costoCaja*100:0,mmBs,Tmin,equil,comMinUsd,comMinPct:(comMinUsd!=null&&FOB>0)?comMinUsd/FOB*100:null,fac};
   return{R,rows,sub,com,total,totalBs,rb,tc,merc:base,FOB,CIF,real,pv:pvol,fact,cif:CIF,pr,agAuto,almAuto,fac:F,segSin,bultos:d.paq.reduce((x,p)=>x+n(p.qty),0)}}
 function indNueva(t){IND_FU=false;IND=indBlank(t||'individual');IND.numero='';setView('ind')}
 async function indOpen(id,dup){
@@ -31912,15 +31935,15 @@ function renderInd(){
   </div><div class="${T_('gastos')}"><div class="card"><h2>Comisión, impuestos y gastos</h2>
    <div class="grid">${f('giroPct','Comisión por giro al exterior (%)',{full:1})}
    <h4 class="sec">Impuestos aduaneros</h4><div class="full hint" id="indImp" style="margin:0"></div>${f('sistAd','Uso sistema aduana (Bs)',{full:1})}
-   <h4 class="sec">Agencia despachante (Bs)</h4>${lock('agencia','Comisión de agencia (calculada con la tabla)')}${f('carpeta','Costo carpeta (Bs)')}${f('despacho','Gastos de despacho (Bs)')}${f('otrosAg','Otros gastos de agencia (Bs)',{full:1})}
-   <h4 class="sec">Otros gastos (Bs)</h4>${f('transpLocal','Transporte de entrega a domicilio (Bs)',{full:1})}${lock('almacen','Almacenaje (0,67% del CIF)')}${f('otros','Otros gastos (Bs)',{full:1})}
+   <h4 class="sec">Agencia despachante (Bs)</h4>${lock('agencia','Comisión de agencia (calculada con la tabla)')}${f('carpeta','Costo carpeta (Bs)')}${f('despacho','Gastos de despacho (Bs)')}${f('otrosAg','Otros gastos de agencia (Bs)',{full:1})}${sk('otrosAgFac','Otros gastos de agencia: ¿con factura?',[['no','Sin factura (con retención 16%)'],['nr','Sin factura y sin retención'],['si','Con factura (crédito fiscal 13%)']],{full:1})}
+   <h4 class="sec">Otros gastos (Bs)</h4>${f('transpLocal','Transporte de entrega a domicilio (Bs)',{full:1})}${sk('transpFac','Transporte de entrega: ¿con factura?',[['no','Sin factura (con retención 16%)'],['nr','Sin factura y sin retención'],['si','Con factura (crédito fiscal 13%)']],{full:1})}${lock('almacen','Almacenaje (0,67% del CIF)')}${f('otros','Otros gastos (Bs)',{full:1})}
    <h4 class="sec">Comisión de Novatrade</h4>${sk('comModo','Se calcula como',[['pct','Porcentaje del valor FOB'],['usd','Monto fijo en USD']],{full:1})}${f('comVal',d.comModo==='usd'?'Comisión Novatrade (USD)':'Comisión Novatrade (% del FOB)',{full:1})}</div></div>
   </div><div class="${T_('res')}"><div class="card"><h2>Condiciones que salen en el PDF</h2><textarea class="ta" id="indCond" data-ind="cond" ${d.condAuto===false?'':'readonly'} style="min-height:260px">${E(d.condAuto===false?d.cond:indCondTxt(d))}</textarea><div class="row" style="margin-top:8px"><button class="btn sm" type="button" onclick="GX.indCondEdit()">${d.condAuto===false?'Volver al texto automático':'Editar texto (clave)'}</button></div><p class="hint" style="margin:6px 0 0">El texto se genera solo (incluye el descuento si lo activas). Para cambiarlo hace falta la clave.</p></div>
   <div class="card"><h2>Descuento por pago anticipado</h2><div class="grid">${sk('descModo','Descuento por pago 100% anticipado',[['no','No aplicar'],['pct','Porcentaje del total'],['usd','Monto fijo (USD)']],{full:1})}${d.descModo&&d.descModo!=='no'?f('descVal',d.descModo==='usd'?'Descuento (USD)':'Descuento (% del total)',{full:1}):''}</div><p class="hint" style="margin:8px 0 0">Si lo activas, el PDF muestra el precio total y el precio pagando el 100% por anticipado. Revisa abajo en «Rentabilidad interna» cuánto ganas con el descuento.</p></div>
   <div class="card"><div class="row sp"><h2 style="margin:0">Resumen para el cliente</h2><select class="plain" data-ind="vista" style="width:auto;padding:4px 8px"><option value="ambas" ${d.vista==='ambas'||!d.vista?'selected':''}>USD y Bs</option><option value="USD" ${d.vista==='USD'?'selected':''}>Solo USD</option><option value="Bs" ${d.vista==='Bs'?'selected':''}>Solo Bs</option></select></div>
    <p class="hint" style="margin:6px 0 8px">Cada línea usa el T/C de la cotización. Puede poner otro T/C en una línea (por ejemplo el del pago al proveedor o del flete) o escribir directamente el monto en Bs si agrupa varios T/C. Con ↺ vuelve al cálculo.</p><div id="indRes"></div></div>
   <div class="card"><h2>Rentabilidad interna (después de facturar)</h2><p class="hint" style="margin:0 0 8px">Solo para ti: no se muestra al cliente. Descuenta el IVA débito y el IT, y el IVA de importación se recupera como crédito fiscal.</p>
-   <div class="grid">${f('tcCosto','T/C real con el que compro los dólares (vacío = el de la cotización)',{full:1})}${sk('margenModo','Margen mínimo que quiero ganar',[['pct','Porcentaje del precio facturado'],['bs','Monto fijo en Bs'],['usd','Monto fijo en USD']],{full:1})}${f('margenVal','Margen mínimo',{full:1})}${d.comprobante==='Recibo'?sk('itOn','¿Considerar el IT 3% sobre el total para calcular mi ganancia estimada?',[['1','Sí, descontar el IT 3%'],['0','No, no lo considero']],{full:1}):indFactHtml(d)}</div><div id="indFac" style="margin-top:10px"></div></div>
+   <div class="grid">${f('tcCosto','T/C real con el que compro los dólares (vacío = el de la cotización)',{full:1})}${num(d.tcCosto)>0?'':'<div class="full"><span class="tag warn">Falta el T/C de compra de dólares: la utilidad usa el T/C de la cotización y puede salir muy distinta de la real</span></div>'}${sk('margenModo','Margen mínimo que quiero ganar',[['pct','Porcentaje del precio facturado'],['bs','Monto fijo en Bs'],['usd','Monto fijo en USD']],{full:1})}${f('margenVal','Margen mínimo',{full:1})}${d.comprobante==='Recibo'?sk('itOn','¿Considerar el IT 3% sobre el total para calcular mi ganancia estimada?',[['1','Sí, descontar el IT 3%'],['0','No, no lo considero']],{full:1}):indFactHtml(d)}</div><div id="indFac" style="margin-top:10px"></div></div>
   <div class="row" style="flex-wrap:wrap"><button class="btn pri" type="button" onclick="GX.indGuardar()">Guardar cotización</button><button class="btn" type="button" onclick="GX.indCopiar()">Copiar texto para el cliente</button><button class="btn" type="button" onclick="GX.indPdf(false)">Descargar PDF</button><button class="btn" type="button" onclick="GX.indPdf(true)">Compartir PDF</button>${q?'<button class="btn" type="button" onclick="GX.indSeg()">Ver seguimiento</button>':''}</div>
   ${q?`<div class="card"><h2>Cobros por concepto</h2><div id="indCob"></div></div>`:''}</div>
   <div class="sticky"><div class="row" style="gap:8px;align-items:center"><div id="indBarTxt" class="hint" style="flex:1;margin:0"></div><button class="btn pri" type="button" onclick="GX.indGuardar()">Guardar</button></div></div>`;
@@ -31953,7 +31976,7 @@ function indRecalc(){
   const d=IND;if(!d)return;const c=indCalc(d),r=document.getElementById('indRes');if(!r)return;
   const air=document.getElementById('indAir');if(air)air.innerHTML=`Peso real <b>${N(c.real)} kg</b> · peso volumétrico (L×A×H÷5000) <b>${N(c.pv)} kg</b> · se cobra <b>${N(c.fact)} kg</b> (${c.pv>c.real?'volumétrico':'real'}) · ${N(c.bultos,0)} bulto(s)`;
   const fl=document.getElementById('indFl');if(fl)fl.innerHTML=`Flete aéreo calculado: <b>USD ${N(c.fact*num(d.tarifaKg))}</b> (${N(c.fact)} kg × tarifa)`;
-  {const bt=document.getElementById('indBarTxt');if(bt){const F0=c.fac;bt.innerHTML='Total <b>Bs '+N(c.totalBs,0)+'</b> · USD '+N(c.total)+(c.tc>0?' · Ganancia neta <b'+(F0.util<0?' style="color:var(--bad,#c0392b)"':'')+'>Bs '+N(F0.util,0)+'</b>':'')}}
+  {const bt=document.getElementById('indBarTxt');if(bt){const F0=c.fac;bt.innerHTML='Total <b>Bs '+N(c.totalBs,0)+'</b> · USD '+N(c.total)+(c.tc>0?' · Ganancia neta <b'+(F0.util<0?' style="color:var(--bad,#c0392b)"':'')+'>Bs '+N(F0.util,0)+'</b>'+(F0.dsc>0?' · con descuento <b>Bs '+N(F0.util2,0)+'</b>':''):'')}}
   const tc=c.tc,ia=document.getElementById('indIn_agencia');if(ia)ia.value=N(c.agAuto,0);const il=document.getElementById('indIn_almacen');if(il)il.value=N(c.almAuto,0);
   const ip=document.getElementById('indImp');if(ip){const gB=(c.R.ga+c.R.ice+c.R.iva)*tc;ip.innerHTML=`<b>CIF: USD ${N(c.CIF)}</b> (FOB ${N(c.FOB)})<br>Gravamen: Bs ${N(c.R.ga*tc)}${c.R.ice>0?' · ICE: Bs '+N(c.R.ice*tc):''} · IVA: Bs ${N(c.R.iva*tc)}<br><b>Total impuestos: Bs ${N(gB)}</b> (sin el uso del sistema aduana)`}
   {const ct=document.getElementById('indCond');if(ct&&d.condAuto!==false)ct.value=indCondTxt(d)}
@@ -31966,9 +31989,9 @@ function indRecalc(){
     const vale=bad?'No conviene: pierdes dinero':low?'Ganas, pero menos que tu margen mínimo':F.util>0?'Vale la pena':'Sin ganancia';
     fb.innerHTML=`<table><tr><th>${F.fac?'Con factura':'Con recibo'}</th><th class="n">Bs</th><th class="n">USD</th></tr>${row('Precio total cobrado al cliente',F.T,1)}
      ${F.fac?row('IVA débito fiscal estimado (saldo del factor tras el IT)',F.deb,0,1):''}${F.itx>0?row('IT (3%)',F.itx,0,1):''}${F.iue>0?row('Provisión IUE (reservada del precio)',F.iue,0,1):''}${row('= Ingreso neto después de impuestos',F.T-F.deb-F.itx-F.iue,1)}
-     ${row('Mercadería y gastos en origen',F.cMerc,0,1)}${row('Giro, flete, seguro y logística',F.cEnv,0,1)}${row('Impuestos de aduana y sistema aduana (sin IVA)',F.cAdu,0,1)}${row('Agencia, almacenaje y otros gastos',F.cGas,0,1)}
+     ${row('Mercadería y gastos en origen',F.cMerc,0,1)}${row('Giro, flete, seguro y logística',F.cEnv,0,1)}${row('Impuestos de aduana y sistema aduana (sin IVA)',F.cAdu,0,1)}${row('Agencia, almacenaje y otros gastos'+(F.fac?' (netos de crédito fiscal)':'')+(F.retG>0?' + retención':''),F.cGas+F.retG-F.credG,0,1)}
      ${F.fac?'':row('IVA de importación (sin crédito fiscal, es costo)',F.ivaB,0,1)}
-     ${row('= GANANCIA NETA DESPUÉS DE IMPUESTOS',F.util,1)}</table>
+     ${row('= GANANCIA NETA DESPUÉS DE IMPUESTOS'+(F.dsc>0?' (sin descuento)':''),F.util,1)}${F.dsc>0?row('= GANANCIA APLICANDO EL DESCUENTO',F.util2,1):''}</table>
      <p style="margin:8px 0 0"><span class="tag ${bad?'bad':low?'warn':''}">${vale}</span> <span class="tag">Margen ${N(F.margenPct,1)}%</span> <span class="tag">Rendimiento sobre lo invertido ${N(F.rend,1)}%</span></p>
      <p class="hint" style="margin:8px 0 0">${F.fac?`El IVA de importación (Bs ${N(F.ivaB)}) vuelve como crédito fiscal contra el IVA débito: IVA a pagar Bs ${N(F.ivaPag)}${F.fav>0?', saldo a favor del IVA Bs '+N(F.fav):''}. `:''}Dinero que debes desembolsar: Bs ${N(F.costoCaja)}. Caja que te queda hoy, pagando todos los impuestos: Bs ${N(F.caja)}${F.fav>0?' (el saldo a favor del IVA lo recuperas después)':''}.</p>
      ${F.dsc>0?`<p class="hint" style="margin:8px 0 0"><b>Si aplicas el descuento</b> (− Bs ${N(F.dsc)} / USD ${N(F.dscU)}): precio Bs ${N(F.T-F.dsc)}, utilidad Bs ${N(F.util2)} (margen ${N(F.margen2,1)}%) → <span class="tag ${F.util2<0?'bad':(F.mmBs>0&&F.util2<F.mmBs-0.5?'warn':'')}">${F.util2<0?'no conviene':(F.mmBs>0&&F.util2<F.mmBs-0.5?'queda bajo tu margen mínimo':'sigue siendo rentable')}</span></p>`:''}
@@ -32089,6 +32112,7 @@ async function indGuardar(){
   const d=IND;if(!d)return;const c=indCalc(d);
   if(!d.cliente.trim()){toastX('Falta el cliente');return}
   if(num(d.tc)<=0){toastX('Falta el T/C de la cotización');return}
+  if(!(num(d.tcCosto)>0)&&!confirm('No indicó el T/C real con el que compra los dólares. La utilidad estimada usará el T/C de la cotización ('+d.tc+') y puede salir muy distinta de la real. ¿Guardar así?'))return;
   const pr=d.prods.filter(p=>p.desc.trim()&&num(p.qty)>0);
   if(!pr.length){toastX('Agregue al menos un producto con cantidad');return}
   if(String(d.comVal).trim()===''){toastX('Falta la comisión de Novatrade');return}
@@ -32115,6 +32139,7 @@ document.addEventListener('change',e=>{const t=e.target;if(!IND||!t.closest||!t.
   if(t.dataset.rtc!==undefined){const k=t.dataset.rtc;(IND.tcRow=IND.tcRow||{})[k]=t.value;delete (IND.bsRow||{})[k];indRecalc();indCobros()}
   else if(t.dataset.rbs!==undefined){(IND.bsRow=IND.bsRow||{})[t.dataset.rbs]=t.value;indRecalc();indCobros()}});
 document.addEventListener('change',e=>{const t=e.target;if(!IND||!t.closest||!t.closest('#view-ind'))return;
+  if(t.dataset.ind==='comprobante'&&!window.compCambio(IND.id,IND.comprobante,t.value)){t.value=IND.comprobante;return}
   if(t.dataset.ind&&(t.type==='checkbox'||t.tagName==='SELECT')){IND[t.dataset.ind]=t.type==='checkbox'?t.checked:t.value;renderInd()}
   else if(t.dataset.ip!==undefined&&(t.type==='checkbox'||t.tagName==='SELECT')){IND.prods[+t.dataset.ip][t.dataset.f]=t.type==='checkbox'?t.checked:t.value;renderInd()}});
 
@@ -32492,6 +32517,7 @@ document.addEventListener('input',e=>{const t=e.target;if(!LOG||!t.closest||!t.c
     const tr=t.closest('tr'),ch=v!==''&&Math.abs(num(v)-num(t.dataset.sys))>0.004;if(tr)tr.style.background=ch?'rgba(255,193,7,.2)':''}
   else return;logRecalc();logCobros()});
 document.addEventListener('change',e=>{const t=e.target;if(!LOG||!t.closest||!t.closest('#view-log'))return;
+  if(t.dataset.log==='comprobante'&&!window.compCambio(LOG.id,LOG.comprobante,t.value)){t.value=LOG.comprobante;return}
   if(t.dataset.log&&(t.type==='checkbox'||t.tagName==='SELECT')){LOG[t.dataset.log]=t.type==='checkbox'?t.checked:t.value;renderLog()}
   else if(t.dataset.ll!==undefined&&(t.tagName==='SELECT'||t.type==='checkbox')){LOG[t.dataset.ll][+t.dataset.i][t.dataset.f]=t.type==='checkbox'?t.checked:t.value;renderLog()}});
 
@@ -32608,7 +32634,7 @@ function contaCalc(y){
     venta(x.fechaEntrega,x.comprobante,t.total,t.iva,t.it)});
   DB.imports.forEach(i=>{const k=mes(i.dimFecha);if(k>=0)M[k].cDim+=num(i.ivaDim)});
   DB.localPurchases.forEach(p=>{const k=mes(p.fecha);if(k<0)return;if(p.factura==='si')M[k].cLoc+=num(p.monto)*0.13;M[k].ret+=num(p.retencion)});
-  DB.payments.forEach(p=>{const k=mes(p.fecha);if(k<0)return;if(!SIN_FACTURA_NO_APLICA.includes(p.categoria)&&p.factura==='si')M[k].cGas+=bsMonto(p)*0.13;M[k].ret+=num(p.retencion)});
+  DB.payments.forEach(p=>{const k=mes(p.fecha);if(k<0)return;M[k].cGas+=credP(p);M[k].ret+=num(p.retencion)});
   let favor=0;M.forEach(m=>{m.cred=m.cDim+m.cLoc+m.cGas;const x=m.deb-m.cred-favor;if(x>0){m.pagar=x;favor=0}else{m.pagar=0;favor=-x}m.favor=favor});
   return{M,pend}}
 function contaCard(){const y=new Date().getFullYear(),k=new Date().getMonth(),c=contaCalc(y),m=c.M[k],f=x=>N(x,0);
@@ -32719,7 +32745,7 @@ function ctExcel(){
 /* ============ SISTEMA CONTABLE: plan de cuentas, diario, mayor, resultados, balances, RRHH ============ */
 const TC_DEF=6.96;
 const PLAN_BASE=[['1.1.01.00','Caja y bancos sin cuenta asignada','D'],['1.1.03','Cuentas por cobrar a clientes','D'],['1.1.04','Inventario de mercaderías','D'],['1.1.06','Crédito fiscal IVA','D'],['1.1.07','Anticipos a proveedores','D'],['1.1.08','Otras cuentas por cobrar','D'],['1.2.01','Activos fijos (muebles y equipos)','D'],['1.2.02','Depreciación acumulada','H'],
- ['2.1.01','Proveedores por pagar','H'],['2.1.02','Préstamos bancarios (capital)','H'],['2.1.03','IVA débito fiscal por pagar','H'],['2.1.04','IT por pagar','H'],['2.1.05','Sueldos y salarios por pagar','H'],['2.1.06','Aportes laborales y patronales por pagar','H'],['2.1.07','Retenciones por pagar','H'],['2.1.08','Anticipos de clientes','H'],['2.1.09','Otras cuentas por pagar','H'],
+ ['2.1.01','Proveedores por pagar','H'],['2.1.02','Préstamos bancarios (capital)','H'],['2.1.03','IVA débito fiscal por pagar','H'],['2.1.04','IT por pagar','H'],['2.1.05','Sueldos y salarios por pagar','H'],['2.1.06','Aportes laborales y patronales por pagar','H'],['2.1.07','Retenciones por pagar','H'],['2.1.08','Anticipos de clientes','H'],['2.1.09','Otras cuentas por pagar','H'],['2.1.11','Provisión IUE (reserva sobre lo facturado)','H'],
  ['3.1.01','Capital y aportes de socios','H'],['3.1.02','Resultados acumulados','H'],
  ['4.1.01','Ventas de importación','H'],['4.1.02','Ventas de stock','H'],['4.1.03','Otros ingresos','H'],['4.1.04','Ingresos por servicios logísticos y asesoramiento','H'],
  ['5.1.01','Costo de ventas (stock)','D'],['5.1.02','Costo de importaciones','D'],['5.1.03','Compras locales','D'],['5.1.04','Costo de servicios logísticos (gastos de la operación)','D'],
@@ -32766,13 +32792,20 @@ function ctCobroSave(o,rec){
 function ctCobroDel(rec){if(!rec||!rec.id)return;DB.accMov.filter(m=>m.ref==='cob:'+rec.id).forEach(m=>del('accMov',m.id));save()}
 async function resetDatos(){
   if(!(await gxPin('Restablecer datos de prueba: esta acción borra información (se descarga un respaldo antes). Ingrese la clave.')))return;
-  const b=sheet('Restablecer datos de prueba',hintDiv('','Las cotizaciones y los clientes no se tocan. Antes de borrar se descarga un respaldo (.json). Marque lo que quiere dejar en blanco:')+
+  const b=sheet('Restablecer datos de prueba',hintDiv('','Las cotizaciones y los clientes no se tocan. Antes de borrar se descarga un respaldo (.json). Elija el alcance y marque lo que quiere dejar en blanco:')+sel('alcance','Alcance',[['todo','Todo el sistema (las opciones de abajo)'],...DB.imports.map(i=>[i.id,'Solo la importación '+i.numero])],'todo',{full:1})+hintDiv('','Si elige una sola importación, solo se usan estas tres opciones:')+`<label class="chk full"><input type="checkbox" data-k="iPag" checked> Pagos y gastos de esa importación (y su salida en bancos y cajas)</label><label class="chk full"><input type="checkbox" data-k="iInv"> Ingreso al inventario de esa importación (los pedidos vuelven a «sin ingresar»)</label><label class="chk full"><input type="checkbox" data-k="iEst"> Volver el estado a «Programada»</label>`+
    `<label class="chk full"><input type="checkbox" data-k="seg" checked> Historial de seguimiento (cada cotización vuelve a «Enviada»)</label>
     <label class="chk full"><input type="checkbox" data-k="cob" checked> Cobros de clientes (y su ingreso en bancos y cajas)</label>
     <label class="chk full"><input type="checkbox" data-k="pag" checked> Pagos y gastos de importación, incluidas las cuentas por pagar (y su salida en bancos y cajas)</label>
     <label class="chk full"><input type="checkbox" data-k="ent" checked> Entregas, actas y comprobantes (lo entregado vuelve a pendiente en el inventario)</label>`,
-   v=>{if(!v.seg&&!v.cob&&!v.pag&&!v.ent){toastX('No marcó nada');return false}
-     try{const snap={fecha:new Date().toISOString(),ops:JSON.parse(JSON.stringify(ops)),payments:DB.payments,accMov:DB.accMov,invAsig:DB.invAsig,stockSales:DB.stockSales};saveBlob(new Blob([JSON.stringify(snap)],{type:'application/json'}),'respaldo-antes-de-restablecer-'+TODAY()+'.json')}catch(e){console.error(e)}
+   v=>{const sc=v.alcance&&v.alcance!=='todo';
+     if(sc){if(!v.iPag&&!v.iInv&&!v.iEst){toastX('No marcó nada');return false}}else if(!v.seg&&!v.cob&&!v.pag&&!v.ent){toastX('No marcó nada');return false}
+     try{const snap={fecha:new Date().toISOString(),ops:JSON.parse(JSON.stringify(ops)),payments:DB.payments,accMov:DB.accMov,invAsig:DB.invAsig,invMov:DB.invMov,purchases:DB.purchases,imports:DB.imports,stockSales:DB.stockSales};saveBlob(new Blob([JSON.stringify(snap)],{type:'application/json'}),'respaldo-antes-de-restablecer-'+TODAY()+'.json')}catch(e){console.error(e)}
+     if(sc){const imp=byId(DB.imports,v.alcance);if(!imp){toastX('No se encontró la importación');return false}
+       const ids=new Set(DB.purchases.filter(p=>p.importId===imp.id).map(p=>p.id));
+       if(v.iPag)DB.payments.filter(p=>p.importId===imp.id||ids.has(p.purchaseId)).forEach(p=>{DB.accMov.filter(m=>m.ref==='pay:'+p.id).forEach(m=>del('accMov',m.id));del('payments',p.id)});
+       if(v.iInv){DB.invMov.filter(m=>m.importId===imp.id).forEach(m=>del('invMov',m.id));DB.invAsig.filter(a=>a.importId===imp.id).forEach(a=>del('invAsig',a.id));DB.purchases.filter(p=>p.importId===imp.id).forEach(p=>{p.invIngresado=false;p.invFecha=''})}
+       if(v.iEst)imp.estado='Programada';
+       save();cloudPushSoon();render();toastX('Importación '+imp.numero+' restablecida');return true}
      const now=Date.now();
      ops.forEach(o=>{let ch=false;
        if(v.seg){o.etapa='enviada';o.hist=[{etapa:'enviada',ts:o.creado||now,nota:''}];o.retro=[];o.comentario='';ch=true}
@@ -32800,14 +32833,14 @@ function ctAuto(){
     add(o.fecha,'Transferencia: '+ctCuentaNom(o.cuentaId)+' → '+ctCuentaNom(d.cuentaId),'Tesorería','trf:'+t,[D(cod(d.cuentaId),vd),H(cod(o.cuentaId),vo),vd<vo?D('5.3.04',vo-vd):H('5.3.04',vd-vo)])});
   DB.liabilities.forEach(l=>{const f=l.moneda==='USD'?(num(l.tc)||TC_DEF):1;(l.cuotas||[]).forEach(c=>{if(!c.pagada)return;const cap=capC(c)*f,it=num(c.interes)*f,sg=num(c.seguro)*f,tot=(num(c.montoPagado)||num(c.monto))*f;
     add(c.fechaPago||c.fecha,(c.tipo==='Amortización total'?'Amortización total · ':'Cuota '+c.n+' · ')+l.entidad,'Préstamos','cuota:'+c.id,[D('2.1.02',cap),D('5.3.01',it+(tot-cap-it-sg)),D('5.3.02',sg),H(cod(c.cuentaId),tot)])})});
-  const venta=(fecha,glosa,ref,cta,T,iva,it,cc)=>add(fecha,glosa,'Ventas',ref,[D(cc||'1.1.03',T),H(cta,T-iva),H('2.1.03',iva),D('5.2.07',it),H('2.1.04',it)]);
+  const venta=(fecha,glosa,ref,cta,T,iva,it,cc,iue)=>add(fecha,glosa,'Ventas',ref,[D(cc||'1.1.03',T),H(cta,T-iva-(iue||0)),H('2.1.03',iva),D('5.2.07',it),H('2.1.04',it),H('2.1.11',iue||0)]);
   const cobs=(arr,pre,num_,cc)=>(arr||[]).forEach((c,i)=>{const v=c.moneda==='USD'?num(c.monto)*num(c.tc):num(c.monto);add(c.fecha,'Cobro '+num_+(c.fondos?' · fondos por cuenta del cliente':(c.concepto&&c.concepto!=='hon'?' · '+c.concepto:'')),'Cobros','cob:'+pre+':'+i,[D(c.cuentaId&&byId(DB.accounts,c.cuentaId)?cod(c.cuentaId):'1.1.01.00',v),H(c.ctaContra||cc||'1.1.03',v)])});
   (typeof ops!=='undefined'?ops:[]).forEach(o=>{const dv=o.docVenta||{};
-    if(o.etapa==='entregada'&&dv.numero){const T=num(o.total),fac=dv.tipo==='Factura',lg=((lsGet('nt_quotes',[]).find(x=>x.id===o.quoteId)||{}).tipoCot==='logistica');venta(dv.fecha||TODAY(),'Venta '+(lg?'de servicios logísticos ':'')+(o.numero||'')+' · '+(o.clienteNombre||'')+' · '+dv.tipo+' '+dv.numero,'op:'+o.id,lg?'4.1.04':'4.1.01',T,fac?T*0.13:0,(lg&&!fac)?0:T*0.03,ctCliFind(o.clienteNombre))}
+    if(o.etapa==='entregada'&&dv.numero){const T=num(o.total),fac=dv.tipo==='Factura',qo=(lsGet('nt_quotes',[]).find(x=>x.id===o.quoteId)||{}),lg=(qo.tipoCot==='logistica');let iue=0;if(fac){let Fq=null;try{Fq=qo.ind?indCalc(qo.ind).fac:qo.indFac}catch(_){}iue=(Fq&&Fq.T>0&&Fq.iue!=null)?T*Fq.iue/Fq.T:T*0.025}venta(dv.fecha||TODAY(),'Venta '+(lg?'de servicios logísticos ':'')+(o.numero||'')+' · '+(o.clienteNombre||'')+' · '+dv.tipo+' '+dv.numero,'op:'+o.id,lg?'4.1.04':'4.1.01',T,fac?T*0.13:0,(lg&&!fac)?0:T*0.03,ctCliFind(o.clienteNombre),iue)}
     cobs(o.cobros,o.id,o.numero||'',ctCliFind(o.clienteNombre))});
-  DB.stockSales.forEach(x=>{if(x.estado==='entregada'&&x.docNumero){const t=vsTot(x,false);venta(x.fechaEntrega||TODAY(),'Venta de stock '+x.numero+' · '+x.comprobante+' '+x.docNumero,'vs:'+x.id,'4.1.02',t.total,t.iva,t.it)}
+  DB.stockSales.forEach(x=>{if(x.estado==='entregada'&&x.docNumero){const t=vsTot(x,false);venta(x.fechaEntrega||TODAY(),'Venta de stock '+x.numero+' · '+x.comprobante+' '+x.docNumero,'vs:'+x.id,'4.1.02',t.total,t.iva,t.it,'',t.iue)}
     cobs(x.cobros,x.id,x.numero||'')});
-  DB.payments.forEach(p=>{const t=bsMonto(p);if(!t)return;const fac=p.factura==='si'&&!SIN_FACTURA_NO_APLICA.includes(p.categoria),iva=fac?t*0.13:0,ret=num(p.retencion);
+  DB.payments.forEach(p=>{const t=bsMonto(p);if(!t)return;const iva=credP(p),ret=num(p.retencion);
     const cr=p.forma==='credito';
     add(p.fecha,(p.categoria||'Pago')+(p.nota?' · '+p.nota:'')+(cr?' (a crédito)':''),'Importaciones','pay:'+p.id,[D(p.ctaGasto||'5.1.02',t-iva),D('1.1.06',iva),H(cr?(p.ctaAcreedor||'2.1.01'):cod(p.cuentaId),t),D('5.3.03',ret),H('2.1.07',ret)]);
     if(cr&&p.pagadoFecha){const real=p.moneda==='USD'?num(p.monto)*(num(p.tcPago)||num(p.tc)):t,dif=Math.round((real-t)*100)/100;
@@ -33240,7 +33273,7 @@ document.addEventListener('click',async e=>{
   else if(a==='vsopen'){setView('vstock');GX.vsGo('det',b.dataset.id)}
   else if(a==='fixdoc'){if(!(await pinOk('Para corregir un comprobante ya registrado ingrese la clave.')))return;
     const r=await askForm({title:'Corregir comprobante',msg:'Deje el número en blanco para quitarlo: la entrega vuelve a quedar pendiente de facturar.',fields:[{k:'tipo',l:'Comprobante',t:'select',o:['Factura','Recibo'],v:(OP.docVenta&&OP.docVenta.tipo)||'Factura'},{k:'numero',l:'N.º de factura o recibo',v:(OP.docVenta&&OP.docVenta.numero)||''}]});
-    if(r){const n=r.numero.trim();OP.docVenta=n?{tipo:r.tipo,numero:n,fecha:(OP.docVenta&&OP.docVenta.fecha)||today()}:{tipo:'',numero:'',fecha:''};(OP.entregas||[]).forEach(x=>{x.numero=n;x.tipo=n?r.tipo:''});opCommit();actasBox();toast(n?'Comprobante corregido':'Comprobante quitado: pendiente de facturar')}}
+    if(r&&(!r.numero.trim()||window.compOk(OP,r.tipo))){const n=r.numero.trim();OP.docVenta=n?{tipo:r.tipo,numero:n,fecha:(OP.docVenta&&OP.docVenta.fecha)||today()}:{tipo:'',numero:'',fecha:''};(OP.entregas||[]).forEach(x=>{x.numero=n;x.tipo=n?r.tipo:''});opCommit();actasBox();toast(n?'Comprobante corregido':'Comprobante quitado: pendiente de facturar')}}
   else if(a==='actadl'){const x=(OP.actas||[])[+b.dataset.i];if(x)GX.actaDescargar(x)}
   else if(a==='actadel'){const x=(OP.actas||[])[+b.dataset.i];if(!x||x.anulada)return;
     if(!(await pinOk('Para anular el acta '+x.numero+' ingrese la clave. Lo entregado volverá al inventario.')))return;
@@ -33252,7 +33285,7 @@ document.addEventListener('click',async e=>{
     opCommit();renderOp();toast('Acta anulada')}
   else if(a==='actapdf'){const x=(OP.actas||[])[+b.dataset.i];if(x)GX.actaCompartir(x)}
   else if(a==='regdoc'){const r=await askForm({title:'Registrar factura o recibo',msg:'Número del comprobante emitido por esta entrega.',fields:[{k:'tipo',l:'Comprobante',t:'select',o:['Factura','Recibo'],v:(OP.docVenta&&OP.docVenta.tipo)||'Factura'},{k:'numero',l:'N.º de factura o recibo',req:1}]});
-    if(r){OP.docVenta={tipo:r.tipo,numero:r.numero.trim(),fecha:today()};(OP.entregas||[]).forEach(x=>{if(!x.numero){x.numero=r.numero.trim();x.tipo=r.tipo}});opCommit();actasBox();toast('Comprobante registrado')}}
+    if(r&&window.compOk(OP,r.tipo)){OP.docVenta={tipo:r.tipo,numero:r.numero.trim(),fecha:today()};(OP.entregas||[]).forEach(x=>{if(!x.numero){x.numero=r.numero.trim();x.tipo=r.tipo}});opCommit();actasBox();toast('Comprobante registrado')}}
   else if(a==='indnew'){GX.indNueva(b.dataset.t)}
   else if(a==='lognew'){GX.logNueva()}
   else if(a==='gxgo'){setView('compras');GX.go(b.dataset.v,b.dataset.id||null)}
