@@ -30865,8 +30865,22 @@ function render(){
   root.innerHTML=seg()+fn()}
 
 /* ---------- vistas ---------- */
+const PLAZO_AVISO=5;
+const diasHasta=f=>Math.ceil((new Date(f+'T12:00:00')-new Date(TODAY()+'T12:00:00'))/864e5);
+function seguroLimite(x){if(!x||!x.etd)return '';const d=new Date(x.etd+'T12:00:00');d.setDate(d.getDate()+(num(x.seguroDias)>0?num(x.seguroDias):15));return ISO(d)}
+/* plazos que vencen: emisión de la DAM y emisión del seguro (aplica a importaciones propias y de terceros) */
+function plazosImp(x){const o=[];if(!x)return o;
+  if(!x.damFecha&&x.damLimite){const d=diasHasta(x.damLimite);
+    if(d<0)o.push({n:'bad',t:'Plazo para emitir la DAM vencido hace '+(-d)+' día(s)'});
+    else if(d<=PLAZO_AVISO)o.push({n:'warn',t:d===0?'Hoy vence el plazo para emitir la DAM':'Quedan '+d+' día(s) para emitir la DAM'})}
+  const es=x.estadoImp||(['abierta','cerrada'].includes(x.estado)?'Programada':x.estado)||'Programada',enRuta=['Programada','En tránsito'].includes(es);
+  const sl=seguroLimite(x);
+  if(sl&&x.seguroReq!=='no'&&enRuta&&!x.seguroEmision&&!String(x.poliza||'').trim()){const d=diasHasta(sl);
+    if(d<0)o.push({n:'bad',t:'Plazo para emitir el seguro vencido hace '+(-d)+' día(s): requiere un protocolo más complejo con la aseguradora'});
+    else if(d<=PLAZO_AVISO)o.push({n:'warn',t:d===0?'Hoy vence el plazo para emitir el seguro':'Quedan '+d+' día(s) para emitir el seguro'})}
+  return o}
 function accionesImp(i){
-  const peds=DB.purchases.filter(p=>p.importId===i.id),out=[];
+  const peds=DB.purchases.filter(p=>p.importId===i.id),out=plazosImp(i).map(p=>(p.n==='bad'?'⚠ ':'')+p.t);
   if(!peds.length)out.push('Asociar al menos un pedido a esta importación');
   if(!i.etd||!i.eta)out.push('Registrar fechas de embarque (ETD) y llegada (ETA)');
   if(!i.contenedor||!i.embarque)out.push('Registrar contenedor y documento de embarque');
@@ -31004,9 +31018,9 @@ function fImp(id){
    inp('contenedor','Contenedor',i.contenedor)+inp('embarque','Documento de embarque',i.embarque)+
    inp('etd','Fecha de embarque (ETD)',i.etd,{t:'date'})+inp('eta','Llegada estimada a puerto (ETA)',i.eta,{t:'date'})+
    inp('entrega','Fecha estimada de entrega',i.entrega,{t:'date',full:1})+
-   inp('poliza','Póliza de seguro (opcional)',i.poliza,{full:1})+
+   inp('poliza','Póliza de seguro (opcional)',i.poliza,{full:1})+sel('seguroReq','Seguro',[['si','Lo emite Novatrade'],['no','No aplica / lo paga el cliente']],i.seguroReq||'si')+inp('seguroDias','Plazo de emisión (días tras el embarque)',i.seguroDias||'15',{mode:'decimal'})+inp('seguroEmision','Fecha de emisión del seguro',i.seguroEmision,{t:'date',full:1})+hintDiv('gxSegH','')+
    sec('Aduana')+
-   inp('dam','DAM',i.dam)+inp('damFecha','Fecha del DAM',i.damFecha,{t:'date'})+
+   inp('dam','DAM',i.dam)+inp('damFecha','Fecha de emisión de la DAM',i.damFecha,{t:'date'})+inp('damLimite','Fecha límite para emitir la DAM',i.damLimite,{t:'date',full:1})+
    inp('dim','DIM',i.dim)+inp('dimFecha','Fecha del DIM',i.dimFecha,{t:'date'})+
    inp('prm','PRM',i.prm)+inp('prmFecha','Fecha del PRM',i.prmFecha,{t:'date'})+
    inp('ivaDim','Crédito fiscal IVA del DIM (Bs)',i.ivaDim,{mode:'decimal',full:1})+
@@ -31032,6 +31046,7 @@ function fImp(id){
    id?()=>{gxPin('Para eliminar una importación ingrese la clave.').then(ok=>{if(!ok)return;DB.purchases.forEach(p=>{if(p.importId===id)p.importId=''});DB.payments.forEach(p=>{if(p.importId===id)p.importId=''});del('imports',id);save();go('imp')})}:null);
   const mf=()=>{const f=b.querySelector('[data-k=modFlete]').value==='fijo';b.querySelector('#gxFlCbm').style.display=f?'none':'';b.querySelector('#gxFlFijo').style.display=f?'':'none'};
   b.querySelector('[data-k=modFlete]').onchange=mf;mf();
+  const sg=()=>{const v=vals(b),l=seguroLimite(v);b.querySelector('#gxSegH').textContent=l?'Fecha límite para emitir el seguro: '+FD(l)+' (ETD + '+(num(v.seguroDias)>0?num(v.seguroDias):15)+' días).':'Registre el ETD para calcular la fecha límite del seguro.'};['etd','seguroDias'].forEach(k=>{const e=b.querySelector('[data-k='+k+']');e.addEventListener('input',sg);e.addEventListener('change',sg)});sg();
   b.querySelector('[data-k=permiso]').onchange=e=>{b.querySelector('#gxPm').style.display=e.target.value==='si'?'':'none'};
   b.querySelector('[data-k=dimFecha]').onchange=e=>{const r=b.querySelector('[data-k=tcRef]');if(!r.value)r.value=viernesAnterior(e.target.value)};
 }
@@ -32536,7 +32551,7 @@ window.cierreTot=function(cz){const tc=cz.mon==='Bs'?1:num(cz.tc);let cot=0,cob=
     if(ig>0){if(l.fac==='si'){fac+=ig;facB+=ig*t;if(l.deb)debB+=ig*t*0.13;if(l.it)itFB+=ig*t*0.03;iueB+=ig*t*0.025;if(!String(l.nf||'').trim())pend.push(l)}else{sf+=ig;sfB+=ig*t;if(l.it)itSB+=ig*t*0.03}}});
   return{tc,cot,cob,ing,ter,fac,sf,cotBs:cotB,cobBs:cobB,ingBs:ingB,terBs:terB,facBs:facB,sfBs:sfB,debBs:debB,itFacBs:itFB,itSfBs:itSB,itBs:itFB+itSB,iueBs:iueB,difBs:cotB-cobB,pend}};
 window.nextVentaNum=()=>{const y=new Date().getFullYear(),pre='VC-'+y+'-';let n=0;ops.forEach(o=>{const m=o.cierre&&String(o.cierre.numero).startsWith(pre)?(+String(o.cierre.numero).slice(pre.length)||0):0;if(m>n)n=m});return pre+String(n+1).padStart(3,'0')};
-async function fCierre(op){
+async function fCierreVenta(op){
   const q=lsGet('nt_quotes',[]).find(x=>x.id===op.quoteId);if(!q){toastX('No se encontró la cotización');return false}
   const base=cierreBase(q),cz=op.cierre?JSON.parse(JSON.stringify(op.cierre)):null,mon=base.mon;
   if(mon==='USD'&&!(num(base.tc)>0)&&!(cz&&num(cz.tc)>0)){toastX('La cotización no tiene T/C');return false}
@@ -32644,7 +32659,7 @@ function vTer(){
   const l=[...DB.terceros].sort((a,b)=>(b.numero||'').localeCompare(a.numero||''));
   return `<div class="row sp"><b style="font-size:17px">Importaciones de terceros</b><button class="btn pri sm" type="button" onclick="GX.fTer()">+ Nueva</button></div>
   <p class="hint">Gestión de importaciones de clientes donde Novatrade administra los pagos: lo cobrado y lo pagado por cada concepto, y la ganancia real después de impuestos.</p>`+
-  (l.length?l.map(t=>{const C=terCalc(t);return `<button class="item" type="button" onclick="GX.go('terd','${t.id}')"><span class="tag ${t.estado==='cerrada'?'':'warn'}">${t.estado==='cerrada'?'Cerrada':'Abierta'}</span><b>${E(t.numero)} · ${E(t.cliente||'—')}</b><small>${FD(t.fecha)}${t.descripcion?' · '+E(t.descripcion):''} · Cobrado Bs ${N(C.cob)} · Pagado Bs ${N(C.pag)} · Utilidad real Bs ${N(C.util)}</small></button>`}).join(''):'<div class="card empty">Aún no hay importaciones de terceros.</div>')}
+  (l.length?l.map(t=>{const C=terCalc(t);return `<button class="item" type="button" onclick="GX.go('terd','${t.id}')"><span class="tag">${E(t.estadoImp||'Programada')}</span>${terAcciones(t,1).length?'<span class="tag warn">Con alertas</span>':''}<b>${E(t.numero)} · ${E(t.cliente||'—')}</b><small>${FD(t.fecha)}${t.descripcion?' · '+E(t.descripcion):''} · Cobrado Bs ${N(C.cob)} · Pagado Bs ${N(C.pag)} · Utilidad real Bs ${N(C.util)}</small></button>`}).join(''):'<div class="card empty">Aún no hay importaciones de terceros.</div>')}
 function vTerDet(){
   const t=terPorId(V.id);if(!t)return '<div class="card empty">No se encontró la importación.</div>';
   const C=terCalc(t),ab=t.estado!=='cerrada',kv=(l,v)=>`<div><span>${l}</span><b>${v}</b></div>`;
@@ -32656,6 +32671,7 @@ function vTerDet(){
    <div class="kv" style="margin-top:8px">${kv('Fecha',FD(t.fecha))}${kv('Cotización vinculada',q?E(q.numero):'Ninguna')}${kv('Código de seguimiento del cliente',E(t.codigo||'—'))}</div>
    ${t.descripcion?`<p class="hint" style="margin:8px 0 0">${E(t.descripcion)}</p>`:''}
    <div class="row" style="margin-top:8px;gap:6px"><button class="btn sm" type="button" onclick="GX.terEnlace('${t.id}')">Copiar enlace de seguimiento</button>${q&&ab?`<button class="btn sm" type="button" onclick="GX.terCargar('${t.id}')">Cargar conceptos de la cotización</button>`:''}</div></div>
+  ${terEmbCard(t)}
   <div class="card"><div class="row sp"><h2 style="margin:0">Conceptos: cobrado vs pagado</h2>${ab?`<button class="btn sm" type="button" onclick="GX.fTerLinea('${t.id}')">+ Concepto</button>`:''}</div>
    ${C.L.length?`<div style="overflow-x:auto"><table><tr><th>Concepto</th><th class="n">Cotizado USD</th><th class="n">Cobrado Bs</th><th class="n">Pagado Bs</th><th class="n">Ingreso Bs</th></tr>${C.L.map(r=>`<tr onclick="GX.fTerLinea('${t.id}','${r.l.id}')" style="cursor:pointer"><td>${E(r.l.l)}<br><small style="color:var(--muted)">${r.l.fac==='si'?'Con factura'+(r.l.nf?' '+E(r.l.nf):' (n.º pendiente)'):'Sin factura'}</small></td><td class="n">${N(num(r.l.cot))}</td><td class="n">${N(r.cob)}</td><td class="n">${N(r.pag)}</td><td class="n"><b>${N(r.ing)}</b></td></tr>`).join('')}<tr><td colspan="2"><b>Total</b></td><td class="n"><b>${N(C.cob)}</b></td><td class="n"><b>${N(C.pag)}</b></td><td class="n"><b>${N(C.cob-C.pag)}</b></td></tr></table></div>
    <p class="hint" style="margin:6px 0 0">Ingreso = cobrado − pagado. En un concepto que solo se paga a un tercero, lo que sobra (o falta) es la ganancia (o pérdida) extra.</p>`:'<p class="hint">Agregue los conceptos (o cárguelos de la cotización vinculada).</p>'}</div>
@@ -32669,11 +32685,50 @@ function vTerDet(){
    ${C.pend.length?`<p class="hint" style="margin:6px 0 0"><span class="tag warn">${C.pend.length} factura(s) sin número</span> Complete el N.º en cada concepto.</p>`:''}
    <p class="hint" style="margin:6px 0 0">Cifras de guía contable: valídelas con su contador.</p>
    <div class="row" style="margin-top:10px;gap:6px">${ab?`<button class="btn pri sm" type="button" onclick="GX.terCerrar('${t.id}')">Cerrar importación</button>`:`<button class="btn sm" type="button" onclick="GX.terReabrir('${t.id}')">Reabrir (clave)</button>${t.cierre&&t.cierre.nv?`<button class="btn sm" type="button" onclick="GX.terDoc('${t.id}','nv',0)">Nota de venta ${E(t.cierre.nv)}</button><button class="btn sm" type="button" onclick="GX.terDoc('${t.id}','nv',1)">Compartir</button>`:''}${t.cierre&&t.cierre.oi?`<button class="btn sm" type="button" onclick="GX.terDoc('${t.id}','oi',0)">Otros ingresos ${E(t.cierre.oi)}</button><button class="btn sm" type="button" onclick="GX.terDoc('${t.id}','oi',1)">Compartir</button>`:''}`}</div></div>`}
+function terAcciones(t,home){
+  const o=plazosImp(t).map(p=>({n:p.n,t:p.t})),w=x=>o.push({n:'warn',t:x}),es=t.estadoImp||'Programada';
+  if(es==='En aduana'&&!t.dim)w('Registrar N.º de DIM y su fecha');
+  if(es==='En tránsito'&&t.eta){const d=diasHasta(t.eta);if(d<0)w('ETA vencida hace '+(-d)+' día(s): confirmar estado con la naviera');else if(d<=10)w('Llega en '+d+' día(s): coordinar agencia despachante y documentos')}
+  if(t.estado==='cerrada'){const c=terCalc(t);if(c.pend.length)w(c.pend.length+' factura(s) sin número')}
+  if(!home){
+    if(!t.etd||!t.eta)w('Registrar fechas de embarque (ETD) y llegada (ETA)');
+    if(!t.embarque||!t.contenedor)w('Registrar BL y contenedor');
+    if(['Liberada','En almacenes de Novatrade'].includes(es)&&!t.canal)w('Registrar el canal aduanero asignado');
+    if(es==='Liberada')w('Coordinar la entrega al cliente');
+    if(es==='En almacenes de Novatrade')w('Cerrar la importación: verificar gastos reales y cobranza')}
+  return o}
+function fTerEmb(tid){
+  const t=terPorId(tid);if(!t)return;
+  const b=sheet('Embarque y aduana · '+t.numero,
+   sel('estadoImp','Estado de la importación',ESTADOS_IMP.map(x=>[x,x]),t.estadoImp||'Programada',{full:1})+
+   sec('Transporte')+
+   sel('transporte','Tipo de transporte',['',...TRANSPORTES].map(x=>[x,x||'Seleccionar…']),t.transporte||'')+inp('naviera','Naviera',t.naviera,{list:'gxNav'})+
+   inp('contenedor','Contenedor',t.contenedor)+inp('embarque','N.º de BL (documento de embarque)',t.embarque)+
+   inp('etd','Fecha de embarque (ETD)',t.etd,{t:'date'})+inp('eta','Llegada estimada a puerto (ETA)',t.eta,{t:'date'})+
+   inp('entrega','Fecha estimada de entrega',t.entrega,{t:'date',full:1})+
+   inp('poliza','Póliza de seguro (opcional)',t.poliza,{full:1})+sel('seguroReq','Seguro',[['si','Lo emite Novatrade'],['no','No aplica / lo paga el cliente']],t.seguroReq||'si')+
+   inp('seguroDias','Plazo de emisión (días tras el embarque)',t.seguroDias||'15',{mode:'decimal'})+inp('seguroEmision','Fecha de emisión del seguro',t.seguroEmision,{t:'date',full:1})+hintDiv('gxSegH','')+
+   sec('Aduana')+
+   inp('dam','DAM',t.dam)+inp('damFecha','Fecha de emisión de la DAM',t.damFecha,{t:'date'})+inp('damLimite','Fecha límite para emitir la DAM',t.damLimite,{t:'date',full:1})+
+   inp('dim','DIM',t.dim)+inp('dimFecha','Fecha del DIM',t.dimFecha,{t:'date'})+
+   inp('prm','PRM',t.prm)+inp('prmFecha','Fecha del PRM',t.prmFecha,{t:'date'})+
+   sel('canal','Canal aduanero asignado',['','Verde','Amarillo','Rojo'].map(x=>[x,x||'Seleccionar…']),t.canal||'',{full:1})+
+   inp('obsAduana','Observaciones',t.obsAduana,{full:1}),
+   v=>{Object.assign(t,v);save();render();toastX('Guardado')});
+  const sg=()=>{const v=vals(b),l=seguroLimite(v);b.querySelector('#gxSegH').textContent=l?'Fecha límite para emitir el seguro: '+FD(l)+' (ETD + '+(num(v.seguroDias)>0?num(v.seguroDias):15)+' días).':'Registre el ETD para calcular la fecha límite del seguro.'};
+  ['etd','seguroDias'].forEach(k=>{const e=b.querySelector('[data-k='+k+']');e.addEventListener('input',sg);e.addEventListener('change',sg)});sg()}
+function terEmbCard(t){
+  const ac=terAcciones(t),kv=(l,v)=>`<div><span>${l}</span><b>${v}</b></div>`,sl=seguroLimite(t),f=x=>x?FD(x):'—';
+  return `<div class="card"><div class="row sp"><h2 style="margin:0">Embarque y aduana</h2><button class="btn sm" type="button" onclick="GX.fTerEmb('${t.id}')">Editar</button></div>
+   <div class="kv" style="margin-top:8px">${kv('Estado',E(t.estadoImp||'Programada'))}${kv('N.º de BL',E(t.embarque||'—'))}${kv('Contenedor',E(t.contenedor||'—'))}${kv('Naviera',E(t.naviera||'—'))}${kv('ETD',f(t.etd))}${kv('ETA',f(t.eta))}
+   ${kv('Seguro',t.seguroReq==='no'?'No aplica':(t.seguroEmision||t.poliza?'Emitido'+(t.seguroEmision?' '+FD(t.seguroEmision):''):'Pendiente'+(sl?' · límite '+FD(sl):'')))}
+   ${kv('DAM',E(t.dam||'—')+(t.damFecha?' · '+FD(t.damFecha):(t.damLimite?' · límite '+FD(t.damLimite):'')))}${kv('DIM',E(t.dim||'—')+(t.dimFecha?' · '+FD(t.dimFecha):''))}${kv('PRM',E(t.prm||'—')+(t.prmFecha?' · '+FD(t.prmFecha):''))}</div>
+   ${ac.length?ac.map(a=>`<p class="hint" style="margin:6px 0 0;color:var(--${a.n==='bad'?'bad':'warn'});font-weight:700">▶ ${E(a.t)}</p>`).join(''):'<p class="hint" style="margin:6px 0 0;color:var(--good);font-weight:700">Sin acciones pendientes</p>'}</div>`}
 function terPedCard(t,ab,q){
   const ps=DB.purchases.filter(p=>p.terId===t.id),op=t.quoteId?opByQuote(t.quoteId):null,et=op&&typeof ETL!=='undefined'?(ETL[op.etapa]||op.etapa):'';
   const ims=[...new Set(ps.map(p=>p.importId).filter(Boolean))].map(id=>byId(DB.imports,id)).filter(Boolean);
   return `<div class="card"><div class="row sp"><h2 style="margin:0">Pedidos y embarque</h2>${ab?`<div class="row" style="gap:6px"><button class="btn sm" type="button" onclick="GX.terNuevoPed('${t.id}')">+ Pedido</button><button class="btn sm" type="button" onclick="GX.terVincPed('${t.id}')">Vincular</button></div>`:''}</div>
-   <p class="hint" style="margin:6px 0 8px">Son los mismos pedidos e importaciones de Compras, marcados «de terceros»: no entran al inventario de Novatrade. El N.º de BL, contenedor y fechas se registran en la importación.</p>
+   <p class="hint" style="margin:6px 0 8px">Son los mismos pedidos e importaciones de Compras, marcados «de terceros»: no entran al inventario de Novatrade. El BL, ETD, ETA, DAM, DIM y PRM propios de esta operación se registran en «Embarque y aduana»; la importación de Compras sirve para agrupar el contenedor compartido.</p>
    ${ps.length?ps.map(p=>{const im=byId(DB.imports,p.importId);return `<button class="item" type="button" onclick="GX.go('pedd','${p.id}')"><span class="tag">${E(p.estado)}</span>${im?`<span class="tag">${E(im.numero)}</span>`:'<span class="tag warn">Sin importación</span>'}<b>Pedido ${E(p.numero)} · ${E(p.proveedor||'—')}</b><small>${im?'BL/embarque: '+E(im.embarque||'—')+' · Contenedor: '+E(im.contenedor||'—')+(im.eta?' · ETA '+FD(im.eta):''):'Asigne una importación en el pedido (editar pedido → Importación).'}</small></button>`}).join(''):'<p class="hint" style="margin:0">Aún no hay pedidos. Use «+ Pedido» o «Vincular» uno existente.</p>'}
    ${ims.length?ims.map(im=>`<button class="item" type="button" onclick="GX.go('impd','${im.id}')"><span class="tag">${E(im.estado)}</span><b>Importación ${E(im.numero)}</b><small>${E(im.naviera||'')} ${im.embarque?'· BL '+E(im.embarque):''} ${im.eta?'· ETA '+FD(im.eta):''}</small></button>`).join(''):''}
    <div class="row" style="margin-top:8px;gap:6px"><button class="btn sm" type="button" onclick="GX.fImp()">+ Nueva importación (embarque)</button>${q?`<button class="btn sm" type="button" data-go="track">Ir a Seguimiento${et?' · '+E(et):''}</button>`:''}</div>
@@ -33346,7 +33401,7 @@ function fPagoPlan(pid){
    v=>{if(!v.fecha){toastX('Falta la fecha');return false}p.pagada=true;p.fechaPago=v.fecha;p.cuentaId=v.cuentaId||'';ctSyncPlanilla(p);save();renderConta();toastX('Pago registrado')})}
 function planDesPagar(pid){const p=byId(DB.planillas,pid);if(!p)return;gxPin('Para deshacer el pago de la planilla ingrese la clave.').then(ok=>{if(ok){p.pagada=false;p.fechaPago='';p.cuentaId='';ctSyncPlanilla(p);save();renderConta()}})}
 function planEliminar(pid){const p=byId(DB.planillas,pid);if(!p)return;if(!confirm('¿Eliminar la planilla '+p.periodo+'?'))return;gxPin('Para eliminar la planilla ingrese la clave.').then(ok=>{if(ok){p.pagada=false;ctSyncPlanilla(p);del('planillas',pid);save();CT.plan='';renderConta()}})}
-window.GX={terNuevoPed,terVincPed,terCalc,terDocBlob,fTer,terCargar,terEnlace,fTerLinea,fTerMov,fTerGasto,fTerPedido,terCerrar,terReabrir,terDoc,fCierre,fCierreFactura,ventaCerradaEntrega,ventaCerradaBlob,planillaEntrega,planillaBlob,logNueva,logDup,logOvrUnlock,logOvrLock,logOvrReset,logOpen,renderLog,logTab,logCli,logAdd,logDel,logGuardar,logCopiar,logPdf,logSeg,logLink,logEtapa,logPago,logQuitarPago,logCondEdit,logFactDesbloq,vsFactDesbloq,indFactDesbloq,resetDatos,ctSembrar,ctTesOpts,planOpts,ctCobroSave,ctCobroDel,ctCliCod,ctAcreedorOpts,indTab,indTg,indSaveProd,indCli,fCxpPagar,indCondEdit,actaAnular,embarques,render,go,fImp,fPed,fLin,fPag,fCotEnPed,quitarCot,syncOps,lockOp,setCol,save,fCierre,fProv,fLoc,migrarProv,renderInv,invGo,fJalar,fEntrada,fAjuste,fPegar,fProdInv,fSerie,fEntrega,ingresarBtn,recalcBtn,ingresarImp,recalcImp,invResumen,transito,renderPas,pasGo,indEtapa,indPdf,indLink,indDesbloq,indVolver,indRowReset,indTcPagos,ctSet,ctAbrirMayor,fAsiento,fPlanCta,ctExcelInf,planAbrir,fEmp,fPlanilla,fLineaPlan,fPagoPlan,planDesPagar,planEliminar,fPrepago,contaTab,ctAbrir,ctFiltro,ctExcel,fCuenta,fMov,fTransf,pasStatsList:()=>pasStats().prox,fPas,fCuota,pasCard,renderConta,contaYear,contaExcel,contaCard,actaCompartir,actaDescargar,limpiarActas,vsFacturar,vsCorregir,vsActa,vsActaDl,renderInd,indNueva,indOpen,indGuardar,indCopiar,indPago,indQuitarPago,indSeg,indAdd,indDel,renderVs,vsGo,vsNueva,vsQuitar,vsAgregar,vsCancelar,vsGuardar,vsEditar,vsConfirmar,vsCaida,vsReabrir,vsEliminar,vsEntregar,vsAnular,vsCobro,vsQuitarCobro,vsFiltro,vsResumenAnio,vsTot,vsCob,saldoPedido,totalPedido,ESTADOS_PED,ESTADOS_IMP,
+window.GX={plazosImp,terAcciones,fTerEmb,seguroLimite,terNuevoPed,terVincPed,terCalc,terDocBlob,fTer,terCargar,terEnlace,fTerLinea,fTerMov,fTerGasto,fTerPedido,terCerrar,terReabrir,terDoc,fCierreVenta,fCierreFactura,ventaCerradaEntrega,ventaCerradaBlob,planillaEntrega,planillaBlob,logNueva,logDup,logOvrUnlock,logOvrLock,logOvrReset,logOpen,renderLog,logTab,logCli,logAdd,logDel,logGuardar,logCopiar,logPdf,logSeg,logLink,logEtapa,logPago,logQuitarPago,logCondEdit,logFactDesbloq,vsFactDesbloq,indFactDesbloq,resetDatos,ctSembrar,ctTesOpts,planOpts,ctCobroSave,ctCobroDel,ctCliCod,ctAcreedorOpts,indTab,indTg,indSaveProd,indCli,fCxpPagar,indCondEdit,actaAnular,embarques,render,go,fImp,fPed,fLin,fPag,fCotEnPed,quitarCot,syncOps,lockOp,setCol,save,fCierre,fProv,fLoc,migrarProv,renderInv,invGo,fJalar,fEntrada,fAjuste,fPegar,fProdInv,fSerie,fEntrega,ingresarBtn,recalcBtn,ingresarImp,recalcImp,invResumen,transito,renderPas,pasGo,indEtapa,indPdf,indLink,indDesbloq,indVolver,indRowReset,indTcPagos,ctSet,ctAbrirMayor,fAsiento,fPlanCta,ctExcelInf,planAbrir,fEmp,fPlanilla,fLineaPlan,fPagoPlan,planDesPagar,planEliminar,fPrepago,contaTab,ctAbrir,ctFiltro,ctExcel,fCuenta,fMov,fTransf,pasStatsList:()=>pasStats().prox,fPas,fCuota,pasCard,renderConta,contaYear,contaExcel,contaCard,actaCompartir,actaDescargar,limpiarActas,vsFacturar,vsCorregir,vsActa,vsActaDl,renderInd,indNueva,indOpen,indGuardar,indCopiar,indPago,indQuitarPago,indSeg,indAdd,indDel,renderVs,vsGo,vsNueva,vsQuitar,vsAgregar,vsCancelar,vsGuardar,vsEditar,vsConfirmar,vsCaida,vsReabrir,vsEliminar,vsEntregar,vsAnular,vsCobro,vsQuitarCobro,vsFiltro,vsResumenAnio,vsTot,vsCob,saldoPedido,totalPedido,ESTADOS_PED,ESTADOS_IMP,
   get DB(){return DB},COLS:COLS_GX,KEYS};
 try{migrarProv();ctSembrar()}catch(e){console.error(e)}
 try{limpiarActas()}catch(e){console.error(e)}
@@ -33438,6 +33493,8 @@ function acciones(){
   const pend=D.purchases.map(p=>({p,s:GX.saldoPedido(p.id)})).filter(x=>x.s>0.5&&GX.totalPedido(x.p.id)>0);
   if(pend.length){const tot=pend.reduce((s,x)=>s+x.s,0);
     L.push({c:'warn',t:'Pagos pendientes a proveedores: USD '+nf(tot,0),s:pend.length+' pedido(s) con saldo',go:'data-g2="gxgo" data-v="pag" data-id=""'})}
+  D.imports.filter(i=>i.estado!=='Cerrada').forEach(i=>GX.plazosImp(i).forEach(p=>L.push({c:p.n,t:p.t,s:'Importación '+i.numero,go:'data-g2="gxgo" data-v="impd" data-id="'+i.id+'"'})));
+  D.terceros.filter(t=>t.estado!=='cerrada'&&t.estadoImp!=='Cerrada').forEach(t=>GX.terAcciones(t,1).forEach(a=>L.push({c:a.n,t:a.t,s:'Terceros '+t.numero+' · '+(t.cliente||''),go:'data-g2="gxgo" data-v="terd" data-id="'+t.id+'"'})));
   /* alertas de seguimiento */
   const act=ops.filter(o=>!['entregada','cancelada'].includes(o.etapa));
   const na=act.reduce((s,o)=>s+opAlerts(o).length,0);
@@ -33475,6 +33532,10 @@ function renderDash(){
     <div class="hcnt" style="grid-template-columns:repeat(3,1fr);row-gap:12px">${ped.map(([e,n],i)=>tile(n,e,['c1','c2','c3','c2','c4'][i%5])).join('')}</div></div>
   <div class="hc"><div class="hrow"><h2>Importaciones</h2><button class="hlink" data-g2="gxgo" data-v="imp" type="button">Ver</button></div>
     <div class="hcnt" style="grid-template-columns:repeat(3,1fr);row-gap:12px">${imp.map(([e,n],i)=>tile(n,e,['c1','c2','c3','c4','c2','c1'][i%6])).join('')}</div></div>
+  ${(()=>{const T=D.terceros,cT=GX.ESTADOS_IMP.map(e=>[e,T.filter(t=>(t.estadoImp||'Programada')===e).length]),al=T.reduce((x,t)=>x+(t.estado!=='cerrada'&&t.estadoImp!=='Cerrada'?GX.terAcciones(t,1).length:0),0);
+    return `<div class="hc"><div class="hrow"><h2>Importaciones de terceros</h2><button class="hlink" data-g2="gxgo" data-v="ter" type="button">Ver</button></div>
+    <div class="hcnt" style="grid-template-columns:repeat(3,1fr);row-gap:12px">${cT.map(([e,n],i)=>tile(n,e,['c1','c2','c3','c4','c2','c1'][i%6])).join('')}</div>
+    <p class="hint" style="margin:10px 0 0">${D.terceros.length} operación(es) en total · ${al?'<b style="color:var(--warn)">'+al+' alerta(s)</b>':'sin alertas'}.</p></div>`})()}
   ${(()=>{const v=GX.vsResumenAnio(dashYear);return `<div class="hc"><div class="hrow"><h2>Venta de stock ${dashYear}</h2><button class="hlink" data-g2="vstock" type="button">Ver</button></div>
     <div class="hcnt">${tile(v.enviada,'Enviadas','c1')}${tile(v.confirmada,'Confirmadas','c2')}${tile(v.entregada,'Entregadas','c4')}${tile(v.caida,'Caídas','c3')}</div>
     ${v.n?`<p class="hint" style="margin:10px 0 0">Utilidad de lo entregado: Bs ${nf(v.util,0)}.</p>`:''}</div>`})()}
@@ -33588,7 +33649,7 @@ setEtapa=async function(e){
     (OP.actas=OP.actas||[]).push(r.acta);
     _se(e);if(r.detalle){OP.hist[OP.hist.length-1].nota=r.detalle;opCommit()}
     if(e==='entregada'&&!OP.planilla){OP.planilla={numero:window.nextPlanillaNum(),fecha:hoy};opCommit();toast('Planilla de cobranza '+OP.planilla.numero+' emitida')}
-    if(e==='entregada'&&!OP.cierre){const ok=await GX.fCierre(OP);if(ok){opCommit();renderOp()}}return}
+    if(e==='entregada'&&!OP.cierre){const ok=await GX.fCierreVenta(OP);if(ok){opCommit();renderOp()}}return}
   if(e==='cancelada'){
     const r=await askForm({title:'Cotización caída o perdida',msg:'¿Por qué se perdió?',fields:[{k:'motivo',l:'Motivo',t:'select',o:['Precio','Competencia','Sin respuesta','Otro']},{k:'nota',l:'Comentario (opcional)'}]});
     if(!r)return;OP.motivo=r.motivo;OP.motivoNota=r.nota||''}
@@ -33644,7 +33705,7 @@ document.addEventListener('click',async e=>{
   else if(a==='actapdf'){const x=(OP.actas||[])[+b.dataset.i];if(x)GX.actaCompartir(x)}
   else if(a==='regdoc'){const r=await askForm({title:'Registrar factura o recibo',msg:'Número del comprobante emitido por esta entrega.',fields:[{k:'tipo',l:'Comprobante',t:'select',o:['Factura','Recibo'],v:(OP.docVenta&&OP.docVenta.tipo)||'Factura'},{k:'numero',l:'N.º de factura o recibo',req:1}]});
     if(r&&window.compOk(OP,r.tipo)){OP.docVenta={tipo:r.tipo,numero:r.numero.trim(),fecha:today()};(OP.entregas||[]).forEach(x=>{if(!x.numero){x.numero=r.numero.trim();x.tipo=r.tipo}});opCommit();actasBox();toast('Comprobante registrado')}}
-  else if(a==='cznew'||a==='czedit'){const ok=await GX.fCierre(OP);if(ok){opCommit();renderOp();toast('Cierre guardado')}}
+  else if(a==='cznew'||a==='czedit'){const ok=await GX.fCierreVenta(OP);if(ok){opCommit();renderOp();toast('Cierre guardado')}}
   else if(a==='czdl'||a==='czpdf'){await GX.ventaCerradaEntrega(OP,a==='czpdf')}
   else if(a==='czfac'){window.__czRefresh=()=>{opCommit();renderOp()};GX.fCierreFactura(OP)}
   else if(a==='indnew'){GX.indNueva(b.dataset.t)}
