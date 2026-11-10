@@ -31940,6 +31940,7 @@ function renderInd(){
    <h4 class="sec">Otros gastos (Bs)</h4>${f('transpLocal','Transporte de entrega a domicilio (Bs)',{full:1})}${sk('transpFac','Transporte de entrega: ¿con factura?',[['no','Sin factura (con retención 16%)'],['nr','Sin factura y sin retención'],['si','Con factura (crédito fiscal 13%)']],{full:1})}${lock('almacen','Almacenaje (0,67% del CIF)')}${f('otros','Otros gastos (Bs)',{full:1})}
    <h4 class="sec">Comisión de Novatrade</h4>${sk('comModo','Se calcula como',[['pct','Porcentaje del valor FOB'],['usd','Monto fijo en USD']],{full:1})}${f('comVal',d.comModo==='usd'?'Comisión Novatrade (USD)':'Comisión Novatrade (% del FOB)',{full:1})}</div></div>
   </div><div class="${T_('res')}"><div class="card"><h2>Condiciones que salen en el PDF</h2><textarea class="ta" id="indCond" data-ind="cond" ${d.condAuto===false?'':'readonly'} style="min-height:260px">${E(d.condAuto===false?d.cond:indCondTxt(d))}</textarea><div class="row" style="margin-top:8px"><button class="btn sm" type="button" onclick="GX.indCondEdit()">${d.condAuto===false?'Volver al texto automático':'Editar texto (clave)'}</button></div><p class="hint" style="margin:6px 0 0">El texto se genera solo (incluye el descuento si lo activas). Para cambiarlo hace falta la clave.</p></div>
+  <div class="card"><h2>Fechas límite de pago (opcional)</h2><p class="hint" style="margin:0 0 4px">Salen en el PDF para que el cliente prepare sus fondos. Si las dejas vacías, el PDF dice cuándo corresponde cada pago.</p><div class="grid">${[1,2,3].map(k=>`<label class="f full"><span>${LOG_SEGT[k]}</span><input class="plain" type="date" data-ind="fPag${k}" value="${E(d['fPag'+k]||'')}"></label>`).join('')}</div></div>
   <div class="card"><h2>Descuento por pago anticipado</h2><div class="grid">${sk('descModo','Descuento por pago 100% anticipado',[['no','No aplicar'],['pct','Porcentaje del total'],['usd','Monto fijo (USD)']],{full:1})}${d.descModo&&d.descModo!=='no'?f('descVal',d.descModo==='usd'?'Descuento (USD)':'Descuento (% del total)',{full:1}):''}</div><p class="hint" style="margin:8px 0 0">Si lo activas, el PDF muestra el precio total y el precio pagando el 100% por anticipado. Revisa abajo en «Rentabilidad interna» cuánto ganas con el descuento.</p></div>
   <div class="card"><div class="row sp"><h2 style="margin:0">Resumen para el cliente</h2><select class="plain" data-ind="vista" style="width:auto;padding:4px 8px"><option value="ambas" ${d.vista==='ambas'||!d.vista?'selected':''}>USD y Bs</option><option value="USD" ${d.vista==='USD'?'selected':''}>Solo USD</option><option value="Bs" ${d.vista==='Bs'?'selected':''}>Solo Bs</option></select></div>
    <p class="hint" style="margin:6px 0 8px">Cada línea usa el T/C de la cotización. Puede poner otro T/C en una línea (por ejemplo el del pago al proveedor o del flete) o escribir directamente el monto en Bs si agrupa varios T/C. Con ↺ vuelve al cálculo.</p><div id="indRes"></div></div>
@@ -32038,27 +32039,28 @@ async function indPdfBlob(){
       y1+=h;doc.setDrawColor(222,229,237);doc.setLineWidth(.2);doc.line(M,y1,W-M,y1)});
     return y1};
   let fy=y-2;
-
   const GR=[],GK=['ga','ice','iva','sistAd','agencia','carpeta','despacho','otrosAg','transp','almac','otros','com'];
   c.rows.forEach(r=>{if(!GK.includes(r.k))GR.push({l:r.l,ks:[r.k],usd:r.usd})});
   const grp=(l,ks)=>{const rs=c.rows.filter(r=>ks.includes(r.k));if(rs.length)GR.push({l,ks,usd:rs.reduce((t,r)=>t+r.usd,0)})};
   grp('Impuestos de aduana',['ga','ice','iva','sistAd']);
   grp(c.rows.some(r=>r.k==='transp')?'Gastos de nacionalización y entrega a domicilio':'Gastos de nacionalización',['agencia','carpeta','despacho','otrosAg','transp','otros']);
   grp('Almacenaje de aduana',['almac']);grp('Comisión Novatrade',['com']);
-  const body=[],pagUsd=k=>cb.filter(x=>x.concepto===k&&x.moneda==='USD').reduce((t,x)=>t+num(x.monto),0);let totPagUsd=0,totPagBs=0;
-  GR.forEach(r=>{const ps=cb.filter(x=>r.ks.includes(x.concepto)&&x.moneda==='USD');
-    body.push({cells:[r.l,N(r.usd),'','',''],main:1});
-    ps.forEach(x=>{const bsx=num(x.monto)*num(x.tc);totPagUsd+=num(x.monto);totPagBs+=bsx;body.push({cells:['    Pago recibido','USD '+N(num(x.monto)),FD(x.fecha),N(num(x.tc),2),N(bsx)],main:0})})});
-  const gen=cb.filter(x=>!x.concepto).reduce((t,x)=>t+(x.moneda==='USD'?num(x.monto)*num(x.tc):num(x.monto)),0);
-  fy=tbl(fy+8,['Concepto','Valor (USD)','Fecha de pago','T/C del pago','Pagado en Bs'],body.map(b=>b.cells),[W-2*M-110,28,28,24,30],['l','r','c','r','r'],i=>body[i].main?{b:1}:{i:1,c:[43,127,196]});
-  y=fy+7;const need=h=>{if(y+h>272){doc.addPage();y=20}};need(34);
-  doc.setFont('helvetica','bold');doc.setFontSize(12);doc.setTextColor(...NAVY);doc.text('TOTAL',W-M-70,y);doc.text('USD '+N(c.total),W-M,y,{align:'right'});y+=6;
-  doc.setFont('helvetica','normal');doc.setFontSize(9.5);doc.setTextColor(50,62,78);
-  if(totPagUsd>0){doc.text('Pagado a la fecha',W-M-70,y);doc.text('USD '+N(totPagUsd)+'  =  Bs '+N(totPagBs),W-M,y,{align:'right'});y+=5.5;
-    doc.text('Saldo pendiente',W-M-70,y);doc.text('USD '+N(Math.max(0,c.total-totPagUsd)),W-M,y,{align:'right'});y+=5.5}
-  if(gen>0){doc.text('Otros pagos recibidos sin concepto: Bs '+N(gen),M,y);y+=5.5}
+  const need=h=>{if(y+h>272){doc.addPage();y=20}};
+  const ttl=(t,sub)=>{doc.setFont('helvetica','bold');doc.setFontSize(10.5);doc.setTextColor(...NAVY);doc.text(t,M,y);if(sub){doc.setFont('helvetica','normal');doc.setFontSize(9.2);doc.setTextColor(...BLUE);doc.text(sub,M,y+4.8)}};
+  /* mismo formato que la cotización de terceros: tres pagos, a quién se paga y fecha límite; los cobros salen en la planilla de cobranza aparte */
+  const segOf=k=>({merc:1,origen:1,giro:2,flete:2,tint:2,tnac:2,manejo:2,recojo:2,seguro:2})[k]||3,SG={1:[],2:[],3:[]};
+  GR.forEach(r=>SG[segOf(r.ks[0])].push(r));
+  const segs=[1,2,3].filter(k=>SG[k].length).map(k=>({s:k,items:SG[k],sub:SG[k].reduce((t,r)=>t+r.usd,0)}));
+  y=fy;
+  segs.forEach(x=>{y+=8;need(24+x.items.length*9);const fe=logSegFecha(d,x.s);ttl(LOG_SEGT[x.s].toUpperCase(),fe?'Fecha límite de pago: '+fe:LOG_SEGD[x.s]);
+    y=tbl(y+8,['Concepto','Se paga a','USD'],x.items.map(r=>[r.l,r.ks[0]==='com'?'Novatrade (comisión)':'Novatrade',N(r.usd)]).concat([['Subtotal','',N(x.sub)]]),[W-2*M-82,54,28],['l','l','r'],i=>i===x.items.length?{b:1}:{})});
+  y+=8;need(46);ttl('TOTAL A PAGAR (USD)','');
+  y=tbl(y+3,['Descripción','Fecha límite de pago','USD'],segs.map(x=>[LOG_SEGT[x.s].replace(/^\d\. /,''),logSegFecha(d,x.s)||LOG_SEGD[x.s],N(x.sub)]).concat([['TOTAL','',N(c.total)]]),[W-2*M-82,54,28],['l','l','r'],i=>i===segs.length?{b:1}:{});
+  y+=6;need(14);doc.setFont('helvetica','normal');doc.setFontSize(9.2);doc.setTextColor(...GRAY);
+  {const dir=[d.fletePaga==='cliente'?'flete':'',d.seguroPaga==='cliente'?'seguro':'',d.logPaga==='cliente'?'manejo y logística':'',d.tIntPaga==='cliente'?'transporte internacional':'',d.tNacPaga==='cliente'?'transporte nacional':''].filter(Boolean);
+   if(dir.length){doc.text(doc.splitTextToSize('Lo siguiente lo paga usted directamente a terceros y no está incluido en este total: '+dir.join(', ')+'.',W-2*M),M,y);y+=9}}
   if(c.fac&&c.fac.dsc>0){need(8);doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(...BLUE);doc.text('Pagando el 100% por anticipado',W-M-100,y);doc.text('USD '+N(c.total-c.fac.dscU),W-M,y,{align:'right'});y+=7}
-  doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(...GRAY);const nt=doc.splitTextToSize('Los pagos se registran en Bs al tipo de cambio de la fecha en que se recibe cada pago, para que usted controle cuánto le cuesta su mercadería. Los conceptos sin pago muestran solo el valor en USD.',W-2*M);need(nt.length*4+6);doc.text(nt,M,y+2);y+=nt.length*4+8;
+  doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(...GRAY);const nt=doc.splitTextToSize('Los pagos en Bs se realizan al tipo de cambio del día de cada pago. Al cerrar la operación recibirá su planilla de cobranza con el detalle de lo pagado.',W-2*M);need(nt.length*4+6);doc.text(nt,M,y+2);y+=nt.length*4+8;
   if(pr.length){need(30);doc.setFont('helvetica','bold');doc.setFontSize(10.5);doc.setTextColor(...NAVY);doc.text('DETALLE DE PRODUCTOS',M,y+2);
     y=tbl(y+5,['Ítem','Descripción','Cant.'],pr.map((p,i)=>[i+1,p.desc,N(num(p.qty),num(p.qty)%1?2:0)]),[12,W-2*M-36,24],['c','l','r'])+6}
   y=pdfCond(doc,d.condAuto===false?d.cond:indCondTxt(d),M,W,y);
