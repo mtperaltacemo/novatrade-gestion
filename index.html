@@ -30530,6 +30530,7 @@ function pubPush(){
   if(ch)lsSet('nt_pub',pub)
 }
 const opByQuote=qid=>ops.find(o=>o.quoteId===qid);
+window.nextPlanillaNum=()=>{const y=new Date().getFullYear(),pre='PC-'+y+'-';let n=0;ops.forEach(o=>{const m=o.planilla&&String(o.planilla.numero).startsWith(pre)?(+String(o.planilla.numero).slice(pre.length)||0):0;if(m>n)n=m});return pre+String(n+1).padStart(3,'0')};
 /* el comprobante (factura/recibo) de la cotización y el que se registra después no deben contradecirse sin avisar */
 const compCot=q=>q?((q.ind&&q.ind.comprobante)||(q.log&&q.log.comprobante)||''):'';
 window.compOk=function(op,tipo){const c=compCot(quoteOf(op.quoteId));if(!tipo||!c||c===tipo)return true;
@@ -32094,7 +32095,7 @@ function indCobros(){
    ${cb.filter(x=>x.concepto).length?`<table style="margin-top:10px"><tr><th>Fecha</th><th>Concepto</th><th class="n">Bs</th><th></th></tr>${cb.map((x,k)=>x.concepto?`<tr><td>${FD(x.fecha)}</td><td>${E(IND_L[x.concepto]||x.concepto)}<br><small style="color:var(--muted)">USD ${N(num(x.monto))} × ${N(num(x.tc))}</small></td><td class="n">${N(num(x.monto)*num(x.tc))}</td><td><button class="btn sm bad" type="button" onclick="GX.indQuitarPago(${k})">Quitar</button></td></tr>`:'').join('')}</table>`:''}`}
 function indPago(){
   const q=lsGet('nt_quotes',[]).find(x=>x.id===IND.id);if(!q)return;const c=indCalc(IND);
-  const b=sheet('Pago del cliente por concepto',sel('concepto','Concepto',c.rows.filter(x=>x.usd>0.004).map(x=>[x.k,x.l]),'',{full:1})+sel('cuentaId','Cuenta donde ingresa el dinero',ctTesOpts(),'',{full:1})+sel('ctaContra','Contracuenta',[['','Por cobrar del cliente (automática)'],...planOpts().filter(([c])=>/^[124]/.test(c))],'',{full:1})+inp('fecha','Fecha del pago',TODAY(),{t:'date'})+inp('monto','Monto (USD)','',{mode:'decimal'})+inp('tc','T/C de la fecha del pago','',{mode:'decimal',full:1,ph:'12,08'})+hintDiv('indPgH',''),
+  const b=sheet('Pago del cliente por concepto',sel('concepto','Concepto',c.rows.filter(x=>x.usd>0.004).map(x=>[x.k,x.l]),'',{full:1})+sel('cuentaId','Cuenta donde ingresa el dinero',ctTesOpts(),'',{full:1})+(()=>{const cc=ctCliCod(q.cliente||'');return sel('ctaContra','Contracuenta (cliente que paga)',[[cc,cc+' · Por cobrar: '+q.cliente+' (cuenta del cliente)'],...planOpts().filter(([c])=>/^[124]/.test(c)&&c!==cc)],cc,{full:1})})()+inp('fecha','Fecha del pago',TODAY(),{t:'date'})+inp('monto','Monto (USD)','',{mode:'decimal'})+inp('tc','T/C de la fecha del pago','',{mode:'decimal',full:1,ph:'12,08'})+hintDiv('indPgH',''),
    v=>{if(num(v.monto)<=0||num(v.tc)<=0){toastX('Falta el monto o el T/C');return false}
      const o=ensureOp(q.id);if(!o)return false;o.cobros=o.cobros||[];const rc={id:'c'+Date.now().toString(36),fecha:v.fecha,moneda:'USD',monto:num(v.monto),tc:num(v.tc),nota:'',concepto:v.concepto,cuentaId:v.cuentaId||'',ctaContra:v.ctaContra||''};o.cobros.push(rc);ctCobroSave(o,rc);o.upd=Date.now();saveOps();cloudPushSoon();renderInd();toastX('Pago registrado')});
   const h=()=>{const v=vals(b);b.querySelector('#indPgH').textContent='Equivale a Bs '+N(num(v.monto)*num(v.tc))};b.addEventListener('input',h);h()}
@@ -32398,7 +32399,7 @@ function logCobros(){
    <div class="row" style="margin-top:10px"><button class="btn sm" type="button" onclick="GX.logPago()">+ Registrar cobro</button></div>`}
 function logPago(){
   const q=lsGet('nt_quotes',[]).find(x=>x.id===LOG.id);if(!q)return;const c=logCalc(LOG);
-  const b=sheet('Cobro del cliente',sel('concepto','Concepto que paga',[['hon','Honorarios de Novatrade'],...c.refN.map(r=>[r.id,'Fondos: '+r.l])],'hon',{full:1})+sel('cuentaId','Cuenta de Novatrade donde ingresa el dinero',ctTesOpts(),'',{full:1})+sel('ctaContra','Contracuenta',[['','Automática (por cobrar del cliente; fondos → anticipos de clientes)'],...planOpts().filter(([c])=>/^[124]/.test(c))],'',{full:1})+inp('fecha','Fecha del cobro',TODAY(),{t:'date'})+inp('monto','Monto (USD)','',{mode:'decimal'})+inp('tc','T/C aplicado en la fecha del cobro',LOG.tc||'',{mode:'decimal',full:1,ph:'12,08'})+hintDiv('logPgH',''),
+  const b=sheet('Cobro del cliente',sel('concepto','Concepto que paga',[['hon','Honorarios de Novatrade'],...c.refN.map(r=>[r.id,'Fondos: '+r.l])],'hon',{full:1})+sel('cuentaId','Cuenta de Novatrade donde ingresa el dinero',ctTesOpts(),'',{full:1})+(()=>{const cc=ctCliCod(LOG.cliente||'');return sel('ctaContra','Contracuenta (cliente que paga)',[[cc,cc+' · Por cobrar: '+LOG.cliente+' (cuenta del cliente)'],['','Automática (fondos → anticipos de clientes)'],...planOpts().filter(([c])=>/^[124]/.test(c)&&c!==cc)],cc,{full:1})})()+inp('fecha','Fecha del cobro',TODAY(),{t:'date'})+inp('monto','Monto (USD)','',{mode:'decimal'})+inp('tc','T/C aplicado en la fecha del cobro',LOG.tc||'',{mode:'decimal',full:1,ph:'12,08'})+hintDiv('logPgH',''),
    v=>{if(num(v.monto)<=0||num(v.tc)<=0){toastX('Falta el monto o el T/C');return false}
      const o=ensureOp(q.id);if(!o)return false;o.cobros=o.cobros||[];const fon=v.concepto!=='hon';
      const rc={id:'c'+Date.now().toString(36),fecha:v.fecha,moneda:'USD',monto:num(v.monto),tc:num(v.tc),nota:'',concepto:fon?v.concepto:'hon',fondos:fon,cuentaId:v.cuentaId||'',ctaContra:v.ctaContra||(fon?'2.1.08':'')};
@@ -32445,14 +32446,14 @@ async function logGuardar(){
   const o=opByQuote(id);if(o){o.numero=numero;o.total=q.total;o.clienteNombre=q.cliente;o.cot=indRes;o.upd=Date.now();saveOps()}
   try{const old=S;S={...old,meta:{...newMeta(),cliente:q.cliente,clienteId:d.clienteId||''}};try{syncClientFromQuote()}finally{S=old}}catch(_){}
   LOG.id=id;LOG.numero=numero;ctGastoSync(id,d,numero,q.cliente);loadList();renderHome();syncSoon();cloudPushSoon();renderLog();toastX('Cotización '+numero+' guardada')}
-async function logPdfBlob(){
+async function logPdfBlob(PL){
   if(!(await ensureJsPdf()))throw new Error('no se cargó la librería de PDF');
-  const d=LOG,c=logCalc(d),{jsPDF}=window.jspdf,doc=new jsPDF({unit:'mm',format:'a4'});
-  const W=210,M=16,NAVY=[28,53,86],BLUE=[43,127,196],GRAY=[95,108,124],o=d.id?opByQuote(d.id):null,cb=((o&&o.cobros)||[]);
+  const d=(PL&&PL.d)||LOG,c=logCalc(d),{jsPDF}=window.jspdf,doc=new jsPDF({unit:'mm',format:'a4'});
+  const W=210,M=16,NAVY=[28,53,86],BLUE=[43,127,196],GRAY=[95,108,124],o=PL?PL.op:(d.id?opByQuote(d.id):null),cb=((o&&o.cobros)||[]);
   const lh=24,lw=lh*LOGO_W/LOGO_H;doc.addImage(LOGO,'PNG',M,12,lw,lh);
-  doc.setFont('helvetica','bold');doc.setFontSize(16);doc.setTextColor(...NAVY);doc.text('COTIZACIÓN DE SERVICIOS LOGÍSTICOS',W-M,19,{align:'right'});
+  doc.setFont('helvetica','bold');doc.setFontSize(16);doc.setTextColor(...NAVY);doc.text(PL?'PLANILLA DE COBRANZA':'COTIZACIÓN DE SERVICIOS LOGÍSTICOS',W-M,19,{align:'right'});
   doc.setFontSize(10);doc.setFont('helvetica','normal');doc.setTextColor(...GRAY);
-  doc.text('Logística, aduana y asesoramiento · N° '+(d.numero||'—'),W-M,26,{align:'right'});doc.text('Fecha: '+FD(d.fecha),W-M,31,{align:'right'});{let vh='';try{const t=new Date(d.fecha+'T12:00:00');t.setDate(t.getDate()+7);vh=t.toISOString().slice(0,10)}catch(_){}if(vh)doc.text('Válida hasta: '+FD(vh),W-M,36,{align:'right'})}
+  doc.text(PL?'N° '+PL.numero+' · Cotización '+(d.numero||'—'):'Logística, aduana y asesoramiento · N° '+(d.numero||'—'),W-M,26,{align:'right'});doc.text('Fecha: '+FD(PL?PL.fecha:d.fecha),W-M,31,{align:'right'});{let vh='';try{const t=new Date(d.fecha+'T12:00:00');t.setDate(t.getDate()+7);vh=t.toISOString().slice(0,10)}catch(_){}if(vh&&!PL)doc.text('Válida hasta: '+FD(vh),W-M,36,{align:'right'})}
   doc.setDrawColor(...BLUE);doc.setLineWidth(.7);doc.line(M,41,W-M,41);
   let y=48;doc.setFontSize(10);
   const cli=(typeof clients!=='undefined'?clients:[]).find(x=>x.nombre===d.cliente);
@@ -32460,7 +32461,7 @@ async function logPdfBlob(){
   ln('Cliente',d.cliente||'—');ln('Dirección',cli&&cli.direccion);ln('Servicio',LOG_ROL[d.rol]||'');ln('Operación',d.descripcion);ln('Producto',d.items.filter(p=>String(p.desc).trim()).map(p=>(num(p.qty)>1?N(num(p.qty),0)+' × ':'')+p.desc).join('  ·  '));
   ln('Ruta',[d.origen?'Origen: '+d.origen:'',d.destino?'Destino: '+d.destino:''].filter(Boolean).join('   ·   ')+((d.origen||d.destino)?'   ·   '+d.transporte+'   ·   '+d.incoterm:''));
   const cg=logCargaTxt(d);
-  if(cg){y+=1;const tx=cg+(d.cargaNota?'  —  '+d.cargaNota:''),t=doc.splitTextToSize(tx,W-2*M-8),h=t.length*5+5;
+  if(cg&&!PL){y+=1;const tx=cg+(d.cargaNota?'  —  '+d.cargaNota:''),t=doc.splitTextToSize(tx,W-2*M-8),h=t.length*5+5;
     doc.setFillColor(255,243,205);doc.setDrawColor(230,160,0);doc.setLineWidth(.5);doc.roundedRect(M,y-4,W-2*M,h,2,2,'FD');
     doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(120,70,0);doc.text(t,M+4,y+1);y+=h}
   const tbl=(y0,head,rows,w,al,st)=>{
@@ -32478,6 +32479,7 @@ async function logPdfBlob(){
     return y1};
   const need=h=>{if(y+h>272){doc.addPage();y=20}};
   const ttl=(t,sub)=>{doc.setFont('helvetica','bold');doc.setFontSize(10.5);doc.setTextColor(...NAVY);doc.text(t,M,y);if(sub){doc.setFont('helvetica','normal');doc.setFontSize(9.2);doc.setTextColor(...BLUE);doc.text(sub,M,y+4.8)}};
+  if(!PL){
   if(!logHasEst(c)){y+=8;need(34);ttl('HONORARIOS POR SERVICIOS',logSegFecha(d,3)?'Fecha límite de pago: '+logSegFecha(d,3):'');
     y=tbl(y+(logSegFecha(d,3)?8:3),['Concepto','USD'],c.rows.map(r=>[r.l,N(r.usd)]),[W-2*M-34,34],['l','r']);
     y+=7;need(14);doc.setFont('helvetica','bold');doc.setFontSize(12);doc.setTextColor(...NAVY);doc.text('TOTAL HONORARIOS',W-M-90,y);doc.text('USD '+N(c.total),W-M,y,{align:'right'});y+=6}
@@ -32491,19 +32493,75 @@ async function logPdfBlob(){
     doc.text('De este total: USD '+N(c.aNov)+' se pagan a Novatrade'+(c.aDir>0.004?' y USD '+N(c.aDir)+' se pagan directamente a terceros.':'.'),M,y);y+=5;
     if(c.aPag>0.004){need(8);doc.text('Ya pagado directamente por el cliente (no pendiente): USD '+N(c.aPag)+'.',M,y);y+=5}
     if(d.refShow&&c.imp&&c.imp.hayRef){need(10);doc.text(doc.splitTextToSize('Valor referencial considerado para el cálculo de impuestos: '+c.imp.pr.filter(x=>x.dif).map(x=>(x.desc||'Producto')+' USD '+N(x.fob)).join('; ')+'.',W-2*M),M,y);y+=9}}
-  /* planilla de cobranza: lo pagado a cuentas de Novatrade, con USD y T/C del día de cada pago */
-  if(cb.length){y+=4;need(30);doc.setFont('helvetica','bold');doc.setFontSize(10.5);doc.setTextColor(...NAVY);doc.text('PLANILLA DE COBRANZA',M,y);
+  }
+  /* planilla de cobranza: documento aparte, se emite al cerrar la entrega */
+  if(PL){y+=4;need(30);doc.setFont('helvetica','bold');doc.setFontSize(10.5);doc.setTextColor(...NAVY);doc.text('PLANILLA DE COBRANZA',M,y);
     const usdDe=x=>x.moneda==='USD'?num(x.monto):(c.tc>0?num(x.monto)/c.tc:0),bsDe=x=>x.moneda==='USD'?num(x.monto)*num(x.tc):num(x.monto),conc=x=>x.fondos?x.concepto:'hon';
     const lines=[{k:'hon',l:'Honorarios de Novatrade',usd:c.total},...c.refN.map(r=>({k:r.id,l:'Fondos: '+r.l,usd:r.usd}))],body=[];let tU=0,tB=0;
     lines.forEach(l=>{body.push({cells:[l.l,N(l.usd),'','',''],main:1});cb.filter(x=>conc(x)===l.k).forEach(x=>{tU+=usdDe(x);tB+=bsDe(x);body.push({cells:['    Pago recibido','USD '+N(usdDe(x)),FD(x.fecha),x.moneda==='USD'?N(num(x.tc),2):'—',N(bsDe(x))],main:0})})});
     y=tbl(y+3,['Concepto','Valor (USD)','Fecha de pago','T/C del pago','Pagado en Bs'],body.map(b2=>b2.cells),[W-2*M-110,28,28,24,30],['l','r','c','r','r'],i=>body[i].main?{b:1}:{c:[43,127,196]});
     y+=6;need(18);doc.setFont('helvetica','normal');doc.setFontSize(9.5);doc.setTextColor(50,62,78);
     doc.text('Pagado a la fecha',W-M-90,y);doc.text('USD '+N(tU)+'  =  Bs '+N(tB),W-M,y,{align:'right'});y+=5.5;doc.text('Saldo pendiente',W-M-90,y);doc.text('USD '+N(Math.max(0,c.aCobrar-tU)),W-M,y,{align:'right'});y+=5.5}
-  y+=6;y=pdfCond(doc,d.condAuto===false?d.cond:logCondTxt(d,c),M,W,y);
+  if(!PL){y+=6;y=pdfCond(doc,d.condAuto===false?d.cond:logCondTxt(d,c),M,W,y)}
   const n=doc.getNumberOfPages(),contact=[cfg.tel,cfg.mail,cfg.dir].filter(Boolean).join('  ·  ');
   for(let i=1;i<=n;i++){doc.setPage(i);doc.setDrawColor(215,224,234);doc.setLineWidth(.3);doc.line(M,282,W-M,282);doc.setFontSize(8.5);doc.setTextColor(...GRAY);
     doc.text(doc.splitTextToSize('NOVATRADE Import & Export'+(contact?'  ·  '+contact:''),W-2*M-30).slice(0,2),M,286.5);doc.text(`Página ${i} de ${n}`,W-M,286.5,{align:'right'})}
   return doc.output('blob')}
+/* ---------- PLANILLA DE COBRANZA (documento aparte, con su número) ---------- */
+async function planillaGenBlob(PL){
+  if(!(await ensureJsPdf()))throw new Error('no se cargó la librería de PDF');
+  const q=PL.q,o=PL.op,{jsPDF}=window.jspdf,doc=new jsPDF({unit:'mm',format:'a4'}),W=210,M=16,NAVY=[28,53,86],BLUE=[43,127,196],GRAY=[95,108,124];
+  const cb=(o&&o.cobros)||[],d=q.ind||null,c=d?indCalc(d):null,tc=c?c.tc:0;
+  const lh=24,lw=lh*LOGO_W/LOGO_H;doc.addImage(LOGO,'PNG',M,12,lw,lh);
+  doc.setFont('helvetica','bold');doc.setFontSize(16);doc.setTextColor(...NAVY);doc.text('PLANILLA DE COBRANZA',W-M,19,{align:'right'});
+  doc.setFontSize(10);doc.setFont('helvetica','normal');doc.setTextColor(...GRAY);
+  doc.text('N° '+PL.numero+' · Cotización '+(q.numero||'—'),W-M,26,{align:'right'});doc.text('Fecha: '+FD(PL.fecha),W-M,31,{align:'right'});
+  doc.setDrawColor(...BLUE);doc.setLineWidth(.7);doc.line(M,37,W-M,37);
+  let y=44;doc.setFontSize(10);
+  const ln=(l,v)=>{if(!String(v||'').trim())return;doc.setTextColor(...NAVY);doc.setFont('helvetica','bold');doc.text(l,M,y);doc.setFont('helvetica','normal');doc.setTextColor(30,40,55);const t=doc.splitTextToSize(String(v),W-2*M-30);doc.text(t,M+30,y);y+=t.length*5+1.2};
+  ln('Cliente',q.cliente||'—');ln('Producto',(q.prods||[]).filter(p=>String(p.desc||'').trim()).map(p=>(num(p.qty)>1?N(num(p.qty),0)+' × ':'')+p.desc).join('  ·  '));
+  const usdDe=x=>x.moneda==='USD'?num(x.monto):(tc>0?num(x.monto)/tc:0),bsDe=x=>x.moneda==='USD'?num(x.monto)*num(x.tc):num(x.monto);
+  const lines=c?c.rows.filter(x=>x.usd>0.004).map(x=>({k:x.k,l:x.l,usd:x.usd})):[{k:'*',l:'Total de la cotización (Bs '+N(num(q.total))+')',usd:null}];
+  const body=[];let tU=0,tB=0;
+  const addP=x=>{tU+=usdDe(x);tB+=bsDe(x);body.push({cells:['    Pago recibido',x.moneda==='USD'?'USD '+N(num(x.monto)):'Bs '+N(num(x.monto)),FD(x.fecha),x.moneda==='USD'?N(num(x.tc),2):'—',N(bsDe(x))],main:0})};
+  lines.forEach(l=>{body.push({cells:[l.l,l.usd==null?'':N(l.usd),'','',''],main:1});(l.k==='*'?cb:cb.filter(x=>x.concepto===l.k)).forEach(addP)});
+  if(c){const gen=cb.filter(x=>!x.concepto);if(gen.length){body.push({cells:['Cobros generales (sin concepto)','','','',''],main:1});gen.forEach(addP)}}
+  const tbl=(y0,head,rows,w,al,st)=>{
+    const fs=9.2,lh2=4.6,pad=2.2;let y1=y0;
+    const hdr=()=>{doc.setFillColor(...NAVY);doc.rect(M,y1,W-2*M,7.5,'F');doc.setFont('helvetica','bold');doc.setFontSize(fs);doc.setTextColor(255,255,255);
+      let x=M;head.forEach((t,i)=>{const tx=al[i]==='r'?x+w[i]-pad:al[i]==='c'?x+w[i]/2:x+pad;doc.text(t,tx,y1+5,{align:al[i]==='r'?'right':al[i]==='c'?'center':'left'});x+=w[i]});y1+=7.5};
+    hdr();
+    rows.forEach((r,ri)=>{const sty=(st&&st(ri))||{};doc.setFont('helvetica',sty.b?'bold':'normal');doc.setFontSize(fs);
+      const wr=r.map((t,i)=>doc.splitTextToSize(String(t==null?'':t),w[i]-2*pad)),n=Math.max(...wr.map(x=>x.length),1),h=n*lh2+2*pad-1;
+      if(y1+h>272){doc.addPage();y1=18;hdr();doc.setFont('helvetica',sty.b?'bold':'normal');doc.setFontSize(fs)}
+      doc.setTextColor(30,40,55);let x=M;
+      wr.forEach((l2,i)=>{const tx=al[i]==='r'?x+w[i]-pad:al[i]==='c'?x+w[i]/2:x+pad;doc.text(l2,tx,y1+pad+3,{align:al[i]==='r'?'right':al[i]==='c'?'center':'left'});x+=w[i]});
+      y1+=h;doc.setDrawColor(222,229,237);doc.setLineWidth(.2);doc.line(M,y1,W-M,y1)});
+    return y1};
+  y+=6;doc.setFont('helvetica','bold');doc.setFontSize(10.5);doc.setTextColor(...NAVY);doc.text('DETALLE DE COBROS',M,y);
+  y=tbl(y+3,['Concepto','Valor','Fecha de pago','T/C del pago','Pagado en Bs'],body.map(b2=>b2.cells),[W-2*M-110,28,28,24,30],['l','r','c','r','r'],i=>body[i].main?{b:1}:{});
+  y+=7;if(y>262){doc.addPage();y=20}
+  doc.setFont('helvetica','normal');doc.setFontSize(9.5);doc.setTextColor(50,62,78);
+  doc.text('Cobrado a la fecha',W-M-90,y);doc.text((c?'USD '+N(tU)+'  =  ':'')+'Bs '+N(tB),W-M,y,{align:'right'});y+=5.5;
+  doc.text('Saldo pendiente',W-M-90,y);doc.text(c?'USD '+N(Math.max(0,c.total-tU)):'Bs '+N(Math.max(0,num(q.total)-tB)),W-M,y,{align:'right'});y+=8;
+  doc.setFontSize(8.8);doc.setTextColor(...GRAY);doc.text(doc.splitTextToSize('Documento emitido al cerrar la operación. Los valores en dólares se convierten al tipo de cambio de la fecha de cada pago.',W-2*M),M,y);
+  const n=doc.getNumberOfPages(),contact=[cfg.tel,cfg.mail,cfg.dir].filter(Boolean).join('  ·  ');
+  for(let i=1;i<=n;i++){doc.setPage(i);doc.setDrawColor(215,224,234);doc.setLineWidth(.3);doc.line(M,282,W-M,282);doc.setFontSize(8.5);doc.setTextColor(...GRAY);
+    doc.text(doc.splitTextToSize('NOVATRADE Import & Export'+(contact?'  ·  '+contact:''),W-2*M-30).slice(0,2),M,286.5);doc.text(`Página ${i} de ${n}`,W-M,286.5,{align:'right'})}
+  return doc.output('blob')}
+async function planillaBlob(op){
+  const q=lsGet('nt_quotes',[]).find(x=>x.id===op.quoteId);if(!q)throw new Error('No se encontró la cotización');
+  const PL={numero:op.planilla.numero,fecha:op.planilla.fecha,op,q};
+  if(q.tipoCot==='logistica'&&q.log){const d={...logBlank(),...JSON.parse(JSON.stringify(q.log))};d.tipo='logistica';d.gastos=(d.gastos||[]).map(g=>({...logGasto(),...g,id:g.id||logId()}));d.items=(d.items||[]).map(p=>({...logItem(),...p}));d.ref=(d.ref||[]).map(r=>({id:logId(),pago:'cliente',seg:'3',...r}));
+    if(q.log.giroModo===undefined)d.giroModo='no';if(q.log.imPagoMar===undefined){const fp=q.log.imPagoFlete||'cliente';d.imPagoMar=d.imPagoTerr=d.imPagoSeg=fp}
+    d.id=q.id;d.numero=q.numero;d.cliente=q.cliente;PL.d=d;return logPdfBlob(PL)}
+  return planillaGenBlob(PL)}
+async function planillaEntrega(op,share){
+  if(!op||!op.planilla)return;
+  try{const blob=await planillaBlob(op),name='Planilla-de-cobranza-'+op.planilla.numero+'-'+String(op.clienteNombre||'').replace(/[^\w]+/g,'_').slice(0,30)+'.pdf',file=new File([blob],name,{type:'application/pdf'});
+    if(share&&navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:'Planilla de cobranza '+op.planilla.numero});return}catch(e){if(e&&e.name==='AbortError')return}}
+    saveBlob(blob,name);toastX(share?'Este equipo no puede compartir directo: el PDF se descargó':'Planilla lista: revise sus descargas')}
+  catch(e){console.error(e);toastX('No se pudo generar la planilla: '+(e&&e.message||e))}}
 async function logPdf(share){
   if(!LOG)return;if(!LOG.id){toastX('Guarde la cotización primero: así el PDF lleva su número');return}
   try{const blob=await logPdfBlob(),name='Cotizacion-'+(LOG.numero||'LG')+'-'+String(LOG.cliente||'').replace(/[^\w]+/g,'_').slice(0,30)+'.pdf',file=new File([blob],name,{type:'application/pdf'});
@@ -32763,6 +32821,7 @@ function ctNuevoCod(na){const pre=na.tipo==='Caja'?'1.1.01.':'1.1.02.';let n=0;D
 const ctSlug=t=>String(t).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
 function ctSembrar(){
   let ch=false;
+  try{(typeof ops!=='undefined'?ops:[]).forEach(o=>{if(o.clienteNombre&&!['enviada','cancelada'].includes(o.etapa)&&!ctCliFind(o.clienteNombre))ctCliCod(o.clienteNombre)})}catch(_){}
   [['Caja general Bs.','Caja','Bs'],['Caja general USD','Caja','USD'],['Caja chica','Caja','Bs'],['Banco BCP Novatrade','Banco','Bs'],['Banco Ganadero Novatrade','Banco','Bs'],['Banco Sol Novatrade','Banco','Bs'],['Banco Fie Novatrade','Banco','Bs'],['Banco Unión Novatrade','Banco','Bs']].forEach(([n,t,m])=>{
     if(DB.accounts.some(a=>nzs(a.nombre)===nzs(n)))return;
     const na={id:'seed-'+ctSlug(n),nombre:n,tipo:t,moneda:m,saldoInicial:'0',fechaInicial:TODAY(),tcInicial:'6.96',nota:'Cuenta predefinida'};na.cod=ctNuevoCod(na);DB.accounts.push(na);ch=true});
@@ -32996,7 +33055,7 @@ function fPagoPlan(pid){
    v=>{if(!v.fecha){toastX('Falta la fecha');return false}p.pagada=true;p.fechaPago=v.fecha;p.cuentaId=v.cuentaId||'';ctSyncPlanilla(p);save();renderConta();toastX('Pago registrado')})}
 function planDesPagar(pid){const p=byId(DB.planillas,pid);if(!p)return;gxPin('Para deshacer el pago de la planilla ingrese la clave.').then(ok=>{if(ok){p.pagada=false;p.fechaPago='';p.cuentaId='';ctSyncPlanilla(p);save();renderConta()}})}
 function planEliminar(pid){const p=byId(DB.planillas,pid);if(!p)return;if(!confirm('¿Eliminar la planilla '+p.periodo+'?'))return;gxPin('Para eliminar la planilla ingrese la clave.').then(ok=>{if(ok){p.pagada=false;ctSyncPlanilla(p);del('planillas',pid);save();CT.plan='';renderConta()}})}
-window.GX={logNueva,logDup,logOvrUnlock,logOvrLock,logOvrReset,logOpen,renderLog,logTab,logCli,logAdd,logDel,logGuardar,logCopiar,logPdf,logSeg,logLink,logEtapa,logPago,logQuitarPago,logCondEdit,logFactDesbloq,vsFactDesbloq,indFactDesbloq,resetDatos,ctSembrar,ctTesOpts,planOpts,ctCobroSave,ctCobroDel,ctCliCod,ctAcreedorOpts,indTab,indTg,indSaveProd,indCli,fCxpPagar,indCondEdit,actaAnular,embarques,render,go,fImp,fPed,fLin,fPag,fCotEnPed,quitarCot,syncOps,lockOp,setCol,save,fCierre,fProv,fLoc,migrarProv,renderInv,invGo,fJalar,fEntrada,fAjuste,fPegar,fProdInv,fSerie,fEntrega,ingresarBtn,recalcBtn,ingresarImp,recalcImp,invResumen,transito,renderPas,pasGo,indEtapa,indPdf,indLink,indDesbloq,indVolver,indRowReset,indTcPagos,ctSet,ctAbrirMayor,fAsiento,fPlanCta,ctExcelInf,planAbrir,fEmp,fPlanilla,fLineaPlan,fPagoPlan,planDesPagar,planEliminar,fPrepago,contaTab,ctAbrir,ctFiltro,ctExcel,fCuenta,fMov,fTransf,pasStatsList:()=>pasStats().prox,fPas,fCuota,pasCard,renderConta,contaYear,contaExcel,contaCard,actaCompartir,actaDescargar,limpiarActas,vsFacturar,vsCorregir,vsActa,vsActaDl,renderInd,indNueva,indOpen,indGuardar,indCopiar,indPago,indQuitarPago,indSeg,indAdd,indDel,renderVs,vsGo,vsNueva,vsQuitar,vsAgregar,vsCancelar,vsGuardar,vsEditar,vsConfirmar,vsCaida,vsReabrir,vsEliminar,vsEntregar,vsAnular,vsCobro,vsQuitarCobro,vsFiltro,vsResumenAnio,vsTot,vsCob,saldoPedido,totalPedido,ESTADOS_PED,ESTADOS_IMP,
+window.GX={planillaEntrega,planillaBlob,logNueva,logDup,logOvrUnlock,logOvrLock,logOvrReset,logOpen,renderLog,logTab,logCli,logAdd,logDel,logGuardar,logCopiar,logPdf,logSeg,logLink,logEtapa,logPago,logQuitarPago,logCondEdit,logFactDesbloq,vsFactDesbloq,indFactDesbloq,resetDatos,ctSembrar,ctTesOpts,planOpts,ctCobroSave,ctCobroDel,ctCliCod,ctAcreedorOpts,indTab,indTg,indSaveProd,indCli,fCxpPagar,indCondEdit,actaAnular,embarques,render,go,fImp,fPed,fLin,fPag,fCotEnPed,quitarCot,syncOps,lockOp,setCol,save,fCierre,fProv,fLoc,migrarProv,renderInv,invGo,fJalar,fEntrada,fAjuste,fPegar,fProdInv,fSerie,fEntrega,ingresarBtn,recalcBtn,ingresarImp,recalcImp,invResumen,transito,renderPas,pasGo,indEtapa,indPdf,indLink,indDesbloq,indVolver,indRowReset,indTcPagos,ctSet,ctAbrirMayor,fAsiento,fPlanCta,ctExcelInf,planAbrir,fEmp,fPlanilla,fLineaPlan,fPagoPlan,planDesPagar,planEliminar,fPrepago,contaTab,ctAbrir,ctFiltro,ctExcel,fCuenta,fMov,fTransf,pasStatsList:()=>pasStats().prox,fPas,fCuota,pasCard,renderConta,contaYear,contaExcel,contaCard,actaCompartir,actaDescargar,limpiarActas,vsFacturar,vsCorregir,vsActa,vsActaDl,renderInd,indNueva,indOpen,indGuardar,indCopiar,indPago,indQuitarPago,indSeg,indAdd,indDel,renderVs,vsGo,vsNueva,vsQuitar,vsAgregar,vsCancelar,vsGuardar,vsEditar,vsConfirmar,vsCaida,vsReabrir,vsEliminar,vsEntregar,vsAnular,vsCobro,vsQuitarCobro,vsFiltro,vsResumenAnio,vsTot,vsCob,saldoPedido,totalPedido,ESTADOS_PED,ESTADOS_IMP,
   get DB(){return DB},COLS:COLS_GX,KEYS};
 try{migrarProv();ctSembrar()}catch(e){console.error(e)}
 try{limpiarActas()}catch(e){console.error(e)}
@@ -33234,7 +33293,8 @@ setEtapa=async function(e){
     OP.docVenta=r.numero.trim()?{tipo:r.tipo,numero:r.numero.trim(),fecha:hoy}:(OP.docVenta&&OP.docVenta.numero?OP.docVenta:{tipo:r.tipo,numero:'',fecha:''});
     (OP.entregas=OP.entregas||[]).push({fecha:hoy,tipo:r.tipo,numero:r.numero.trim(),items:r.items,detalle:r.detalle,acta:r.acta.numero});
     (OP.actas=OP.actas||[]).push(r.acta);
-    _se(e);if(r.detalle){OP.hist[OP.hist.length-1].nota=r.detalle;opCommit()}return}
+    _se(e);if(r.detalle){OP.hist[OP.hist.length-1].nota=r.detalle;opCommit()}
+    if(e==='entregada'&&!OP.planilla){OP.planilla={numero:window.nextPlanillaNum(),fecha:hoy};opCommit();toast('Planilla de cobranza '+OP.planilla.numero+' emitida')}return}
   if(e==='cancelada'){
     const r=await askForm({title:'Cotización caída o perdida',msg:'¿Por qué se perdió?',fields:[{k:'motivo',l:'Motivo',t:'select',o:['Precio','Competencia','Sin respuesta','Otro']},{k:'nota',l:'Comentario (opcional)'}]});
     if(!r)return;OP.motivo=r.motivo;OP.motivoNota=r.nota||''}
@@ -33247,6 +33307,7 @@ function actasBox(){
   const A=OP.actas||[],AV=A.filter(x=>!x.anulada),ent=['entregada','entregap'].includes(OP.etapa),dv=OP.docVenta&&OP.docVenta.numero,pend=ent&&!dv;
   card.hidden=!(A.length||ent);
   box.innerHTML=(A.length?A.map((a,i)=>`<div class="gx2cobro"><div><b>${E(a.numero)}</b> · ${fd(a.fecha)}<small>${a.entregador?'Entregó: '+E(a.entregador)+' · ':''}Recibió: ${E(a.receptor)}${a.ci?' · C.I. '+E(a.ci):''} · ${a.anulada?'':(a.fotosRetiradas?'fotos retiradas (90 días)':(a.fotos||[]).length+' foto(s)')}</small>${a.anulada?`<small style="color:var(--bad);font-weight:700">ANULADA ${fd(a.fechaAnula)}: ${E(a.motivoAnula||'')}</small>`:''}</div><div class="row"><button class="btn sm" data-g2="actadl" data-i="${i}" type="button">Descargar</button>${a.anulada?'':`<button class="btn sm" data-g2="actapdf" data-i="${i}" type="button">Compartir</button><button class="btn sm ghost danger" data-g2="actadel" data-i="${i}" type="button">Anular</button>`}</div></div>`).join(''):'<p class="hint">Aún no hay actas de entrega.</p>')+(A.length?'<p class="hint" style="margin:8px 0 0">Comparte el acta al correo de la empresa: las fotos se borran del sistema a los 90 días y el acta queda sin fotos.</p>':'')+
+   (OP.planilla?`<div class="gx2cobro" style="margin-top:10px"><div><b>Planilla de cobranza ${E(OP.planilla.numero)}</b> · ${fd(OP.planilla.fecha)}<small>Documento aparte de la cotización, emitido al cerrar la entrega</small></div><div class="row"><button class="btn sm" data-g2="pldl" type="button">Descargar</button><button class="btn sm" data-g2="plpdf" type="button">Compartir</button></div></div>`:(OP.etapa==='entregada'?`<button class="btn sm" data-g2="plnew" type="button" style="margin-top:10px">Emitir planilla de cobranza</button>`:''))+
    (pend?`<p class="hint" style="margin:10px 0 6px"><span class="tag warn">Entregado, pendiente de facturar</span></p><button class="btn pri sm" data-g2="regdoc" type="button">Registrar factura o recibo</button>`:(dv?`<p class="hint" style="margin:10px 0 6px">${E(OP.docVenta.tipo)} N.º ${E(OP.docVenta.numero)}</p><button class="btn sm" data-g2="fixdoc" type="button">Corregir comprobante (clave)</button>`:''))}
 function embRO(){
   const box=q$('#opEmbRO');if(!box||!OP)return;
@@ -33274,6 +33335,8 @@ document.addEventListener('click',async e=>{
   else if(a==='fixdoc'){if(!(await pinOk('Para corregir un comprobante ya registrado ingrese la clave.')))return;
     const r=await askForm({title:'Corregir comprobante',msg:'Deje el número en blanco para quitarlo: la entrega vuelve a quedar pendiente de facturar.',fields:[{k:'tipo',l:'Comprobante',t:'select',o:['Factura','Recibo'],v:(OP.docVenta&&OP.docVenta.tipo)||'Factura'},{k:'numero',l:'N.º de factura o recibo',v:(OP.docVenta&&OP.docVenta.numero)||''}]});
     if(r&&(!r.numero.trim()||window.compOk(OP,r.tipo))){const n=r.numero.trim();OP.docVenta=n?{tipo:r.tipo,numero:n,fecha:(OP.docVenta&&OP.docVenta.fecha)||today()}:{tipo:'',numero:'',fecha:''};(OP.entregas||[]).forEach(x=>{x.numero=n;x.tipo=n?r.tipo:''});opCommit();actasBox();toast(n?'Comprobante corregido':'Comprobante quitado: pendiente de facturar')}}
+  else if(a==='pldl'||a==='plpdf'){await GX.planillaEntrega(OP,a==='plpdf')}
+  else if(a==='plnew'){if(!OP.planilla){OP.planilla={numero:window.nextPlanillaNum(),fecha:today()};opCommit();actasBox();toast('Planilla '+OP.planilla.numero+' emitida')}}
   else if(a==='actadl'){const x=(OP.actas||[])[+b.dataset.i];if(x)GX.actaDescargar(x)}
   else if(a==='actadel'){const x=(OP.actas||[])[+b.dataset.i];if(!x||x.anulada)return;
     if(!(await pinOk('Para anular el acta '+x.numero+' ingrese la clave. Lo entregado volverá al inventario.')))return;
