@@ -372,7 +372,7 @@ body.inhome{padding-block:0 calc(88px + env(safe-area-inset-bottom,0px))}
       <div class="card"><h2>Comisión bancaria</h2><div class="grid" id="g-bk"></div><p class="note" id="noteBanco" style="margin:12px 0 0"></p></div>
       <div class="card"><h2>Gastos en Bolivia y comisión</h2><div class="grid" id="g-bo"></div></div>
       <div class="card"><h2>Descuento por pago anticipado</h2><div class="grid" id="g-ds"></div><p class="note" id="noteDesc" style="margin:12px 0 0"></p></div>
-      <div class="card"><h2>Factor de facturación e IUE</h2><div class="grid" id="g-fac"></div><p class="note" style="margin:12px 0 0">Factor 0,84 = 3% de IT + 13% de débito fiscal. Se suma aparte el factor de provisión IUE (0,025): juntos equivalen a 0,815. Solo se modifican con la clave. Cada producto también puede tener su propio factor (con clave).</p></div>
+      <div class="card"><h2>Factor de facturación e IUE</h2><div class="grid" id="g-fac"></div><p class="note" style="margin:12px 0 0">Factor 0,84 = 3% de IT + 13% de débito fiscal. Se suma aparte el factor de provisión IUE (0,0267): juntos equivalen a 0,8133. Solo se modifican con la clave. Cada producto también puede tener su propio factor (con clave).</p></div>
       <div class="card"><details class="acc"><summary>Parámetros avanzados</summary><div><div class="grid" id="g-av"></div>
         <div class="row" style="margin-top:14px"><button class="btn sm" data-act="saveDefaults" type="button">Guardar estos valores como predeterminados</button></div></div></details></div>
     </section>
@@ -29551,7 +29551,7 @@ const LOGO='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAiwAAAHUCAYAAAAZXnMAAA
 const rd=(x,n=0)=>{const m=Math.pow(10,n),s=x<0?-1:1;return s*Math.round(Math.abs(x)*m+1e-9)/m};
 const DEF={tcReal:13,tcOficial:13.2,pesoBruto:0,gastosOrigen:0,fleteCBM:0,otrosTransp:0,pctFleteCIF:0.10,
   seguro:'NO',pctSeguro:0.01,pctSeguroCIF:0.10,bancoPct:0.04,bancoFijo:0,carpeta:0,despacho:0,transpLocal:0,comNov:0.06,
-  factorFact:0.84,provIue:0.025,seguroObl:0.02,almacenaje:0.0067,sistemaAduana:100,descFijo:0,descPct:0};
+  factorFact:0.84,provIue:0.0267,seguroObl:0.02,almacenaje:0.0067,sistemaAduana:100,descFijo:0,descPct:0};
 const ESCALA=[[3001,15000,0.0175],[15001,30000,0.015],[30001,50000,0.0125],[50001,100000,0.01],[100001,300000,0.005],[300001,1e12,0.004]];
 function calcular(p,items){
   const T=p.tcReal,TO=p.tcOficial;
@@ -29687,7 +29687,7 @@ function prodCard(p,i){
     ${fieldHTML(`f${i}-iva`,'% IVA importación','%',`data-i="${i}" data-f="iva" data-pct="1"`,showPct(p.iva))}
 
     <label class="f"><span>Factor de facturación</span><div class="inp"><input id="f${i}-ff" data-i="${i}" data-f="ff" ${GFI?'':'readonly'} inputmode="decimal" autocomplete="off" placeholder="${showNum(S.params.factorFact)}" value="${p.ff>0?esc(showNum(p.ff)):''}"><i>x</i></div></label>
-    <p class="hint full">Factor de facturación: déjelo vacío para usar el factor general (${showNum(S.params.factorFact)}). De lo que resta al factor, 3% es el IT y el saldo es el débito fiscal estimado. Para cambiarlo toque el campo (pide la clave). Aparte se suma la provisión IUE (Datos → Factor de facturación e IUE): con 0,84 y 0,025 el precio se calcula como con un factor de 0,815.</p>
+    <p class="hint full">Factor de facturación: déjelo vacío para usar el factor general (${showNum(S.params.factorFact)}). De lo que resta al factor, 3% es el IT y el saldo es el débito fiscal estimado. Para cambiarlo toque el campo (pide la clave). Aparte se suma la provisión IUE (Datos → Factor de facturación e IUE): con 0,84 y 0,0267 el precio se calcula como con un factor de 0,8133.</p>
     <p class="hint full" id="pinfo-${i}"></p>
    </div>
    <div class="row" style="margin-top:12px"><button class="btn sm" type="button" data-act="dupProd" data-i="${i}">Duplicar</button><button class="btn sm danger" type="button" data-act="delProd" data-i="${i}">Quitar</button></div></div></details>`
@@ -31201,7 +31201,7 @@ function rendimientoImp(i,cm){
     const all=DB.purchaseLines.filter(l=>l.quoteId===g.key).reduce((x,l)=>x+fobL(l),0),ratio=all>0?Math.min(g.fob/all,1):1;
     const tot=o?num(o.total):(q?num(q.total):0),cob=o?(o.cobros||[]).filter(y=>!y.fondos).reduce((x,y)=>x+(y.moneda==='USD'?num(y.monto)*num(y.tc):num(y.monto)),0):0;
     let F=null;try{if(q&&q.ind)F=indCalc(q.ind).fac}catch(_){}
-    const Zc=(o&&o.cierre&&window.cierreTot)?window.cierreTot(o.cierre):null,est=!F&&!Zc,deb=Zc?Zc.debBs*ratio:(F?F.deb*ratio:tot*ratio*0.13),it=Zc?Zc.itBs*ratio:(F?F.itx*ratio:tot*ratio*0.03),iue=Zc?Zc.iueBs*ratio:(F?F.iue*ratio:tot*ratio*0.025);
+    const Zc=(o&&o.cierre&&window.cierreTot)?window.cierreTot(o.cierre):null,est=!F&&!Zc,deb=Zc?Zc.debBs*ratio:(F?F.deb*ratio:tot*ratio*0.13),it=Zc?Zc.itBs*ratio:(F?F.itx*ratio:tot*ratio*0.03),iue=Zc?Zc.iueBs*ratio:(F?F.iue*ratio:tot*ratio*0.0267);
     rows.push({q,numero:q?q.numero:'(cotización borrada)',cliente:q?q.cliente:'',ratio,venta:(Zc?Zc.ingBs:tot)*ratio,cobrado:cob*ratio,costo:g.costo,deb,it,iue,est,impV:deb+it+iue,utilCot:F?F.util*ratio:null,recibo:!!(F&&!F.fac)})});
   const venta=rows.reduce((x,r)=>x+r.venta,0),costo=rows.reduce((x,r)=>x+r.costo,0),cobrado=rows.reduce((x,r)=>x+r.cobrado,0);
   const impV=rows.reduce((x,r)=>x+r.impV,0),deb=rows.reduce((x,r)=>x+r.deb,0),it=rows.reduce((x,r)=>x+r.it,0),iue=rows.reduce((x,r)=>x+r.iue,0);
@@ -31240,12 +31240,12 @@ function costosCard(i){
    <table><tr><th>Pedido</th><th class="n">%</th><th class="n">Merc.</th><th class="n">Logíst.</th><th class="n">Impu.</th><th class="n">Total</th></tr>${peds.map(p=>{const t=pedTot(p);return `<tr><td>${E(p.numero)}</td><td class="n">${N(rp.sh[p.id]*100,1)}</td><td class="n">${N(t.prov,0)}</td><td class="n">${N(t.logis,0)}</td><td class="n">${N(t.imp,0)}</td><td class="n">${N(t.tot,0)}</td></tr>`}).join('')}</table>`:''}
    <h4 class="sec">Rendimiento de la importación</h4>
    ${r.rows.length?`<table><tr><th>Cotización</th><th class="n">Venta</th><th class="n">Costo</th><th class="n">Utilidad</th></tr>${r.rows.map(x=>`<tr><td>${E(x.numero)}<br><small style="color:var(--muted)">${E(x.cliente||'')}${x.ratio<0.999?' · '+N(x.ratio*100,0)+'% de la cotización':''} · cobrado ${N(x.cobrado,0)}</small></td><td class="n">${N(x.venta,0)}</td><td class="n">${N(x.costo,0)}</td><td class="n">${N(x.venta-x.costo,0)}${x.impV>0?`<br><small style="color:var(--muted)">− IVA, IT e IUE ${N(x.impV,0)} = <b>${N(x.venta-x.costo-x.impV,0)}</b></small>`:''}${x.utilCot!=null?`<br><small style="color:var(--muted)">cotización: ${N(x.utilCot,0)}</small>`:''}</td></tr>`).join('')}
-    <tr><td><b>Total</b></td><td class="n"><b>${N(r.venta,0)}</b></td><td class="n"><b>${N(r.costo,0)}</b></td><td class="n"><b>${N(r.util,0)}</b></td></tr><tr><td>(−) IVA débito fiscal 13% de la venta ${r.hayEst?'<small>(estimado: se asume con factura)</small>':''}</td><td></td><td></td><td class="n">− ${N(r.deb,0)}</td></tr><tr><td>(−) IT 3% de la venta</td><td></td><td></td><td class="n">− ${N(r.it,0)}</td></tr><tr><td>(−) Provisión IUE 2,5% (no es ingreso)</td><td></td><td></td><td class="n">− ${N(r.iue,0)}</td></tr><tr><td><b>Utilidad después de impuestos</b></td><td></td><td></td><td class="n"><b>${N(r.utilNeta,0)}</b></td></tr></table>
+    <tr><td><b>Total</b></td><td class="n"><b>${N(r.venta,0)}</b></td><td class="n"><b>${N(r.costo,0)}</b></td><td class="n"><b>${N(r.util,0)}</b></td></tr><tr><td>(−) IVA débito fiscal 13% de la venta ${r.hayEst?'<small>(estimado: se asume con factura)</small>':''}</td><td></td><td></td><td class="n">− ${N(r.deb,0)}</td></tr><tr><td>(−) IT 3% de la venta</td><td></td><td></td><td class="n">− ${N(r.it,0)}</td></tr><tr><td>(−) Provisión IUE 2,67% (solo costeo, no es ingreso)</td><td></td><td></td><td class="n">− ${N(r.iue,0)}</td></tr><tr><td><b>Utilidad después de impuestos</b></td><td></td><td></td><td class="n"><b>${N(r.utilNeta,0)}</b></td></tr></table>
     <p class="hint" style="margin:6px 0 0">«Utilidad» = venta − costo real neto de crédito fiscal (mercadería + logística + impuestos netos). La utilidad después de impuestos resta además el débito fiscal, el IT y la provisión IUE de la venta. El crédito fiscal que sobra no es ganancia: se muestra aparte.</p>
     <h4 class="sec">Resumen tributario (guía)</h4>
     <table><tr><td>Crédito fiscal del DIM</td><td class="n">${N(r.credDim)}</td></tr><tr><td>Crédito fiscal de facturas (13%)</td><td class="n">${N(r.credPag)}</td></tr><tr><td><b>Crédito fiscal total</b></td><td class="n"><b>${N(r.cred)}</b></td></tr><tr><td>Débito fiscal de la venta (13%)</td><td class="n">${N(r.deb)}</td></tr>
     ${r.saldoCred>=0?`<tr><td><b>Crédito fiscal a favor (no es ganancia)</b></td><td class="n"><b>${N(r.saldoCred)}</b></td></tr>`:`<tr><td><b>IVA a pagar</b></td><td class="n"><b>${N(r.ivaPagar)}</b></td></tr>`}
-    <tr><td>IT 3% a pagar</td><td class="n">${N(r.it)}</td></tr><tr><td>Provisión IUE 2,5% (reserva, no es ingreso)</td><td class="n">${N(r.iue)}</td></tr></table>
+    <tr><td>IT 3% a pagar</td><td class="n">${N(r.it)}</td></tr><tr><td>Provisión IUE 2,67% (solo costeo)</td><td class="n">${N(r.iue)}</td></tr></table>
     ${r.hayRecibo?'<p class="hint" style="margin:6px 0 0"><span class="tag warn">Atención</span> Una de las cotizaciones está con <b>recibo</b>: no genera débito fiscal y el crédito del DIM no se compensa. Si vas a facturar, corrige el comprobante en la cotización.</p>':''}
     <div class="kv" style="margin-top:10px">${kv('Margen sobre la venta',N(r.margen,1)+' %')}${kv('Cobrado a la fecha (Bs)',N(r.cobrado,0))}</div>`:'<div class="empty">Ninguna línea de los pedidos viene de una cotización.</div>'}
    ${r.stock>0?`<p class="hint" style="margin:8px 0 0">Mercadería para stock propio (no entra en el rendimiento): costo Bs ${N(r.stock,0)}.</p>`:''}
@@ -31666,7 +31666,7 @@ function vsLista(){
      <small>${s.items.length} producto(s) · total Bs ${N(t.total)} · utilidad Bs ${N(t.util)} (${N(t.neto,1)} %)</small><small>${s.comprobante}${s.docNumero?' '+E(s.docNumero):(s.estado==='entregada'?' · pendiente de facturar':'')} · cobrado Bs ${N(cob)}${cob>=t.total-0.005&&t.total>0?' ✓':''}</small></button>`}).join(''):'<div class="card empty">No hay ventas en esta lista.</div>')}
 function vsNueva(d0){
   if(!DB.invProducts.some(x=>saldoProd(x.id).q>0)){toastX('No hay stock libre disponible para vender');return}
-  VSD=d0||{numero:nextNum('VS',DB.stockSales),fecha:TODAY(),cliente:'',items:[{pid:'',qty:'',modo:'pct',val:''}],comprobante:'Factura',itOff:false,provIue:'0.025'};
+  VSD=d0||{numero:nextNum('VS',DB.stockSales),fecha:TODAY(),cliente:'',items:[{pid:'',qty:'',modo:'pct',val:''}],comprobante:'Factura',itOff:false,provIue:'0.0267'};
   vsGo('new')}
 function vsEditor(){
   const d=VSD,ps=DB.invProducts.filter(x=>saldoProd(x.id).q>0||d.items.some(i=>i.pid===x.id)).sort((a,b)=>nzs(a.nombre).localeCompare(nzs(b.nombre)));
@@ -31676,7 +31676,7 @@ function vsEditor(){
    <label class="f full"><span>Cliente</span><input class="plain" data-vs="cliente" list="vsCl" value="${E(d.cliente)}" autocomplete="off"><datalist id="vsCl">${cl.map(x=>`<option value="${E(x)}">`).join('')}</datalist></label>
    <label class="f"><span>Fecha</span><input class="plain" type="date" data-vs="fecha" value="${E(d.fecha)}"></label>
    <label class="f"><span>Comprobante</span><select class="plain" data-vs="comprobante"><option ${d.comprobante==='Factura'?'selected':''}>Factura</option><option ${d.comprobante==='Recibo'?'selected':''}>Recibo</option></select></label>
-   ${d.comprobante==='Recibo'?`<label class="chk full"><input type="checkbox" data-vs="itOff" ${d.itOff?'checked':''}> Quitar el IT 3% (con recibo no se aplica IVA)</label>`:(d._fu?`<label class="f"><span>Provisión IUE (factor)</span><input class="plain" inputmode="decimal" data-vs="provIue" value="${E(d.provIue==null?'':d.provIue)}" placeholder="0,025" autocomplete="off"></label>`:`<label class="f"><span>Provisión IUE (factor)</span><input class="plain" readonly value="${E(String(d.provIue==null||d.provIue===''?'0':d.provIue).replace('.',','))}"></label><div class="full row"><button class="btn sm" type="button" onclick="GX.vsFactDesbloq()">Modificar (clave)</button></div>`)}</div></div>
+   ${d.comprobante==='Recibo'?`<label class="chk full"><input type="checkbox" data-vs="itOff" ${d.itOff?'checked':''}> Quitar el IT 3% (con recibo no se aplica IVA)</label>`:(d._fu?`<label class="f"><span>Provisión IUE (factor)</span><input class="plain" inputmode="decimal" data-vs="provIue" value="${E(d.provIue==null?'':d.provIue)}" placeholder="0,0267" autocomplete="off"></label>`:`<label class="f"><span>Provisión IUE (factor)</span><input class="plain" readonly value="${E(String(d.provIue==null||d.provIue===''?'0':d.provIue).replace('.',','))}"></label><div class="full row"><button class="btn sm" type="button" onclick="GX.vsFactDesbloq()">Modificar (clave)</button></div>`)}</div></div>
   ${d.items.map((it,k)=>`<div class="card"><div class="row sp"><b>Producto ${k+1}</b>${d.items.length>1?`<button class="btn sm bad" type="button" onclick="GX.vsQuitar(${k})">Quitar</button>`:''}</div><div class="grid" style="margin-top:8px">
     <label class="f full"><span>Producto del inventario</span><select class="plain" data-vi="${k}" data-f="pid"><option value="">Seleccionar…</option>${ps.map(x=>{const s0=saldoProd(x.id);return `<option value="${x.id}" ${x.id===it.pid?'selected':''}>${E(x.codigo||'')} · ${E(x.nombre)} · saldo ${N(s0.q,0)} · CPP Bs ${N(s0.cpp)}</option>`}).join('')}</select></label>
     <label class="f"><span>Cantidad</span><input class="plain" inputmode="decimal" data-vi="${k}" data-f="qty" value="${E(it.qty)}"></label>
@@ -31807,7 +31807,7 @@ document.addEventListener('change',e=>{const t=e.target;if(!VSD||!t.closest||!t.
 let IND=null;
 const IND_L={merc:'Mercadería',origen:'Gastos en origen hasta el FOB',giro:'Comisión por giro al exterior',flete:'Transporte marítimo',tint:'Transporte terrestre – tramo internacional',tnac:'Transporte terrestre – tramo nacional',manejo:'Gastos logísticos',recojo:'Recojo en origen (EXW)',seguro:'Seguro',ga:'Gravamen aduanero',ice:'ICE',iva:'IVA de importación',sistAd:'Uso sistema aduana',agencia:'Agencia despachante',carpeta:'Costo carpeta',despacho:'Gastos de despacho',otrosAg:'Otros gastos de agencia',transp:'Transporte local (entrega a domicilio)',almac:'Almacenaje',otros:'Otros gastos',com:'Comisión Novatrade'};
 const indProd=()=>({desc:'',qty:'',fob:'',partida:'',ga:'',iva:'14,94',ivaV:'13',fact:'',cbm:'',ice:false,iceModo:'pct',iceVal:''});
-function indBlank(t){return{factGen:'0.84',provIue:'0.025',v2:true,tipo:t,numero:'',fecha:TODAY(),cliente:'',tc:'',tcOf:'',proveedor:'',comprobante:'Factura',peso:'',bultos:'',cbmModo:'total',cbm:'',
+function indBlank(t){return{factGen:'0.84',provIue:'0.0267',v2:true,tipo:t,numero:'',fecha:TODAY(),cliente:'',tc:'',tcOf:'',proveedor:'',comprobante:'Factura',peso:'',bultos:'',cbmModo:'total',cbm:'',
   precioModo:'fob',gastosOrigen:'',prods:[indProd()],
   fletePaga:'novatrade',fleteUsd:'',fletePond:'100',tIntPaga:'novatrade',tIntUsd:'',tIntPond:'100',tNacPaga:'novatrade',tNacUsd:'',seguroPaga:'novatrade',seguroModo:'con',seguroTipo:'pct',seguroVal:'1',seguroUsd:'',seguroPond:'100',
   logPaga:'novatrade',manejoUsd:'',recojo:false,recojoUsd:'',logPond:'100',
@@ -31871,7 +31871,7 @@ function indCalc(d){
     tFac=d.transpFac||'no',oFac=d.otrosAgFac||'no',retG=((tFac==='no'?R.transp:0)+(oFac==='no'?R.otrosAg:0))*tc*0.16,
     credG0=(R.agencia+R.carpeta+R.despacho+R.almac+R.otros+(tFac==='si'?R.transp:0)+(oFac==='si'?R.otrosAg:0))*tc*0.13,costoCaja=cMerc+cEnv+cAdu+cGas+ivaB+retG;
   const T=totalBs,fac=d.comprobante!=='Recibo',itOn=d.itOn!=='0',nI=pr.length;
-  const pIue=String(d.provIue==null?'':d.provIue).trim()===''?0.025:n(d.provIue);
+  const pIue=String(d.provIue==null?'':d.provIue).trim()===''?0.0267:(n(d.provIue)===0.025?0.0267:n(d.provIue));
   const items0=d.prods.map((p,i)=>{const shF=FOB>0?pr[i].fob/FOB:(nI?1/nI:0);
     if(!fac){const itI=itOn?0.03:0;return{p,shF,ivaR:0,iueR:0,itR:itI,rate:itI,f:1-itI,man:false}}
     /* con factura: el factor (propio o general, 0,84) se reparte en 3% de IT y el saldo como débito fiscal estimado; aparte se provisiona el IUE */
@@ -31971,11 +31971,11 @@ function renderInd(){
 let IND_TAB='datos',IND_OPEN=new Set();let IND_FU=false;
 async function indFactDesbloq(){if(!(await gxPin('Para modificar el factor de facturación y la provisión IUE ingrese la clave.')))return;IND_FU=true;renderInd()}
 function indFactHtml(d){
-  const g=d.factGen==null||String(d.factGen).trim()===''?'0.84':d.factGen,pi=d.provIue==null||String(d.provIue).trim()===''?'0.025':d.provIue;
+  const g=d.factGen==null||String(d.factGen).trim()===''?'0.84':d.factGen,pi=d.provIue==null||String(d.provIue).trim()===''?'0.0267':(+String(d.provIue).replace(',','.')===0.025?'0.0267':d.provIue);
   const ro=(l,v)=>`<label class="f"><span>${l}</span><input class="plain" readonly value="${E(String(v).replace('.',','))}"></label>`;
   const ed=(k,l,ph)=>`<label class="f"><span>${l}</span><input class="plain" inputmode="decimal" data-ind="${k}" value="${E(d[k]==null?'':d[k])}" placeholder="${ph}" autocomplete="off"></label>`;
-  return (IND_FU?ed('factGen','Factor de facturación (IT 3% + débito fiscal)','0,84')+ed('provIue','Provisión IUE (factor)','0,025'):ro('Factor de facturación (IT 3% + débito fiscal)',g)+ro('Provisión IUE (factor)',pi)+'<div class="full row"><button class="btn sm" type="button" onclick="GX.indFactDesbloq()">Modificar factores (clave)</button></div>')
-   +'<p class="hint full" style="margin:0">Solo sirve para tu rentabilidad interna: el cliente paga el 100% del detalle. Del factor, 3% es el IT y el saldo es el débito fiscal estimado; la provisión IUE se suma aparte (0,84 y 0,025 equivalen a un factor de 0,815). Cada producto puede tener su propio factor.</p>'}
+  return (IND_FU?ed('factGen','Factor de facturación (IT 3% + débito fiscal)','0,84')+ed('provIue','Provisión IUE (factor)','0,0267'):ro('Factor de facturación (IT 3% + débito fiscal)',g)+ro('Provisión IUE (factor)',pi)+'<div class="full row"><button class="btn sm" type="button" onclick="GX.indFactDesbloq()">Modificar factores (clave)</button></div>')
+   +'<p class="hint full" style="margin:0">Solo sirve para tu rentabilidad interna: el cliente paga el 100% del detalle. Del factor, 3% es el IT y el saldo es el débito fiscal estimado; la provisión IUE se suma aparte (0,84 y 0,0267 equivalen a un factor de 0,8133). Cada producto puede tener su propio factor.</p>'}
 function indTab(k){IND_TAB=k;renderInd();window.scrollTo(0,0)}
 function indTg(k,o){if(o)IND_OPEN.add(k);else IND_OPEN.delete(k)}
 function indSaveProd(k){IND_OPEN.delete(k);indGuardar().then(()=>{})}
@@ -32168,7 +32168,7 @@ document.addEventListener('change',e=>{const t=e.target;if(!IND||!t.closest||!t.
 let LOG=null,LOG_TAB='datos',LOG_FU=false,LOG_OU=false;
 const logItem=()=>({desc:'',qty:'1',fob:'',fobRef:'',partida:'',ga:'',iva:'14,94',ice:false,iceModo:'pct',iceVal:''}),logLine=()=>({desc:'',usd:''}),logId=()=>'r'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),logRef=()=>({id:logId(),desc:'',usd:'',pago:'cliente',seg:'3'}),logGasto=()=>({id:logId(),desc:'',monto:'',mon:'USD',fecha:'',cuentaId:'',ctaGasto:'5.1.04'});
 const LOG_ROL={forwarder:'Forwarder: logística, transporte y aduana',compras:'Agente de compras en el exterior',mixto:'Agente de compras y forwarder'};
-function logBlank(){return{tipo:'logistica',numero:'',fecha:TODAY(),cliente:'',clienteId:'',tc:'',comprobante:'Factura',factGen:'0.84',provIue:'0.025',
+function logBlank(){return{tipo:'logistica',numero:'',fecha:TODAY(),cliente:'',clienteId:'',tc:'',comprobante:'Factura',factGen:'0.84',provIue:'0.0267',
   rol:'forwarder',origen:'',destino:'',transporte:'Marítimo',incoterm:'FOB',descripcion:'',items:[logItem()],
   carga:'general',imoClase:'',imoUN:'',espTipo:'',cargaNota:'',
   comModo:'pct',comVal:'',comMin:'',busqModo:'no',busqVal:'',serv:[],ref:[],gastos:[],cond:'',condAuto:true,
@@ -32236,7 +32236,7 @@ function logCalc(d){
   const total=rows.reduce((t,r)=>t+r.usd,0),T=total*tc;
   /* con recibo (sin factura): no hay IT, ni factor de facturación, ni provisión IUE */
   let itR=0,debR=0,iueR=0;
-  if(fac){const g=String(d.factGen==null?'':d.factGen).trim(),f0=g===''?0.84:n(g),f=(f0>0&&f0<=1)?f0:0.84,r0=1-f,p=String(d.provIue==null?'':d.provIue).trim();itR=Math.min(0.03,r0);debR=r0-itR;iueR=p===''?0.025:n(p)}
+  if(fac){const g=String(d.factGen==null?'':d.factGen).trim(),f0=g===''?0.84:n(g),f=(f0>0&&f0<=1)?f0:0.84,r0=1-f,p=String(d.provIue==null?'':d.provIue).trim();itR=Math.min(0.03,r0);debR=r0-itR;iueR=p===''?0.0267:(n(p)===0.025?0.0267:n(p))}
   const net=x=>x*(1-itR-debR-iueR);
   const refsS=[...auto,...(d.ref||[]).map((s,i)=>({id:s.id||('r'+i),l:String(s.desc||'').trim(),usd:n(s.usd),pago:s.pago==='novatrade'?'novatrade':(s.pago==='pagado'?'pagado':'cliente'),seg:[1,2,3].includes(+s.seg)?+s.seg:3,g:'x'+(s.id||i),to:s.pago==='novatrade'?'Novatrade':'Directo al tercero'})).filter(r=>r.l&&r.usd>0)];
   const gs={};refsS.forEach(x=>{const k=x.g||x.id;gs[k]=(gs[k]||0)+x.usd});
@@ -32294,11 +32294,11 @@ function logCli(v){
   const c=clients.find(x=>x.id===v);if(c){LOG.cliente=c.nombre;LOG.clienteId=c.id}else{LOG.cliente='';LOG.clienteId=''}
   renderLog()}
 function logFactHtml(d){
-  const g=String(d.factGen==null||String(d.factGen).trim()===''?'0.84':d.factGen).replace('.',','),pi=String(d.provIue==null||String(d.provIue).trim()===''?'0.025':d.provIue).replace('.',',');
+  const g=String(d.factGen==null||String(d.factGen).trim()===''?'0.84':d.factGen).replace('.',','),pi=String(d.provIue==null||String(d.provIue).trim()===''?'0.0267':(+String(d.provIue).replace(',','.')===0.025?'0.0267':d.provIue)).replace('.',',');
   const ro=(l,v)=>`<label class="f"><span>${l}</span><input class="plain" readonly value="${E(v)}"></label>`;
   const ed=(k,l,ph)=>`<label class="f"><span>${l}</span><input class="plain" inputmode="decimal" data-log="${k}" value="${E(d[k]==null?'':d[k])}" placeholder="${ph}" autocomplete="off"></label>`;
   return d.comprobante==='Recibo'?hintDiv('','Con recibo (sin factura) no se considera IT, factor de facturación ni provisión IUE: la ganancia es el total cobrado menos tus gastos.')
-   :(LOG_FU?ed('factGen','Factor de facturación (3% IT + 13% débito fiscal)','0,84')+ed('provIue','Factor de provisión IUE','0,025'):ro('Factor de facturación (3% IT + 13% débito fiscal)',g)+ro('Factor de provisión IUE',pi)+'<div class="full row"><button class="btn sm" type="button" onclick="GX.logFactDesbloq()">Modificar factores (clave)</button></div>')}
+   :(LOG_FU?ed('factGen','Factor de facturación (3% IT + 13% débito fiscal)','0,84')+ed('provIue','Factor de provisión IUE','0,0267'):ro('Factor de facturación (3% IT + 13% débito fiscal)',g)+ro('Factor de provisión IUE',pi)+'<div class="full row"><button class="btn sm" type="button" onclick="GX.logFactDesbloq()">Modificar factores (clave)</button></div>')}
 function renderLog(){
   const root=document.getElementById('view-log');if(!root||!LOG)return;const d=LOG;
   const f=(k,l,o={})=>`<label class="f ${o.full?'full':''}"><span>${l}</span><input class="plain" data-log="${k}" ${o.t?`type="${o.t}"`:`inputmode="${o.txt?'text':'decimal'}"`} value="${E(d[k]==null?'':d[k])}" ${o.ph?`placeholder="${o.ph}"`:''} autocomplete="off"></label>`;
@@ -32549,7 +32549,7 @@ function cierreBase(q){
 window.cierreTot=function(cz){const tc=cz.mon==='Bs'?1:num(cz.tc);let cot=0,cob=0,ing=0,ter=0,fac=0,sf=0;let cotB=0,cobB=0,ingB=0,terB=0,facB=0,sfB=0,debB=0,itFB=0,itSB=0,iueB=0;const pend=[];
   cz.lines.forEach(l=>{const t=num(l.tcl)>0?num(l.tcl):tc,cb=num(l.cob),pt=l.tipo==='tercero'?cb:(l.tipo==='ambos'?num(l.pt):0),ig=cb-pt;
     cot+=num(l.cot);cob+=cb;ter+=pt;ing+=ig;cotB+=num(l.cot)*t;cobB+=cb*t;terB+=pt*t;ingB+=ig*t;
-    if(ig>0){if(l.fac==='si'){fac+=ig;facB+=ig*t;if(l.deb)debB+=ig*t*0.13;if(l.it)itFB+=ig*t*0.03;iueB+=ig*t*0.025;if(!String(l.nf||'').trim())pend.push(l)}else{sf+=ig;sfB+=ig*t;if(l.it)itSB+=ig*t*0.03}}});
+    if(ig>0){if(l.fac==='si'){fac+=ig;facB+=ig*t;if(l.deb)debB+=ig*t*0.13;if(l.it)itFB+=ig*t*0.03;iueB+=ig*t*0.0267;if(!String(l.nf||'').trim())pend.push(l)}else{sf+=ig;sfB+=ig*t;if(l.it)itSB+=ig*t*0.03}}});
   return{tc,cot,cob,ing,ter,fac,sf,cotBs:cotB,cobBs:cobB,ingBs:ingB,terBs:terB,facBs:facB,sfBs:sfB,debBs:debB,itFacBs:itFB,itSfBs:itSB,itBs:itFB+itSB,iueBs:iueB,difBs:cotB-cobB,pend}};
 window.nextVentaNum=()=>{const y=new Date().getFullYear(),pre='VC-'+y+'-';let n=0;ops.forEach(o=>{const m=o.cierre&&String(o.cierre.numero).startsWith(pre)?(+String(o.cierre.numero).slice(pre.length)||0):0;if(m>n)n=m});return pre+String(n+1).padStart(3,'0')};
 async function fCierreVenta(op){
@@ -32567,7 +32567,7 @@ async function fCierreVenta(op){
     inp('cob'+i,'A cobrar ('+mon+')',n2(l.cob),{mode:'decimal'})+sel('tp'+i,'Este concepto es',[['ingreso','Ingreso de Novatrade'],['tercero','Pago a terceros'],['ambos','Pago a terceros e ingreso']],l.tipo)+
     inp('pt'+i,'Del total, lo que se paga a terceros ('+mon+')',l.pt||'',{mode:'decimal',full:1})+
     sel('fc'+i,'El ingreso es',[['si','Con factura'],['no','Sin factura']],l.fac)+inp('nf'+i,'N.º de factura (puede llenarlo después)',l.nf||'')+
-    `<label class="chk"><input type="checkbox" data-k="db${i}" ${l.deb?'checked':''}> Aplica débito fiscal 13%</label><label class="chk"><input type="checkbox" data-k="it${i}" ${l.it?'checked':''}> Aplica IT 3%</label></div></div>`});
+    `<label class="chk"><input type="checkbox" data-k="db${i}" ${l.deb?'checked':''}> Aplica débito fiscal 13%</label><label class="chk"><input type="checkbox" data-k="it${i}" ${l.it?'checked':''}> ¿Aplica IT 3% a este ingreso?</label></div></div>`});
   h+=hintDiv('czRes','');
   return new Promise(res=>{
     const b=sheet(cz?'Editar el cierre de la venta':'Cerrar la venta',h,v=>{
@@ -32617,7 +32617,7 @@ async function ventaCerradaBlob(op){
   y=tbl(y+3,['Concepto','Tipo','Cotizado ('+mon+')','A cobrar ('+mon+')'],z.lines.map(l=>[l.l,TP[l.tipo]+(l.tipo!=='tercero'?(l.fac==='si'?' · factura'+(l.nf?' '+l.nf:' (n.º pendiente)'):' · sin factura'):''),N(num(l.cot)),N(num(l.cob))]).concat([['TOTAL','',N(Z.cot),N(Z.cob)]]),[W-2*M-110,56,27,27],['l','l','r','r'],i=>i===z.lines.length?{b:1}:{});
   y+=7;if(Math.abs(Z.cot-Z.cob)>0.02){need(8);doc.setFont('helvetica','normal');doc.setFontSize(9.5);doc.setTextColor(50,62,78);doc.text((Z.cob<Z.cot?'Saldo a favor del cliente por variación: ':'Cobro adicional por variación: ')+mon+' '+N(Math.abs(Z.cot-Z.cob)),M,y);y+=7}
   ttl('INGRESOS DE LA OPERACIÓN (Bs)');
-  const r2=[['Ingresos con factura',N(Z.facBs)],['   Débito fiscal IVA 13%',N(Z.debBs)],['   IT 3% sobre lo facturado',N(Z.itFacBs)],['   Provisión IUE 2,5% (reserva, no es ingreso)',N(Z.iueBs)],['   Ingreso neto facturado',N(Z.facBs-Z.debBs-Z.iueBs)],['Ingresos sin factura (otros ingresos por gestión)',N(Z.sfBs)],['   IT 3% sobre lo no facturado',N(Z.itSfBs)],['Pagos por cuenta de terceros (no son ingreso)',N(Z.terBs)],['TOTAL COBRADO EN EL CIERRE',N(Z.cobBs)]];
+  const r2=[['Ingresos con factura',N(Z.facBs)],['   Débito fiscal IVA 13%',N(Z.debBs)],['   IT 3% sobre lo facturado',N(Z.itFacBs)],['   Ingreso neto facturado (87%)',N(Z.facBs-Z.debBs)],['Ingresos sin factura (otros ingresos por gestión)',N(Z.sfBs)],['   IT 3% sobre lo no facturado',N(Z.itSfBs)],['Pagos por cuenta de terceros (no son ingreso)',N(Z.terBs)],['TOTAL COBRADO EN EL CIERRE',N(Z.cobBs)]];
   y=tbl(y+3,['Concepto','Bs'],r2,[W-2*M-40,40],['l','r'],i=>(i===0||i===5||i===7||i===8)?{b:1}:{});
   y+=7;
   let F=null;try{F=q.ind?indCalc(q.ind).fac:null}catch(_){}
@@ -32641,11 +32641,11 @@ function terCalc(t){
   const mv=t.movs||[],L=(t.lineas||[]).map(l=>{const cs=mv.filter(m=>m.lineaId===l.id&&m.kind==='cobro'),ps=mv.filter(m=>m.lineaId===l.id&&m.kind==='pago');
     const cob=cs.reduce((x,m)=>x+terBs(m),0),pag=ps.reduce((x,m)=>x+terBs(m),0);
     return{l,cob,pag,ing:cob-pag,cobU:cs.filter(m=>m.moneda==='USD').reduce((x,m)=>x+num(m.monto),0),pagU:ps.filter(m=>m.moneda==='USD').reduce((x,m)=>x+num(m.monto),0)}});
-  let fac=0,sf=0,perd=0,cred=0;const pend=[],facL=[],sfL=[];
-  L.forEach(r=>{if(r.ing>0.004){if(r.l.fac==='si'){fac+=r.ing;facL.push(r);if(!String(r.l.nf||'').trim())pend.push(r.l)}else{sf+=r.ing;sfL.push(r)}}else if(r.ing<-0.004)perd+=-r.ing});
+  let fac=0,sf=0,perd=0,cred=0,itF=0,itS=0;const pend=[],facL=[],sfL=[];
+  L.forEach(r=>{if(r.ing>0.004){const ia=r.l.it===undefined?true:!!r.l.it;r.itOn=ia;if(r.l.fac==='si'){fac+=r.ing;facL.push(r);if(ia)itF+=r.ing*0.03;if(!String(r.l.nf||'').trim())pend.push(r.l)}else{sf+=r.ing;sfL.push(r);if(ia)itS+=r.ing*0.03}}else if(r.ing<-0.004)perd+=-r.ing});
   mv.forEach(m=>{if(m.kind==='pago'&&m.aNombre==='novatrade'&&m.fac==='si')cred+=terBs(m)*0.13});
-  const deb=fac*0.13,it=(fac+sf)*0.03,gas=(t.gastos||[]).reduce((x,g)=>x+num(g.monto),0),ingT=fac+sf;
-  return{L,fac,sf,perd,cred,deb,it,gas,ingT,pend,facL,sfL,cob:L.reduce((x,r)=>x+r.cob,0),pag:L.reduce((x,r)=>x+r.pag,0),util:ingT-perd-deb-it-gas}}
+  const deb=fac*0.13,it=itF+itS,gas=(t.gastos||[]).reduce((x,g)=>x+num(g.monto),0),ingT=fac+sf;
+  return{L,fac,sf,perd,cred,deb,it,itF,itS,gas,ingT,pend,facL,sfL,cob:L.reduce((x,r)=>x+r.cob,0),pag:L.reduce((x,r)=>x+r.pag,0),util:ingT-perd-deb-it-gas}}
 function terSyncMov(t,m){
   DB.accMov.filter(x=>x.ref==='ter:'+m.id).forEach(x=>del('accMov',x.id));
   const a=byId(DB.accounts,m.cuentaId);if(!a)return;
@@ -32810,7 +32810,7 @@ function fTerFlete(key){
      let W=G.its.map(t=>w(t,v.base)),sw=W.reduce((x,y)=>x+y,0);if(sw<=0){W=G.its.map(()=>1);sw=G.its.length}
      let rest=Math.round(tot*100)/100;
      G.its.forEach((t,i)=>{const sh=i===G.its.length-1?rest:Math.round(tot*W[i]/sw*100)/100;rest=Math.round((rest-sh)*100)/100;
-       let ln=(t.lineas||[]).find(y=>y.l===v.concepto);if(!ln){ln={id:uid(),k:'fc'+Date.now(),l:v.concepto,cot:'',tipo:'tercero',fac:'no',nf:''};(t.lineas=t.lineas||[]).push(ln)}
+       let ln=(t.lineas||[]).find(y=>y.l===v.concepto);if(!ln){ln={id:uid(),k:'fc'+Date.now(),l:v.concepto,cot:'',tipo:'tercero',fac:'no',nf:'',it:false};(t.lineas=t.lineas||[]).push(ln)}
        const m={id:uid(),fecha:v.fecha,lineaId:ln.id,moneda:v.moneda,monto:String(sh),tc:v.moneda==='USD'?v.tc:'',cuentaId:v.cuentaId,kind:'pago',aNombre:'terceros',fac:'no'};(t.movs=t.movs||[]).push(m);terSyncMov(t,m)});
      save();render();toastX('Flete repartido entre '+G.its.length+' operaciones')});
   const u=()=>{const v=vals(b),W=G.its.map(t=>w(t,v.base)),sw=W.reduce((x,y)=>x+y,0)||1,tot=num(v.monto);
@@ -32820,7 +32820,7 @@ function fTerFlete(key){
 function terCargarLineas(t){
   const q=lsGet('nt_quotes',[]).find(x=>x.id===t.quoteId);if(!q||!(q.tipoCot==='logistica'&&q.log))return 0;
   const b=cierreBase(q);let n=0;t.lineas=t.lineas||[];
-  b.lines.forEach(l=>{if(!t.lineas.some(x=>x.k===l.k)){t.lineas.push({id:uid(),k:l.k,l:l.l,cot:l.cot,tipo:l.tipo,fac:l.fac,nf:''});n++}});return n}
+  b.lines.forEach(l=>{if(!t.lineas.some(x=>x.k===l.k)){t.lineas.push({id:uid(),k:l.k,l:l.l,cot:l.cot,tipo:l.tipo,fac:l.fac,nf:'',it:!!l.it});n++}});return n}
 function fTer(id){
   const t=id?terPorId(id):{numero:nextNum('IT',DB.terceros),fecha:TODAY(),estado:'abierta',lineas:[],movs:[],gastos:[],pedidos:[]};
   const qs=lsGet('nt_quotes',[]).filter(q=>q.tipoCot==='logistica');
@@ -32845,12 +32845,12 @@ function fTerLinea(tid,lid){
   const b=sheet(lid?'Editar concepto':'Nuevo concepto',
    inp('l','Concepto',x.l,{full:1})+inp('cot','Cotizado (USD, opcional)',x.cot,{mode:'decimal'})+
    sel('tipo','Este concepto es',[['ingreso','Ingreso de Novatrade'],['tercero','Pago de terceros'],['ambos','Pago de terceros e ingreso']],x.tipo)+
-   sel('fac','El ingreso que quede es',[['si','Con factura'],['no','Sin factura']],x.fac)+inp('nf','N.º de factura (puede llenarlo después)',x.nf||''),
+   sel('fac','El ingreso que quede es',[['si','Con factura'],['no','Sin factura']],x.fac)+inp('nf','N.º de factura (puede llenarlo después)',x.nf||'')+sel('it','¿Aplica IT 3% a este ingreso?',[['si','Sí, aplica IT'],['no','No aplica IT']],x.it===undefined?(lid?'si':(x.fac==='si'?'si':'no')):(x.it?'si':'no'),{full:1}),
    v=>{if(!v.l){toastX('Falta el concepto');return false}
-     const r={l:v.l,cot:v.cot,tipo:v.tipo,fac:v.fac,nf:v.fac==='si'?v.nf:''};
+     const r={l:v.l,cot:v.cot,tipo:v.tipo,fac:v.fac,nf:v.fac==='si'?v.nf:'',it:v.it==='si'};
      if(lid)Object.assign(x,r);else(t.lineas=t.lineas||[]).push({id:uid(),k:'m'+Date.now(),...r});save();render()},
    lid?()=>{if((t.movs||[]).some(m=>m.lineaId===lid)){toastX('Tiene cobros o pagos: elimínelos primero');return}t.lineas=t.lineas.filter(y=>y.id!==lid);save();render()}:null);
-  const upd=()=>{const v=vals(b);b.querySelector('[data-k=nf]').parentElement.style.display=v.fac==='si'?'':'none'};b.addEventListener('change',upd);upd()}
+  const upd=()=>{const v=vals(b);b.querySelector('[data-k=nf]').parentElement.style.display=v.fac==='si'?'':'none'};b.addEventListener('change',e=>{if(e.target.dataset.k==='fac'){const i1=b.querySelector('[data-k=it]');if(i1)i1.value=e.target.value==='si'?'si':'no'}upd()});upd()}
 function fTerMov(tid,kind,mid){
   const t=terPorId(tid);if(!t)return;if(!(t.lineas||[]).length){toastX('Primero agregue los conceptos');return}
   const x=mid?(t.movs||[]).find(y=>y.id===mid):{fecha:TODAY(),moneda:'Bs',aNombre:'terceros',fac:'no',lineaId:t.lineas[0].id,kind};
@@ -32895,7 +32895,7 @@ async function terDocBlob(t,kind){
   const row=(a,b,bold)=>{doc.setFont('helvetica',bold?'bold':'normal');doc.setFontSize(fs);doc.setTextColor(30,40,55);const tl=doc.splitTextToSize(String(a),w[0]-4.4),h=tl.length*4.6+3.4;if(y1+h>272){doc.addPage();y1=18}doc.text(tl,M+2.2,y1+5.2);doc.text(b,W-M-2.2,y1+5.2,{align:'right'});y1+=h;doc.setDrawColor(222,229,237);doc.setLineWidth(.2);doc.line(M,y1,W-M,y1)};
   rows.forEach(r=>row(r.l.l,N(r.ing)));row('TOTAL',N(nv?C.fac:C.sf),true);y=y1+8;
   doc.setFont('helvetica','normal');doc.setFontSize(9.5);doc.setTextColor(50,62,78);
-  const note=nv?['Venta facturada de comisión y servicios de gestión.'+(C.facL.some(r=>r.l.nf)?' Factura N.º '+C.facL.map(r=>r.l.nf).filter(Boolean).filter((v,i,a)=>a.indexOf(v)===i).join(', ')+'.':' Factura: número pendiente.'),'Débito fiscal IVA 13% incluido: Bs '+N(C.deb)+' · IT 3%: Bs '+N(C.facL.reduce((x,r)=>x+r.ing,0)*0.03)]:['Ingreso por gestión de terceros sin factura. Se registra en la cuenta «Ingresos sin factura».','IT 3% sobre este ingreso: Bs '+N(C.sf*0.03)];
+  const note=nv?['Venta facturada de comisión y servicios de gestión.'+(C.facL.some(r=>r.l.nf)?' Factura N.º '+C.facL.map(r=>r.l.nf).filter(Boolean).filter((v,i,a)=>a.indexOf(v)===i).join(', ')+'.':' Factura: número pendiente.'),'Débito fiscal IVA 13% incluido: Bs '+N(C.deb)+' · IT 3%: Bs '+N(C.itF)]:['Ingreso por gestión de terceros sin factura. Se registra en la cuenta «Ingresos sin factura».',(C.itS>0?'IT 3% sobre este ingreso: Bs '+N(C.itS):'Sin IT en este ingreso (no se aplicó IT).')];
   note.forEach(n=>{const tl=doc.splitTextToSize(n,W-2*M);doc.text(tl,M,y);y+=tl.length*5+1});
   y+=4;doc.setFontSize(8.8);doc.setTextColor(...GRAY);doc.text(doc.splitTextToSize('Documento interno de control. Las cifras tributarias son una guía: valídelas con su contador.',W-2*M),M,y);
   const contact=[cfg.tel,cfg.mail,cfg.dir].filter(Boolean).join('  ·  ');doc.setDrawColor(215,224,234);doc.setLineWidth(.3);doc.line(M,282,W-M,282);doc.setFontSize(8.5);doc.text(doc.splitTextToSize('NOVATRADE Import & Export'+(contact?'  ·  '+contact:''),W-2*M).slice(0,2),M,286.5);
@@ -33208,7 +33208,7 @@ function ctExcel(){
 /* ============ SISTEMA CONTABLE: plan de cuentas, diario, mayor, resultados, balances, RRHH ============ */
 const TC_DEF=6.96;
 const PLAN_BASE=[['1.1.01.00','Caja y bancos sin cuenta asignada','D'],['1.1.03','Cuentas por cobrar a clientes','D'],['1.1.04','Inventario de mercaderías','D'],['1.1.06','Crédito fiscal IVA','D'],['1.1.07','Anticipos a proveedores','D'],['1.1.08','Otras cuentas por cobrar','D'],['1.2.01','Activos fijos (muebles y equipos)','D'],['1.2.02','Depreciación acumulada','H'],
- ['2.1.01','Proveedores por pagar','H'],['2.1.02','Préstamos bancarios (capital)','H'],['2.1.03','IVA débito fiscal por pagar','H'],['2.1.04','IT por pagar','H'],['2.1.05','Sueldos y salarios por pagar','H'],['2.1.06','Aportes laborales y patronales por pagar','H'],['2.1.07','Retenciones por pagar','H'],['2.1.08','Anticipos de clientes','H'],['2.1.09','Otras cuentas por pagar','H'],['2.1.11','Provisión IUE (reserva sobre lo facturado)','H'],
+ ['2.1.01','Proveedores por pagar','H'],['2.1.02','Préstamos bancarios (capital)','H'],['2.1.03','IVA débito fiscal por pagar','H'],['2.1.04','IT por pagar','H'],['2.1.05','Sueldos y salarios por pagar','H'],['2.1.06','Aportes laborales y patronales por pagar','H'],['2.1.07','Retenciones por pagar','H'],['2.1.08','Anticipos de clientes','H'],['2.1.09','Otras cuentas por pagar','H'],
  ['3.1.01','Capital y aportes de socios','H'],['3.1.02','Resultados acumulados','H'],
  ['4.1.01','Ventas de importación','H'],['4.1.02','Ventas de stock','H'],['4.1.03','Otros ingresos','H'],['4.1.04','Ingresos por servicios logísticos y asesoramiento','H'],['4.1.05','Ingresos sin factura (gestión de terceros y otros)','H'],['4.1.06','Ingresos por gestión de importaciones de terceros (con factura)','H'],
  ['5.1.01','Costo de ventas (stock)','D'],['5.1.02','Costo de importaciones','D'],['5.1.03','Compras locales','D'],['5.1.04','Costo de servicios logísticos (gastos de la operación)','D'],
@@ -33297,13 +33297,13 @@ function ctAuto(){
     add(o.fecha,'Transferencia: '+ctCuentaNom(o.cuentaId)+' → '+ctCuentaNom(d.cuentaId),'Tesorería','trf:'+t,[D(cod(d.cuentaId),vd),H(cod(o.cuentaId),vo),vd<vo?D('5.3.04',vo-vd):H('5.3.04',vd-vo)])});
   DB.liabilities.forEach(l=>{const f=l.moneda==='USD'?(num(l.tc)||TC_DEF):1;(l.cuotas||[]).forEach(c=>{if(!c.pagada)return;const cap=capC(c)*f,it=num(c.interes)*f,sg=num(c.seguro)*f,tot=(num(c.montoPagado)||num(c.monto))*f;
     add(c.fechaPago||c.fecha,(c.tipo==='Amortización total'?'Amortización total · ':'Cuota '+c.n+' · ')+l.entidad,'Préstamos','cuota:'+c.id,[D('2.1.02',cap),D('5.3.01',it+(tot-cap-it-sg)),D('5.3.02',sg),H(cod(c.cuentaId),tot)])})});
-  const venta=(fecha,glosa,ref,cta,T,iva,it,cc,iue)=>add(fecha,glosa,'Ventas',ref,[D(cc||'1.1.03',T),H(cta,T-iva-(iue||0)),H('2.1.03',iva),D('5.2.07',it),H('2.1.04',it),H('2.1.11',iue||0)]);
+  const venta=(fecha,glosa,ref,cta,T,iva,it,cc)=>add(fecha,glosa,'Ventas',ref,[D(cc||'1.1.03',T),H(cta,T-iva),H('2.1.03',iva),D('5.2.07',it),H('2.1.04',it)]);
   const cobs=(arr,pre,num_,cc)=>(arr||[]).forEach((c,i)=>{const v=c.moneda==='USD'?num(c.monto)*num(c.tc):num(c.monto);add(c.fecha,'Cobro '+num_+(c.fondos?' · fondos por cuenta del cliente':(c.concepto&&c.concepto!=='hon'?' · '+c.concepto:'')),'Cobros','cob:'+pre+':'+i,[D(c.cuentaId&&byId(DB.accounts,c.cuentaId)?cod(c.cuentaId):'1.1.01.00',v),H(c.ctaContra||cc||'1.1.03',v)])});
   (typeof ops!=='undefined'?ops:[]).forEach(o=>{const dv=o.docVenta||{};
     if(o.cierre&&o.etapa==='entregada'){const Zq=window.cierreTot(o.cierre),qo=(lsGet('nt_quotes',[]).find(x=>x.id===o.quoteId)||{}),lg=(qo.tipoCot==='logistica'),cc=ctCliFind(o.clienteNombre),fch=o.cierre.fecha||TODAY();
-      if(Zq.facBs>0)venta(fch,'Venta '+(lg?'de servicios logísticos ':'')+(o.numero||'')+' · '+(o.clienteNombre||'')+' · cierre '+o.cierre.numero,'op:'+o.id,lg?'4.1.04':'4.1.01',Zq.facBs,Zq.debBs,Zq.itFacBs,cc,Zq.iueBs);
+      if(Zq.facBs>0)venta(fch,'Venta '+(lg?'de servicios logísticos ':'')+(o.numero||'')+' · '+(o.clienteNombre||'')+' · cierre '+o.cierre.numero,'op:'+o.id,lg?'4.1.04':'4.1.01',Zq.facBs,Zq.debBs,Zq.itFacBs,cc);
       if(Zq.sfBs>0)add(fch,'Ingreso sin factura '+(o.numero||'')+' · '+(o.clienteNombre||'')+' · cierre '+o.cierre.numero,'Ventas','opsf:'+o.id,[D(cc||'1.1.03',Zq.sfBs),H('4.1.05',Zq.sfBs),D('5.2.07',Zq.itSfBs),H('2.1.04',Zq.itSfBs)])}
-    else if(o.etapa==='entregada'&&dv.numero){const T=num(o.total),fac=dv.tipo==='Factura',qo=(lsGet('nt_quotes',[]).find(x=>x.id===o.quoteId)||{}),lg=(qo.tipoCot==='logistica');let iue=0;if(fac){let Fq=null;try{Fq=qo.ind?indCalc(qo.ind).fac:qo.indFac}catch(_){}iue=(Fq&&Fq.T>0&&Fq.iue!=null)?T*Fq.iue/Fq.T:T*0.025}venta(dv.fecha||TODAY(),'Venta '+(lg?'de servicios logísticos ':'')+(o.numero||'')+' · '+(o.clienteNombre||'')+' · '+dv.tipo+' '+dv.numero,'op:'+o.id,lg?'4.1.04':'4.1.01',T,fac?T*0.13:0,(lg&&!fac)?0:T*0.03,ctCliFind(o.clienteNombre),iue)}
+    else if(o.etapa==='entregada'&&dv.numero){const T=num(o.total),fac=dv.tipo==='Factura',qo=(lsGet('nt_quotes',[]).find(x=>x.id===o.quoteId)||{}),lg=(qo.tipoCot==='logistica');venta(dv.fecha||TODAY(),'Venta '+(lg?'de servicios logísticos ':'')+(o.numero||'')+' · '+(o.clienteNombre||'')+' · '+dv.tipo+' '+dv.numero,'op:'+o.id,lg?'4.1.04':'4.1.01',T,fac?T*0.13:0,(lg&&!fac)?0:T*0.03,ctCliFind(o.clienteNombre))}
     cobs(o.cobros,o.id,o.numero||'',ctCliFind(o.clienteNombre))});
   DB.terceros.forEach(t=>{const nm=t.numero+' · '+(t.cliente||''),C=terCalc(t);
     (t.movs||[]).forEach(m=>{const v=terBs(m);if(!v)return;const ln=(t.lineas||[]).find(x=>x.id===m.lineaId),lb=ln?ln.l:'';
@@ -33315,7 +33315,7 @@ function ctAuto(){
       if(C.sf>0.004)add(f,'Ingreso sin factura '+nm+(t.cierre.oi?' · '+t.cierre.oi:''),'Ventas','ter-s:'+t.id,[D('2.1.08',C.sf),H('4.1.05',C.sf)]);
       if(C.perd>0.004)add(f,'Diferencia negativa terceros '+nm,'Ventas','ter-p:'+t.id,[D('5.3.04',C.perd),H('2.1.08',C.perd)]);
       if(C.it>0.004)add(f,'IT terceros '+nm,'Ventas','ter-i:'+t.id,[D('5.2.07',C.it),H('2.1.04',C.it)])}});
-  DB.stockSales.forEach(x=>{if(x.estado==='entregada'&&x.docNumero){const t=vsTot(x,false);venta(x.fechaEntrega||TODAY(),'Venta de stock '+x.numero+' · '+x.comprobante+' '+x.docNumero,'vs:'+x.id,'4.1.02',t.total,t.iva,t.it,'',t.iue)}
+  DB.stockSales.forEach(x=>{if(x.estado==='entregada'&&x.docNumero){const t=vsTot(x,false);venta(x.fechaEntrega||TODAY(),'Venta de stock '+x.numero+' · '+x.comprobante+' '+x.docNumero,'vs:'+x.id,'4.1.02',t.total,t.iva,t.it,'')}
     cobs(x.cobros,x.id,x.numero||'')});
   DB.payments.forEach(p=>{const t=bsMonto(p);if(!t)return;const iva=credP(p),ret=num(p.retencion);
     const cr=p.forma==='credito';
